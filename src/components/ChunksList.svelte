@@ -16,6 +16,7 @@
   let parseError = $derived($chunkState.parseError);
   let parseProgress = $derived($chunkState.parseProgress);
   let sourceCharCount = $derived($chunkState.sourceCharCount);
+  let maxKeywords = $derived($chunkState.maxKeywords);
   let copyFeedback = $state('');
   let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -144,13 +145,13 @@
           <span class="sep" aria-hidden="true">·</span>
           <span class="tokens tabular">{chunk.approx_tokens}t</span>
           <span class="sep" aria-hidden="true">·</span>
-          <span class="density" title="Density: {chunk.density_score.toFixed(2)}" aria-label="Density {densityGlyph(chunk.density_score)}">
+          <span class="density" title="Density score: {chunk.density_score.toFixed(2)} — measures unique/meaningful term richness. ▁=sparse ▅=dense" aria-label="Density {densityGlyph(chunk.density_score)}">
             {densityGlyph(chunk.density_score)}
           </span>
         </div>
-        {#if chunk.keywords.length > 0}
+        {#if chunk.keywords.length > 0 && maxKeywords > 0}
           <div class="keywords" aria-label="Keywords">
-            {#each chunk.keywords.slice(0, 4) as kw}
+            {#each chunk.keywords.slice(0, maxKeywords) as kw}
               <span class="keyword-pill">{kw}</span>
             {/each}
           </div>

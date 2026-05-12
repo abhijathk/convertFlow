@@ -22,12 +22,13 @@
   let running = $state(false);
   let mode = $state<DupMode>('exact');
   let fieldPath = $state('messages[0].content');
+  let threshold = $state(85);
 
   async function run() {
     running = true;
     result = await runUtility(meta.id, {
       input: toolState.primaryInput,
-      options: { mode, fieldPath },
+      options: { mode, fieldPath, threshold: threshold / 100 },
     });
     running = false;
   }
@@ -42,11 +43,14 @@
     result = null;
   }
 
-  function sendUniqueToEditor(d: DuplicateDetectorResult) {
+  function buildUniqueOutput(d: DuplicateDetectorResult): string {
     const lines = toolState.primaryInput.split('\n').filter(l => l.trim() !== '');
     const dupLineNums = new Set(d.duplicates.flatMap(g => g.lines.slice(1)));
-    const unique = lines.filter((_, i) => !dupLineNums.has(i + 1)).join('\n');
-    sendToEditor('unique.jsonl', unique);
+    return lines.filter((_, i) => !dupLineNums.has(i + 1)).join('\n');
+  }
+
+  function sendUniqueToEditor(d: DuplicateDetectorResult) {
+    sendToEditor('unique.jsonl', buildUniqueOutput(d));
   }
 </script>
 
@@ -85,6 +89,21 @@
       <input id="field-{meta.id}" class="text-input" type="text" bind:value={fieldPath} placeholder="messages[0].content" oninput={() => (result = null)} />
     </div>
   {/if}
+  {#if mode === 'semantic'}
+    <div class="setting-group">
+      <label class="field-label" for="threshold-{meta.id}">Similarity threshold <span class="threshold-val">{threshold}%</span></label>
+      <input
+        id="threshold-{meta.id}"
+        class="range-input"
+        type="range"
+        min="50"
+        max="99"
+        step="1"
+        bind:value={threshold}
+        oninput={() => (result = null)}
+      />
+    </div>
+  {/if}
 </div>
 
 <div class="run-row">
@@ -104,7 +123,11 @@
       </div>
 
       {#if d.duplicates.length > 0}
-        <button class="secondary-btn" onclick={() => sendUniqueToEditor(d)}>Send unique → Editor</button>
+        <div class="dedup-actions">
+          <button class="secondary-btn" onclick={() => sendUniqueToEditor(d)}>deduped → Editor</button>
+          <button class="secondary-btn" onclick={() => sendToConvert(buildUniqueOutput(d))}>deduped → Convert</button>
+          <button class="secondary-btn" onclick={() => sendToChunk(buildUniqueOutput(d))}>deduped → Chunk</button>
+        </div>
 
         <ul class="dup-list">
           {#each d.duplicates as group}
@@ -184,6 +207,19 @@
     min-width: 200px;
   }
   .text-input:focus { border-color: var(--accent); }
+  .range-input {
+    accent-color: var(--accent);
+    width: 180px;
+    cursor: pointer;
+  }
+  .threshold-val {
+    font-weight: 600;
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 4px;
+  }
+  .dedup-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .run-row { display: flex; }
   .run-btn {
     background: var(--accent);

@@ -492,6 +492,7 @@
             onchange={(e) => (exportFormat = e.currentTarget.value as ChunkExportFormat)}
             disabled={$chunkState.chunks.length > 0}
             title={$chunkState.chunks.length > 0 ? 'Format locked — clear editor to change' : 'Output format'}
+            aria-label="Output format"
           >
             <option value="jsonl">JSONL</option>
             <option value="json">JSON</option>

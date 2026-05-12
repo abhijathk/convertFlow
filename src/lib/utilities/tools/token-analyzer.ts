@@ -39,8 +39,9 @@ const tokenAnalyzer: UtilityToolModule = {
     if (!text) return { ok: false, error: 'Input is empty.' };
 
     const opts = payload.options ?? {};
+    const customWindow = typeof opts['customWindow'] === 'number' ? (opts['customWindow'] as number) : 0;
     const windowKey = (opts['contextWindow'] as string) ?? '128k';
-    const limit = TOKEN_ANALYZER_CONTEXT_SIZES[windowKey] ?? 131072;
+    const limit = customWindow > 0 ? customWindow : (TOKEN_ANALYZER_CONTEXT_SIZES[windowKey] ?? 131072);
 
     const lines = text.split('\n').filter(l => l.trim() !== '');
 

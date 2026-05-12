@@ -445,16 +445,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .det-label::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--dot-color, #6b7280);
-    margin-right: 5px;
-    vertical-align: middle;
-  }
   .mode-select {
     background: var(--bg);
     border: 1px solid var(--border);

@@ -253,7 +253,7 @@
       <span class="sep" aria-hidden="true">·</span>
       <span class="stat"><span class="stat-val">{chunk.word_count}</span> words</span>
       <span class="sep" aria-hidden="true">·</span>
-      <span class="stat" title="Information density">density <span class="stat-val">{densityGlyph(chunk.density_score)}</span></span>
+      <span class="stat" title="Density score: {chunk.density_score.toFixed(2)} — unique/meaningful term richness. ▁=sparse (repetitive) ▅=dense (information-rich)">density <span class="stat-val">{densityGlyph(chunk.density_score)}</span></span>
       {#if hasAnyOverlap}
         <span class="sep" aria-hidden="true">·</span>
         <button class="overlap-toggle" onclick={toggleOverlap} title={showOverlap ? 'Hide overlap highlights' : 'Show overlap highlights'}>

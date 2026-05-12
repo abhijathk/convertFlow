@@ -54,6 +54,7 @@ const duplicateDetector: UtilityToolModule = {
     const opts = payload.options ?? {};
     const mode = (opts['mode'] as DupMode) ?? 'exact';
     const fieldPath = (opts['fieldPath'] as string) ?? '';
+    const threshold = typeof opts['threshold'] === 'number' ? (opts['threshold'] as number) : 0.85;
 
     const lines = text.split('\n').filter(l => l.trim() !== '');
     const total = lines.length;
@@ -72,7 +73,7 @@ const duplicateDetector: UtilityToolModule = {
         const group: number[] = [i + 1];
         for (let j = i + 1; j < workLines.length; j++) {
           if (grouped[j]) continue;
-          if (jaccard(sets[i], sets[j]) >= 0.85) {
+          if (jaccard(sets[i], sets[j]) >= threshold) {
             group.push(j + 1);
             grouped[j] = true;
           }
@@ -107,15 +108,11 @@ const duplicateDetector: UtilityToolModule = {
     }
 
     const duplicates: DupGroup[] = [];
-    let uniqueCount = 0;
     for (const [key, lineNums] of keyMap) {
       if (lineNums.length > 1) {
         duplicates.push({ value: key, lines: lineNums, occurrences: lineNums.length });
-      } else {
-        uniqueCount++;
       }
     }
-    uniqueCount += duplicates.length;
 
     const capped = duplicates.length > CAP;
     const data: DuplicateDetectorResult = {

@@ -5,6 +5,7 @@ export interface TimestampResult {
   iso: string;
   local: string;
   inputFormat: string;
+  inTimezone?: string;
 }
 
 function parseTimestamp(input: string): { date: Date; format: string } | null {
@@ -51,6 +52,9 @@ const timestampTools: UtilityToolModule = {
       return { ok: false, error: 'Could not parse timestamp. Try a Unix number or ISO 8601 string.' };
     }
 
+    const opts = payload.options ?? {};
+    const timezone = (opts['timezone'] as string) ?? '';
+
     const { date, format } = parsed;
     const data: TimestampResult = {
       unixSeconds: Math.floor(date.getTime() / 1000),
@@ -58,6 +62,23 @@ const timestampTools: UtilityToolModule = {
       local: date.toLocaleString(),
       inputFormat: format,
     };
+
+    if (timezone) {
+      try {
+        data.inTimezone = date.toLocaleString('en-US', {
+          timeZone: timezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+      } catch {
+        // invalid timezone — omit inTimezone
+      }
+    }
 
     return { ok: true, data };
   },

@@ -21,6 +21,7 @@
   let result = $state<UtilityResult | null>(null);
   let running = $state(false);
   let schema = $state<ConvSchema>('openai');
+  let systemMessage = $state('');
 
   const SCHEMAS: { value: ConvSchema; label: string }[] = [
     { value: 'openai', label: 'OpenAI Chat (messages[])' },
@@ -33,7 +34,7 @@
     running = true;
     result = await runUtility(meta.id, {
       input: toolState.primaryInput,
-      options: { schema },
+      options: { schema, systemMessage },
     });
     running = false;
   }
@@ -78,6 +79,19 @@
       {/each}
     </select>
   </div>
+</div>
+
+<div class="setting-group">
+  <label class="field-label" for="sysmsg-{meta.id}">System message <span class="hint-inline">(optional)</span></label>
+  <textarea
+    id="sysmsg-{meta.id}"
+    class="sysmsg-input"
+    bind:value={systemMessage}
+    oninput={() => (result = null)}
+    placeholder="You are a helpful assistant."
+    spellcheck="false"
+    rows="2"
+  ></textarea>
 </div>
 
 <div class="run-row">
@@ -146,6 +160,27 @@
     margin: 4px 0 0 0;
     font-style: italic;
   }
+  .hint-inline {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+  .sysmsg-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12px;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .sysmsg-input:focus { border-color: var(--accent); }
   .settings-row { display: flex; gap: 16px; }
   .setting-group { display: flex; flex-direction: column; }
   .select-input {

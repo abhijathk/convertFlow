@@ -31,6 +31,7 @@ export interface ChunkState {
   userMeta: { doc_id: string; category: string; tags: string; author: string; language: string };
   chunkSize: number;
   chunkOverlap: number;
+  maxKeywords: number;
   enableImages: boolean;
   enableOcr: boolean;
   manualBoundaries: number[] | null;
@@ -49,6 +50,7 @@ export const chunkState = writable<ChunkState>({
   userMeta: { doc_id: '', category: '', tags: '', author: '', language: 'en' },
   chunkSize: 640,
   chunkOverlap: 80,
+  maxKeywords: 4,
   enableImages: false,
   enableOcr: false,
   manualBoundaries: null,

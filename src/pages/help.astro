@@ -37,6 +37,7 @@ import DocLayout from '../layouts/DocLayout.astro';
     { id: 'utility-tools',    label: 'Tool inventory',      depth: 2 },
     { id: 'utility-pii',      label: 'PII Detector',        depth: 2 },
     { id: 'utility-schema',   label: 'Schema Migrator',     depth: 2 },
+    { id: 'utility-jsonl-repair', label: 'JSONL Repair',    depth: 2 },
     { id: 'utility-input',    label: 'Input sources',       depth: 2 },
     { id: 'utility-sendto',   label: 'Send-to actions',     depth: 2 },
     { id: 'command-palette',  label: 'Command palette' },
@@ -58,7 +59,7 @@ import DocLayout from '../layouts/DocLayout.astro';
   <li><strong>Convert</strong> (<kbd>⌘1</kbd>) — turn conversation data into JSONL, JSON, CSV, TSV, Parquet, Markdown, plain text, Alpaca, or ShareGPT.</li>
   <li><strong>Chunk</strong> (<kbd>⌘2</kbd>) — split documents into embedding-ready chunks with metadata.</li>
   <li><strong>Editor</strong> (<kbd>⌘3</kbd>) — multi-file Monaco editor with split-pane preview, linter, cross-file find, token gutter.</li>
-  <li><strong>Utilities</strong> (<kbd>⌘4</kbd>) — 16 lightweight tools (token estimator, validator, regex tester, dataset splitter, PII detector, schema migrator, …).</li>
+  <li><strong>Utilities</strong> (<kbd>⌘4</kbd>) — 17 lightweight tools (token estimator, JSONL repair, validator, regex tester, dataset splitter, PII detector, schema migrator, …).</li>
 </ul>
 
 <div class="callout">
@@ -182,7 +183,7 @@ import DocLayout from '../layouts/DocLayout.astro';
   </tbody>
 </table>
 
-<p><strong>Chunk size</strong> (typical: 256–1024) and <strong>overlap</strong> (typical: 10–20% of size) sliders re-chunk live as you drag.</p>
+<p><strong>Chunk size</strong> (typical: 256–1024) and <strong>overlap</strong> (typical: 10–20% of size) sliders re-chunk live as you drag. The overlap slider maximum is dynamically capped at 50% of the current chunk size. Paragraph strategy has no overlap slider (natural boundaries are used instead).</p>
 
 <h3 id="chunk-manual">Manual boundary editing</h3>
 
@@ -266,22 +267,21 @@ import DocLayout from '../layouts/DocLayout.astro';
   <tbody>
     <tr><td rowspan="4">LLM</td><td>Token Estimator</td><td>Approximate tokens, chars, words, lines.</td></tr>
     <tr><td>Cost Calculator</td><td>Input / cached / output cost for 46 models across 8 providers. Provider → model two-list picker.</td></tr>
-    <tr><td>Token-per-row Analyzer</td><td>Per-row token count with context-window warnings. Click warnings to jump to the line in Editor.</td></tr>
+    <tr><td>Token-per-row Analyzer</td><td>Per-row token count with context-window warnings. Supports custom token limit. Click warnings to jump to the line in Editor.</td></tr>
     <tr><td>Embedding Budget Estimator</td><td>Total embedding cost across providers for your text.</td></tr>
-    <tr><td rowspan="2">Data</td><td>JSON / JSONL Validator</td><td>Validate, pretty-print, minify. Errors include "↗ line N in Editor".</td></tr>
+    <tr><td rowspan="3">Data</td><td>JSON / JSONL Validator</td><td>Validate, pretty-print, minify. Errors include "↗ line N in Editor".</td></tr>
+    <tr><td>JSONL Repair</td><td>Recover malformed JSONL: strips BOM, normalises line endings, removes JSONC comments, fixes trailing commas, converts single-quoted strings, strips control characters, auto-closes truncated structures. Optional "keep failed lines" pass-through.</td></tr>
     <tr><td>Dataset Splitter</td><td>Train/val/test split with seeded reproducibility (Fisher-Yates + seedrandom).</td></tr>
     <tr><td rowspan="3">Text</td><td>Text Transformer</td><td>Trim / dedupe / normalize quotes / case / strip blank lines.</td></tr>
-    <tr><td>Prompt Template Expander</td><td>Render <code>{`{{placeholder}}`}</code> templates with key=value variables; lists bound + unbound.</td></tr>
-    <tr><td>Conversation Formatter</td><td>Transcript → OpenAI / Anthropic / Alpaca / ShareGPT JSONL.</td></tr>
+    <tr><td>Prompt Template Expander</td><td>Render <code>{`{{placeholder}}`}</code> templates. Variables as <code>key=value</code> lines or a JSON object.</td></tr>
+    <tr><td>Conversation Formatter</td><td>Transcript → OpenAI / Anthropic / Alpaca / ShareGPT JSONL. Optional system message injection.</td></tr>
     <tr><td rowspan="3">Validation</td><td>Regex Tester</td><td>Pattern + flags + replace preview. 1000-match cap with timeout safeguard.</td></tr>
-    <tr><td>Duplicate Detector</td><td>Exact / normalized / semantic / field-path dedup scan over JSONL.</td></tr>
+    <tr><td>Duplicate Detector</td><td>Exact / normalized / semantic / field-path dedup scan over JSONL. Semantic mode has a Jaccard similarity threshold slider. Exports deduplicated output directly to Editor / Convert / Chunk.</td></tr>
     <tr><td>PII Detector</td><td>31 detector types across personal IDs, financial, network, secrets, health. Mask / hash / strip redaction modes.</td></tr>
-    <tr><td rowspan="3">Data</td><td>JSON / JSONL Validator</td><td>(listed above)</td></tr>
-    <tr><td>Dataset Splitter</td><td>(listed above)</td></tr>
-    <tr><td>Schema Migrator</td><td>Convert JSONL between OpenAI (chatml), Anthropic (harmony), Alpaca, and ShareGPT schemas. Auto-detect source, diff preview, dropped-field tracking.</td></tr>
-    <tr><td>Encoding</td><td>Base64 / URL</td><td>Encode + decode (base64, URL, URL component).</td></tr>
-    <tr><td rowspan="2">Utility</td><td>Hash Generator</td><td>SHA-1, SHA-256, SHA-512 via Web Crypto. Text or binary file input.</td></tr>
-    <tr><td>Timestamp Converter</td><td>Auto-detect Unix (s/ms/μs/ns) ↔ ISO 8601 ↔ local time.</td></tr>
+    <tr><td>Conversion</td><td>Schema Migrator</td><td>Convert JSONL between OpenAI (chatml), Anthropic (harmony), Alpaca, and ShareGPT schemas. Auto-detect source, diff preview, dropped-field tracking. Option to preserve extra fields not in the target schema.</td></tr>
+    <tr><td>Encoding</td><td>Base64 / URL / Hex</td><td>Encode + decode (base64, URL, URL component, hex).</td></tr>
+    <tr><td rowspan="2">Utility</td><td>Hash Generator</td><td>MD5, SHA-1, SHA-256, SHA-512. Text or binary file input. Output as hex or base64.</td></tr>
+    <tr><td>Timestamp Converter</td><td>Auto-detect Unix (s/ms/μs/ns) ↔ ISO 8601 ↔ local time. Optional timezone conversion via IANA timezone selector.</td></tr>
   </tbody>
 </table>
 
@@ -330,6 +330,23 @@ import DocLayout from '../layouts/DocLayout.astro';
 <p>Conversions go through chatml as a canonical form. Lossy conversions (e.g. multi-turn chatml → alpaca collapses to the last user/assistant pair) are flagged in the result's <code>droppedFields</code> list. The <code>chatml ↔ sharegpt</code> round-trip is lossless.</p>
 
 <p>Cap: 10 000 records per migration to keep the UI responsive.</p>
+
+<h3 id="utility-jsonl-repair">JSONL Repair</h3>
+
+<p>Recovers malformed JSONL files that fail to parse. Each line is processed through a pipeline of targeted repairs — each step is only committed if the result passes <code>JSON.parse</code>, so incorrect conversions surface as <code>failed</code> rather than silently corrupting data.</p>
+
+<p>Repairs applied (in order):</p>
+<ol>
+  <li><strong>BOM strip</strong> — removes UTF-8 byte-order marks (<code>﻿</code>).</li>
+  <li><strong>Line-ending normalisation</strong> — converts <code>\r\n</code> and bare <code>\r</code> to <code>\n</code>.</li>
+  <li><strong>JSONC comment stripping</strong> — removes <code>// …</code> and <code>/* … */</code> comments.</li>
+  <li><strong>Trailing comma removal</strong> — strips trailing commas before <code>}</code> / <code>]</code>.</li>
+  <li><strong>Single-quote conversion</strong> — replaces <code>'…'</code> string delimiters with double-quotes (validated against <code>JSON.parse</code> before accepting).</li>
+  <li><strong>Control character removal</strong> — strips unescaped control characters (U+0000–U+001F).</li>
+  <li><strong>Truncation auto-close</strong> — appends missing <code>"</code>, <code>}</code>, <code>]</code> characters to recover cut-off lines.</li>
+</ol>
+
+<p>Results show per-line status (<code>ok</code> / <code>repaired</code> / <code>failed</code>) with a description of each fix applied. The <strong>Keep failed lines</strong> option passes lines that could not be repaired through to the output as-is rather than dropping them.</p>
 
 <h3 id="utility-input">Input sources</h3>
 

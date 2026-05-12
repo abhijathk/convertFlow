@@ -89,14 +89,20 @@ const conversationFormatter: UtilityToolModule = {
 
     const opts = payload.options ?? {};
     const schema = (opts['schema'] as ConvSchema) ?? 'openai';
+    const systemMessage = (opts['systemMessage'] as string) ?? '';
 
     const blocks = text.split(/\n{2,}/).filter(b => b.trim());
     const outputLines: string[] = [];
     let messageCount = 0;
 
     for (const block of blocks) {
-      const msgs = parseBlock(block);
+      let msgs = parseBlock(block);
       if (msgs.length === 0) continue;
+
+      if (systemMessage && !msgs.some(m => m.role === 'system')) {
+        msgs = [{ role: 'system', content: systemMessage }, ...msgs];
+      }
+
       messageCount += msgs.length;
 
       let line = '';

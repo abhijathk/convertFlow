@@ -49,9 +49,9 @@
   }
 
   function basename(): string {
-    const fileId = toolState.prefillSourceFileId;
-    if (!fileId) return 'dataset';
-    return 'dataset';
+    if (!toolState.prefillSourceFileId) return 'dataset';
+    const name = toolState.prefillSourceFileId.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '');
+    return name || 'dataset';
   }
 </script>
 

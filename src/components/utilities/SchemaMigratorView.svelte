@@ -24,12 +24,13 @@
 
   let sourceSchema = $state<'auto' | Schema>('auto');
   let targetSchema = $state<Schema>('chatml');
+  let preserveExtra = $state(false);
 
   async function run() {
     running = true;
     result = await runUtility(meta.id, {
       input: toolState.primaryInput,
-      options: { source: sourceSchema, target: targetSchema },
+      options: { source: sourceSchema, target: targetSchema, preserveExtra },
     });
     running = false;
   }
@@ -119,6 +120,14 @@
       </select>
     </div>
   </div>
+  <label class="preserve-label">
+    <input
+      type="checkbox"
+      bind:checked={preserveExtra}
+      onchange={() => (result = null)}
+    />
+    Preserve extra fields (pass through non-schema keys to output)
+  </label>
 </div>
 
 <div class="run-row">
@@ -294,6 +303,17 @@
     cursor: pointer;
   }
   .schema-select:focus { border-color: var(--accent); }
+
+  .preserve-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .preserve-label input { accent-color: var(--accent); cursor: pointer; }
 
   .run-row { display: flex; }
   .run-btn {

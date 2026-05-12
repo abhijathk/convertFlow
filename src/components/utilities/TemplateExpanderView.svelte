@@ -55,14 +55,14 @@
     class="primary-input"
     value={toolState.primaryInput}
     oninput={handleInput}
-    placeholder="Hello, {{name}}! You are a {{role}} assistant."
+    placeholder="Hello, &#123;&#123;name&#125;&#125;! You are a &#123;&#123;role&#125;&#125; assistant."
     spellcheck="false"
     rows="6"
   ></textarea>
 </div>
 
 <div class="input-area">
-  <label class="field-label" for="vars-{meta.id}">Variables <span class="hint">(key=value, one per line)</span></label>
+  <label class="field-label" for="vars-{meta.id}">Variables <span class="hint">(key=value per line or JSON object)</span></label>
   <textarea
     id="vars-{meta.id}"
     class="primary-input"

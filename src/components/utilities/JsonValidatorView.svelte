@@ -38,12 +38,14 @@
   function handleInput(e: Event) {
     setToolInput(meta.id, (e.target as HTMLTextAreaElement).value);
     result = null;
+    resultSourceFileId = null;
     transformedOutput = '';
   }
 
   function handleUpload(content: string, _filename: string, _truncated: boolean) {
     setToolInput(meta.id, content);
     result = null;
+    resultSourceFileId = null;
     transformedOutput = '';
   }
 

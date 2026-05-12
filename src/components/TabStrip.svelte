@@ -289,6 +289,11 @@
   }
   button[role="tab"].active kbd { opacity: 1; }
 
+  @media (max-width: 600px) {
+    button[role="tab"] kbd { display: none; }
+    button[role="tab"] { padding: 0 10px; }
+  }
+
   .spacer { flex: 1; }
 
   .convert-action-btn {
@@ -347,6 +352,20 @@
     overflow-y: auto;
     z-index: 200;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  @media (max-width: 600px) {
+    .settings-popover {
+      position: fixed;
+      top: auto;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      min-width: unset;
+      max-height: 80vh;
+      border-radius: 10px 10px 0 0;
+      border-bottom: none;
+    }
   }
 
   .settings-section {
@@ -436,6 +455,14 @@
     padding: 20px 24px;
     max-width: 400px;
   }
+
+  @media (max-width: 480px) {
+    .confirm-box {
+      width: calc(100vw - 32px);
+      padding: 16px;
+    }
+  }
+
   .confirm-title { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 8px; }
   .confirm-sub { font-size: 12px; color: var(--ink-dim); margin: 0 0 16px; line-height: 1.5; }
   .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }

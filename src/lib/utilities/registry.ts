@@ -27,6 +27,7 @@ export const TOOLS: UtilityMeta[] = [
   { id: 'conversation-formatter', name: 'Conversation Formatter', category: 'text', autoPrefillEligible: true, description: 'Convert transcripts to OpenAI, Anthropic, Alpaca, or ShareGPT JSONL.' },
   { id: 'pii-redactor', name: 'PII Detector', category: 'validation', autoPrefillEligible: true, description: 'Detect and redact emails, phones, SSNs, credit cards, API keys, and more.' },
   { id: 'schema-migrator', name: 'Schema Migrator', category: 'data', autoPrefillEligible: true, description: 'Convert JSONL between OpenAI, Anthropic, Alpaca, and ShareGPT schemas.' },
+  { id: 'jsonl-repair', name: 'JSONL Repair', category: 'data', autoPrefillEligible: true, description: 'Recover malformed JSONL: fix BOM, line endings, trailing commas, single quotes, control chars, and truncated lines.' },
 ];
 
 const toolLoaders = import.meta.glob('./tools/*.ts') as Record<

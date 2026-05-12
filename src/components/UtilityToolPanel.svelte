@@ -22,6 +22,7 @@
   import CsvTsvJsonView from './utilities/CsvTsvJsonView.svelte';
   import PiiRedactorView from './utilities/PiiRedactorView.svelte';
   import SchemaMigratorView from './utilities/SchemaMigratorView.svelte';
+  import JsonlRepairView from './utilities/JsonlRepairView.svelte';
 
   interface Props {
     meta: UtilityMeta;
@@ -98,6 +99,8 @@
     <PiiRedactorView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {:else if meta.id === 'schema-migrator'}
     <SchemaMigratorView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
+  {:else if meta.id === 'jsonl-repair'}
+    <JsonlRepairView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {/if}
 </div>
 

@@ -38,6 +38,7 @@
   let chunkOverlap = $derived($chunkState.chunkOverlap);
   let enableImages = $derived($chunkState.enableImages);
   let enableOcr = $derived($chunkState.enableOcr);
+  let maxKeywords = $derived($chunkState.maxKeywords);
 
   function pick(id: ChunkStrategy) {
     chunkState.update(s => ({ ...s, strategy: id }));
@@ -45,12 +46,16 @@
 
   function setChunkSize(e: Event) {
     const val = Number((e.target as HTMLInputElement).value);
-    chunkState.update(s => ({ ...s, chunkSize: val }));
+    chunkState.update(s => ({
+      ...s,
+      chunkSize: val,
+      chunkOverlap: Math.min(s.chunkOverlap, Math.floor(val * 0.5)),
+    }));
   }
 
   function setChunkOverlap(e: Event) {
     const val = Number((e.target as HTMLInputElement).value);
-    chunkState.update(s => ({ ...s, chunkOverlap: val }));
+    chunkState.update(s => ({ ...s, chunkOverlap: Math.min(val, Math.floor(s.chunkSize * 0.5)) }));
   }
 
   function toggleImages() {
@@ -59,6 +64,11 @@
 
   function toggleOcr() {
     chunkState.update(s => ({ ...s, enableOcr: !s.enableOcr }));
+  }
+
+  function setMaxKeywords(e: Event) {
+    const val = Math.max(0, Math.min(10, Number((e.target as HTMLInputElement).value)));
+    chunkState.update(s => ({ ...s, maxKeywords: val }));
   }
 </script>
 
@@ -106,7 +116,7 @@
       <input
         type="range"
         min="0"
-        max="256"
+        max={Math.floor(chunkSize * 0.5)}
         step="8"
         value={chunkOverlap}
         oninput={setChunkOverlap}
@@ -141,6 +151,19 @@
     />
     <span class="toggle-name">OCR</span>
   </label>
+
+  <span class="sep-dot" aria-hidden="true">·</span>
+  <span class="processing-label">Keywords:</span>
+  <input
+    class="keywords-input"
+    type="number"
+    min="0"
+    max="10"
+    value={maxKeywords}
+    onchange={setMaxKeywords}
+    aria-label="Max keywords per chunk (0 to hide)"
+    title="Max keywords shown per chunk (0 = hidden)"
+  />
 </div>
 
 <style>
@@ -328,5 +351,26 @@
     font-family: inherit;
     user-select: none;
   }
+
+  .sep-dot {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0 4px;
+    user-select: none;
+  }
+
+  .keywords-input {
+    width: 40px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 1px 4px;
+    text-align: center;
+    outline: none;
+  }
+  .keywords-input:focus { border-color: var(--accent); }
 
 </style>

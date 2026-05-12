@@ -68,13 +68,6 @@ const jsonValidator: UtilityToolModule = {
 
     let resolved: 'json' | 'jsonl' = 'json';
     if (mode === 'auto') {
-      const firstNonEmpty = text.trim().split('\n').find(l => l.trim() !== '') ?? '';
-      resolved = (firstNonEmpty.trim().startsWith('{') || firstNonEmpty.trim().startsWith('['))
-        && text.trim().split('\n').filter(l => l.trim()).length > 1
-        && !text.trim().startsWith('[')
-        ? 'jsonl'
-        : 'json';
-      // Simpler heuristic: if every non-empty line is a valid JSON object, treat as JSONL
       const nonEmptyLines = text.trim().split('\n').filter(l => l.trim());
       const looksLikeJsonl = nonEmptyLines.length > 1 && nonEmptyLines.every(l => l.trim().startsWith('{') || l.trim().startsWith('['));
       resolved = looksLikeJsonl ? 'jsonl' : 'json';

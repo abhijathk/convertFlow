@@ -199,14 +199,14 @@ body {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    height: 280px;
+    height: min(280px, 35vh);
   }
 
   .chunk-body .list-pane {
     flex: 0 0 auto !important;
     width: 100% !important;
     min-width: 0 !important;
-    height: 200px;
+    height: min(200px, 25vh);
   }
 
   .chunk-body .preview-pane {
@@ -322,4 +322,20 @@ input[type="range"]::-moz-range-thumb {
   border: none;
   border-radius: 0;
   cursor: pointer;
+}
+
+/* ── Ultra-narrow phones (<480px) ── */
+@media (max-width: 480px) {
+  .tabstrip {
+    padding: 0 4px 0 8px;
+  }
+
+  .topbar {
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .cmd-center {
+    padding: 0 6px;
+  }
 }

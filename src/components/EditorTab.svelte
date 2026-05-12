@@ -58,10 +58,12 @@
   let findMatchCase = $state(false);
   let findUseRegex = $state(false);
   let findMatches = $state<FindMatch[]>([]);
+  let findTruncated = $state(false);
   let findSearchTimer: ReturnType<typeof setTimeout> | undefined;
 
   // ── Task 4: Token gutter state ────────────────────────────────────────────
-  let showTokenGutter = $state(false);
+  const TOKEN_GUTTER_KEY = 'dataprep:token-gutter';
+  let showTokenGutter = $state((() => { try { return localStorage.getItem(TOKEN_GUTTER_KEY) === 'true'; } catch { return false; } })());
   let tokenDecorations = $state<string[]>([]);
   let tokenTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -689,11 +691,34 @@
   $effect(() => {
     const content = activeFile?.content ?? '';
     const ext = (activeFile?.name ?? '').split('.').pop()?.toLowerCase() ?? '';
-    if (ext !== 'jsonl') { lintProblems = []; return; }
     if (lintTimer) clearTimeout(lintTimer);
-    lintTimer = setTimeout(() => {
-      lintProblems = validateJsonl(content, lintPreset as any);
-    }, 200);
+    if (ext === 'jsonl') {
+      lintTimer = setTimeout(() => {
+        lintProblems = validateJsonl(content, lintPreset as any);
+      }, 200);
+    } else if (ext === 'json') {
+      lintTimer = setTimeout(() => {
+        if (!content.trim()) { lintProblems = []; return; }
+        try { JSON.parse(content); lintProblems = []; }
+        catch (e) { lintProblems = [{ line: 0, code: 'invalid-json', field: '', message: `Invalid JSON: ${String(e)}`, suggestion: 'Check for missing commas, unmatched brackets, or trailing commas.' }]; }
+      }, 200);
+    } else if (ext === 'csv') {
+      lintTimer = setTimeout(() => {
+        const lines = content.split('\n').filter(l => l.trim());
+        if (lines.length < 2) { lintProblems = []; return; }
+        const expectedCols = lines[0].split(',').length;
+        const problems: import('../lib/validate').ValidationError[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',').length;
+          if (cols !== expectedCols) {
+            problems.push({ line: i + 1, code: 'csv-col-mismatch', field: '', message: `Row ${i + 1} has ${cols} columns, header has ${expectedCols}`, suggestion: 'Check for unquoted commas in field values.' });
+          }
+        }
+        lintProblems = problems;
+      }, 200);
+    } else {
+      lintProblems = [];
+    }
     return () => { if (lintTimer) clearTimeout(lintTimer); };
   });
 
@@ -710,13 +735,14 @@
   }
 
   function runFindSearch() {
-    if (!findSearch.trim()) { findMatches = []; return; }
+    if (!findSearch.trim()) { findMatches = []; findTruncated = false; return; }
     const results: FindMatch[] = [];
+    let truncated = false;
     let pattern: RegExp;
     try {
       const src = findUseRegex ? findSearch : escapeRegex(findSearch);
       pattern = new RegExp(src, findMatchCase ? 'g' : 'gi');
-    } catch { findMatches = []; return; }
+    } catch { findMatches = []; findTruncated = false; return; }
 
     for (const file of $editorState.openFiles) {
       const lines = file.content.split('\n');
@@ -737,8 +763,10 @@
           if (!pattern.global) break;
         }
       }
+      if (fileCount >= 500) truncated = true;
     }
     findMatches = results;
+    findTruncated = truncated;
   }
 
   function findJumpTo(match: FindMatch) {
@@ -905,7 +933,7 @@
       {/if}
       <!-- Token gutter toggle (Task 4) -->
       {#if activeFileExt === 'jsonl'}
-        <button class="tb-btn" class:active={showTokenGutter} onclick={() => (showTokenGutter = !showTokenGutter)} title="Toggle per-line token counts">tokens</button>
+        <button class="tb-btn" class:active={showTokenGutter} onclick={() => { showTokenGutter = !showTokenGutter; try { localStorage.setItem(TOKEN_GUTTER_KEY, String(showTokenGutter)); } catch {} }} title="Toggle per-line token counts">tokens</button>
       {/if}
       <!-- Action menu -->
       <div class="dropdown-wrap">
@@ -934,6 +962,11 @@
             <button class="dropdown-item" onclick={() => sendTo('convert')}>↗ Convert</button>
             <button class="dropdown-item" onclick={() => sendTo('chunk')}>↗ Chunk</button>
             <button class="dropdown-item" onclick={sendToUtilities}>↗ Utilities</button>
+            {#if $editorSelection?.text}
+              <div class="dropdown-section">send selection to</div>
+              <button class="dropdown-item" onclick={() => { sendToConvert($editorSelection!.text); showToast('✓ sent selection to Convert'); actionMenuOpen = false; }}>↗ Convert (selection)</button>
+              <button class="dropdown-item" onclick={() => { sendToChunk($editorSelection!.text); showToast('✓ sent selection to Chunk'); actionMenuOpen = false; }}>↗ Chunk (selection)</button>
+            {/if}
           </div>
         {/if}
       </div>
@@ -1028,7 +1061,12 @@
 
   <!-- Bottom panel (Find / Linter) -->
   <div class="bottom-panel" class:open={$editorState.bottomPanelOpen}>
-    <button class="panel-header" onclick={toggleBottomPanel}>
+    <button
+      class="panel-header"
+      onclick={toggleBottomPanel}
+      aria-expanded={$editorState.bottomPanelOpen}
+      aria-controls="bottom-panel-content"
+    >
       {$editorState.bottomPanelOpen ? '▾' : '▸'} {$editorState.bottomPanelTab.toUpperCase()}
     </button>
     {#if $editorState.bottomPanelOpen}
@@ -1038,7 +1076,7 @@
           Linter{#if lintProblems.length > 0}&nbsp;<span class="badge">{lintProblems.length}</span>{/if}
         </button>
       </div>
-      <div class="panel-content">
+      <div class="panel-content" id="bottom-panel-content">
         {#if $editorState.bottomPanelTab === 'find'}
           <!-- Task 3: Cross-file Find & Replace -->
           <div class="find-bar">
@@ -1068,7 +1106,9 @@
               <button class="tb-btn" onclick={doReplaceAll}>replace all</button>
             {/if}
             {#if findSearch.trim()}
-              <span class="find-count">{findMatches.length} match{findMatches.length === 1 ? '' : 'es'}</span>
+              <span class="find-count" title={findTruncated ? 'Results capped at 500 per file' : ''}>
+                {findTruncated ? `${findMatches.length}+ matches (capped)` : `${findMatches.length} match${findMatches.length === 1 ? '' : 'es'}`}
+              </span>
             {/if}
           </div>
           {#if findMatches.length > 0}
@@ -1087,8 +1127,8 @@
           {/if}
         {:else}
           <!-- Task 2: Live Linter -->
-          {#if activeFileExt !== 'jsonl'}
-            <p class="panel-hint">Linter only runs on .jsonl files.</p>
+          {#if !['jsonl', 'json', 'csv'].includes(activeFileExt)}
+            <p class="panel-hint">Linter supports .jsonl, .json, and .csv files.</p>
           {:else if lintProblems.length === 0}
             <p class="panel-hint">No problems found.</p>
           {:else}
@@ -1128,9 +1168,9 @@
 />
 
 {#if confirmingClose}
-  <div class="confirm-overlay" role="dialog" aria-modal="true">
+  <div class="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
     <div class="confirm-box">
-      <p class="confirm-title">Discard unsaved changes to <span class="confirm-accent">{$editorState.openFiles.find(f => f.id === confirmingClose)?.name ?? ''}</span>?</p>
+      <p class="confirm-title" id="confirm-dialog-title">Discard unsaved changes to <span class="confirm-accent">{$editorState.openFiles.find(f => f.id === confirmingClose)?.name ?? ''}</span>?</p>
       <p class="confirm-sub">This file has not been saved. Closing will lose your edits.</p>
       <div class="confirm-actions">
         <button class="confirm-btn confirm-clear" onclick={() => doCloseFile(confirmingClose!)}>discard</button>
@@ -1143,8 +1183,7 @@
 {#if pasteToastMsg}
   <div class="toast toast-action-wrap" role="status" aria-live="polite">
     {pasteToastMsg}
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-    <span class="toast-action" onclick={() => { if (pendingPasteExpand) { pendingPasteExpand(); pendingPasteExpand = null; } }}>expand</span>
+    <button class="toast-action" onclick={() => { if (pendingPasteExpand) { pendingPasteExpand(); pendingPasteExpand = null; } }}>expand</button>
   </div>
 {/if}
 
@@ -1152,8 +1191,7 @@
   {#if toastMsg.undo}
     <div class="toast toast-action-wrap" role="status" aria-live="polite">
       {toastMsg.message}
-      <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-      <span class="toast-action" onclick={() => { toastMsg!.undo!(); toastMsg = null; if (toastTimer) clearTimeout(toastTimer); }}>undo</span>
+      <button class="toast-action" onclick={() => { toastMsg!.undo!(); toastMsg = null; if (toastTimer) clearTimeout(toastTimer); }}>undo</button>
     </div>
   {:else}
     <div class="toast" role="status" aria-live="polite">{toastMsg.message}</div>
@@ -1587,11 +1625,15 @@
   }
   .toast-action-wrap { pointer-events: auto; display: flex; align-items: center; gap: 8px; }
   .toast-action {
+    background: none;
+    border: none;
+    padding: 0;
     cursor: pointer;
     color: var(--accent);
     text-decoration: underline;
     text-underline-offset: 2px;
     font-size: 12px;
+    font-family: inherit;
   }
   .toast-action:hover { opacity: 0.8; }
 

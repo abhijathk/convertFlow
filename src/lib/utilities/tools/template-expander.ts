@@ -17,12 +17,26 @@ const templateExpander: UtilityToolModule = {
     if (!template) return { ok: false, error: 'Template is empty.' };
 
     const vars: Record<string, string> = {};
-    for (const line of varsRaw.split('\n')) {
-      const eq = line.indexOf('=');
-      if (eq === -1) continue;
-      const key = line.slice(0, eq).trim();
-      const val = line.slice(eq + 1).trim();
-      if (key) vars[key] = val;
+    let parsedAsJson = false;
+    try {
+      const jsonVal = JSON.parse(varsRaw);
+      if (jsonVal !== null && typeof jsonVal === 'object' && !Array.isArray(jsonVal)) {
+        for (const [k, v] of Object.entries(jsonVal as Record<string, unknown>)) {
+          vars[k] = String(v);
+        }
+        parsedAsJson = true;
+      }
+    } catch {
+      // not valid JSON — fall through to key=value parsing
+    }
+    if (!parsedAsJson) {
+      for (const line of varsRaw.split('\n')) {
+        const eq = line.indexOf('=');
+        if (eq === -1) continue;
+        const key = line.slice(0, eq).trim();
+        const val = line.slice(eq + 1).trim();
+        if (key) vars[key] = val;
+      }
     }
 
     const placeholderRe = /\{\{(\w+)\}\}/g;

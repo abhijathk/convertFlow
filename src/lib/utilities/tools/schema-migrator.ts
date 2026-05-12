@@ -168,7 +168,7 @@ export function detectSchema(content: string): Schema | null {
 
 // --- Core migrate ---
 
-export function migrate(content: string, source: Schema, target: Schema): MigrationResult {
+export function migrate(content: string, source: Schema, target: Schema, preserveExtra?: boolean): MigrationResult {
   const lines = content.split('\n').filter(l => l.trim().length > 0);
   const MAX_RECORDS = 10000;
   const failures: { line: number; error: string }[] = [];
@@ -192,8 +192,12 @@ export function migrate(content: string, source: Schema, target: Schema): Migrat
       // collect dropped fields from source
       for (const f of collectDroppedFields(parsed, source)) droppedSet.add(f);
 
-      const canonical = source === target ? toCanonical(parsed, source) : toCanonical(parsed, source);
-      const out = source === target ? parsed : fromCanonical(canonical, target);
+      const canonical = toCanonical(parsed, source);
+      let out = source === target ? parsed : fromCanonical(canonical, target);
+      if (preserveExtra) {
+        const extra = Object.fromEntries(Object.entries(parsed).filter(([k]) => !new Set(CANONICAL_KEYS_BY_SCHEMA[source]).has(k)));
+        out = { ...extra, ...(out as object) };
+      }
       const outStr = JSON.stringify(out);
 
       outputLines.push(outStr);
@@ -230,8 +234,9 @@ const schemaMigrator: UtilityToolModule = {
     const input = payload.input.trim();
     if (!input) return { ok: false, error: 'Input is empty.' };
 
-    const opts = (payload.options ?? {}) as { source?: string; target?: string };
+    const opts = (payload.options ?? {}) as { source?: string; target?: string; preserveExtra?: boolean };
     const targetSchema = (opts.target ?? 'chatml') as Schema;
+    const preserveExtra = opts.preserveExtra === true;
 
     let sourceSchema: Schema;
     if (!opts.source || opts.source === 'auto') {
@@ -242,7 +247,7 @@ const schemaMigrator: UtilityToolModule = {
       sourceSchema = opts.source as Schema;
     }
 
-    const result = migrate(input, sourceSchema, targetSchema);
+    const result = migrate(input, sourceSchema, targetSchema, preserveExtra);
     return { ok: true, data: result };
   },
 };

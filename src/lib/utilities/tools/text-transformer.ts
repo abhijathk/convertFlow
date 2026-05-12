@@ -36,7 +36,7 @@ const textTransformer: UtilityToolModule = {
 
     let result = text;
 
-    if (opts.trim !== false && opts.trim) {
+    if (opts.trim) {
       const trimmed = trimTrailingWhitespace(result);
       result = trimmed.result;
     }

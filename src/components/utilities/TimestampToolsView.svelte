@@ -16,12 +16,33 @@
   let input = $state('');
   let result = $state<UtilityResult | null>(null);
   let running = $state(false);
+  let timezone = $state('');
   let copyFeedbacks = $state<Record<string, string>>({});
   let copyTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
+  const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
+    { value: '', label: 'Local (browser default)' },
+    { value: 'UTC', label: 'UTC' },
+    { value: 'America/New_York', label: 'US Eastern' },
+    { value: 'America/Chicago', label: 'US Central' },
+    { value: 'America/Denver', label: 'US Mountain' },
+    { value: 'America/Los_Angeles', label: 'US Pacific' },
+    { value: 'Europe/London', label: 'London' },
+    { value: 'Europe/Paris', label: 'Paris / Berlin' },
+    { value: 'Asia/Tokyo', label: 'Tokyo' },
+    { value: 'Asia/Shanghai', label: 'Shanghai' },
+    { value: 'Asia/Kolkata', label: 'India (IST)' },
+    { value: 'Australia/Sydney', label: 'Sydney' },
+  ];
+
+  $effect(() => {
+    timezone;
+    result = null;
+  });
+
   async function run() {
     running = true;
-    result = await runUtility(meta.id, { input });
+    result = await runUtility(meta.id, { input, options: { timezone } });
     running = false;
   }
 
@@ -54,6 +75,18 @@
     aria-label="Timestamp input"
   />
   <p class="hint">Accepts Unix seconds/ms/μs/ns, ISO 8601, or any parseable date string.</p>
+  <div class="tz-row">
+    <label class="field-label" for="tz-{meta.id}" style="margin-bottom:0">Timezone</label>
+    <select
+      id="tz-{meta.id}"
+      class="tz-select"
+      bind:value={timezone}
+    >
+      {#each TIMEZONE_OPTIONS as opt}
+        <option value={opt.value}>{opt.label}</option>
+      {/each}
+    </select>
+  </div>
 </div>
 
 <div class="run-row">
@@ -65,6 +98,7 @@
 {#if result}
   {#if result.ok && result.data}
     {@const d = result.data as TimestampResult}
+    {@const tzLabel = TIMEZONE_OPTIONS.find(o => o.value === timezone)?.label ?? 'Timezone'}
     <div class="result-panel" role="region" aria-label="Timestamp conversion results">
       <div class="format-badge">Detected: {d.inputFormat}</div>
       <div class="ts-rows">
@@ -72,6 +106,7 @@
           { label: 'Unix seconds', value: String(d.unixSeconds) },
           { label: 'ISO 8601 UTC', value: d.iso },
           { label: 'Local time', value: d.local },
+          ...(d.inTimezone ? [{ label: tzLabel, value: d.inTimezone }] : []),
         ]) as row}
           <div class="ts-row">
             <span class="ts-label">{row.label}</span>
@@ -117,6 +152,24 @@
   }
   .ts-input:focus { border-color: var(--accent); }
   .hint { font-size: 11px; color: var(--ink-dim); margin: 6px 0 0; }
+  .tz-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .tz-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+  .tz-select:focus { border-color: var(--accent); }
   .run-row { display: flex; }
   .run-btn {
     background: var(--accent);

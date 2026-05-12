@@ -6,7 +6,9 @@ export type EncodingMode =
   | 'url-encode'
   | 'url-decode'
   | 'url-component-encode'
-  | 'url-component-decode';
+  | 'url-component-decode'
+  | 'hex-encode'
+  | 'hex-decode';
 
 export interface EncodingResult {
   output: string;
@@ -50,6 +52,17 @@ const encodingTools: UtilityToolModule = {
         case 'url-component-decode':
           output = decodeURIComponent(input);
           break;
+        case 'hex-encode': {
+          const bytes = new TextEncoder().encode(input);
+          output = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+          break;
+        }
+        case 'hex-decode': {
+          const pairs = input.trim().match(/.{2}/g) ?? [];
+          const decoded = new Uint8Array(pairs.map(b => parseInt(b, 16)));
+          output = new TextDecoder().decode(decoded);
+          break;
+        }
         default:
           output = input;
       }

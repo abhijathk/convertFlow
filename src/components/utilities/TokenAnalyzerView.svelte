@@ -22,14 +22,15 @@
   let result = $state<UtilityResult | null>(null);
   let running = $state(false);
   let contextWindow = $state('128k');
+  let customWindowTokens = $state(4096);
 
-  const WINDOWS = ['8k', '16k', '32k', '128k', '200k', '1M'] as const;
+  const WINDOWS = ['8k', '16k', '32k', '128k', '200k', '1M', 'custom'] as const;
 
   async function run() {
     running = true;
     result = await runUtility(meta.id, {
       input: toolState.primaryInput,
-      options: { contextWindow },
+      options: { contextWindow, customWindow: contextWindow === 'custom' ? customWindowTokens : 0 },
     });
     running = false;
   }
@@ -81,10 +82,24 @@
     <label class="field-label" for="ctx-{meta.id}">Context window</label>
     <select id="ctx-{meta.id}" class="select-input" bind:value={contextWindow} onchange={() => (result = null)}>
       {#each WINDOWS as w}
-        <option value={w}>{w}</option>
+        <option value={w}>{w === 'custom' ? 'Custom…' : w}</option>
       {/each}
     </select>
   </div>
+  {#if contextWindow === 'custom'}
+    <div class="setting-group">
+      <label class="field-label" for="custom-window-{meta.id}">Custom token count</label>
+      <input
+        id="custom-window-{meta.id}"
+        type="number"
+        class="select-input"
+        min="1"
+        step="1"
+        bind:value={customWindowTokens}
+        oninput={() => (result = null)}
+      />
+    </div>
+  {/if}
 </div>
 
 <div class="run-row">
@@ -126,7 +141,7 @@
           <span class="field-label">Warning / Over limit rows</span>
           <table class="table">
             <thead>
-              <tr><th>Line</th><th>Tokens</th><th>Status</th>{#if toolState.prefillSourceFileId}<th></th>{/if}</tr>
+              <tr><th scope="col">Line</th><th scope="col">Tokens</th><th scope="col">Status</th>{#if toolState.prefillSourceFileId}<th scope="col"><span class="sr-only">Actions</span></th>{/if}</tr>
             </thead>
             <tbody>
               {#each d.rows.filter(r => r.status !== 'ok') as row}
@@ -156,6 +171,11 @@
 {/if}
 
 <style>
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
   .field-label {
     display: block;
     font-size: 11px;

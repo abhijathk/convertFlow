@@ -21,12 +21,13 @@
   let result = $state<UtilityResult | null>(null);
   let running = $state(false);
   let algorithm = $state<HashAlgorithm>('SHA-256');
+  let outputFormat = $state<'hex' | 'base64'>('hex');
 
-  const ALGORITHMS: HashAlgorithm[] = ['SHA-256', 'SHA-512', 'SHA-1'];
+  const ALGORITHMS: HashAlgorithm[] = ['SHA-256', 'SHA-512', 'SHA-1', 'MD5'];
 
   async function run() {
     running = true;
-    result = await runUtility(meta.id, { input: toolState.primaryInput, options: { algorithm } });
+    result = await runUtility(meta.id, { input: toolState.primaryInput, options: { algorithm, outputFormat } });
     running = false;
   }
 
@@ -49,11 +50,15 @@
     binaryRunning = true;
     binaryFile = null;
     const buf = await file.arrayBuffer();
-    const hashBuf = await crypto.subtle.digest(algorithm, buf);
+    const hashBuf = await crypto.subtle.digest(algorithm as string, buf);
     const hex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
     binaryFile = { name: file.name, hex, algo: algorithm };
     binaryRunning = false;
     (e.target as HTMLInputElement).value = '';
+  }
+
+  function hexToBase64(hex: string): string {
+    return btoa(String.fromCharCode(...(hex.match(/.{2}/g) ?? []).map(b => parseInt(b, 16))));
   }
 </script>
 
@@ -92,7 +97,23 @@
           {algo}
         </label>
       {/each}
-      <span class="algo-note">MD5 not available in WebCrypto — use SHA-1 for legacy support</span>
+    </div>
+  </div>
+  <div class="setting-group">
+    <span class="field-label">Output format</span>
+    <div class="algo-group">
+      {#each (['hex', 'base64'] as const) as fmt}
+        <label class="algo-label">
+          <input
+            type="radio"
+            name="fmt-{meta.id}"
+            value={fmt}
+            bind:group={outputFormat}
+            onchange={() => (result = null)}
+          />
+          {fmt}
+        </label>
+      {/each}
     </div>
   </div>
 </div>
@@ -105,27 +126,31 @@
 
 <div class="binary-row">
   <span class="field-label" style="margin-bottom:0">Hash a file (binary)</span>
-  <label class="upload-btn" aria-busy={binaryRunning}>
+  <label class="upload-btn" class:upload-btn-disabled={algorithm === 'MD5'} aria-busy={binaryRunning}>
     {binaryRunning ? 'Hashing…' : '↑ Choose file'}
-    <input type="file" accept="*" class="hidden-input" onchange={handleBinaryUpload} disabled={binaryRunning} />
+    <input type="file" accept="*" class="hidden-input" onchange={handleBinaryUpload} disabled={binaryRunning || algorithm === 'MD5'} />
   </label>
+  {#if algorithm === 'MD5'}
+    <span class="algo-note">MD5 not supported for binary files</span>
+  {/if}
 </div>
 
 {#if binaryFile}
   <div class="result-panel binary-result" role="region" aria-label="Binary hash result">
     <div class="algo-badge">{binaryFile.algo} · {binaryFile.name}</div>
-    <div class="hex-display">{binaryFile.hex}</div>
+    <div class="hex-display">{outputFormat === 'base64' ? hexToBase64(binaryFile.hex) : binaryFile.hex}</div>
   </div>
 {/if}
 
 {#if result}
   {#if result.ok && result.data}
     {@const d = result.data as HashResult}
+    {@const displayValue = outputFormat === 'base64' ? d.base64 : d.hex}
     <div class="result-panel" role="region" aria-label="Hash result">
       <div class="algo-badge">{d.algorithm} · {d.length / 2} bytes</div>
-      <div class="hex-display">{d.hex}</div>
+      <div class="hex-display">{displayValue}</div>
       <ResultActions
-        text={d.hex}
+        text={displayValue}
         showSendToEditor={false}
         showSendToConvert={false}
         showSendToChunk={false}
@@ -175,6 +200,7 @@
     transition: color 0.1s, border-color 0.1s;
   }
   .upload-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+  .upload-btn-disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
   .hidden-input { display: none; }
   .binary-result { margin-top: 0; }
   .primary-input {
@@ -192,7 +218,7 @@
     min-height: 100px;
   }
   .primary-input:focus { border-color: var(--accent); }
-  .settings-row { display: flex; }
+  .settings-row { display: flex; flex-direction: column; gap: 10px; }
   .setting-group { display: flex; flex-direction: column; gap: 6px; }
   .algo-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .algo-label {

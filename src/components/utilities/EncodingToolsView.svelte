@@ -29,6 +29,8 @@
     { value: 'url-decode', label: 'URL decode' },
     { value: 'url-component-encode', label: 'URL component encode' },
     { value: 'url-component-decode', label: 'URL component decode' },
+    { value: 'hex-encode', label: 'Hex encode' },
+    { value: 'hex-decode', label: 'Hex decode' },
   ];
 
   async function run() {
