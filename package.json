@@ -10,6 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "deploy": "wrangler pages deploy dist",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:watch": "vitest"
