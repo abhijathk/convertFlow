@@ -9,7 +9,7 @@ const toc = [
   { id: 'decision-matrix', label: 'Decision Matrix' },
   { id: 'cost-comparison', label: 'Cost Comparison' },
   { id: 'dataset-size', label: 'Dataset Size Rules' },
-  { id: 'dataprep', label: 'DataPrep for Both' },
+  { id: 'dataprep', label: 'convertFlow for Both' },
   { id: 'subscribe', label: 'Stay Updated' },
 ];
 ---
@@ -20,7 +20,7 @@ const toc = [
   publishDate="2026-04-24"
   readMinutes={7}
   breadcrumb={[
-    { label: 'dataprep', href: '/' },
+    { label: 'convertFlow', href: '/' },
     { label: 'compare', href: '/compare' },
     { label: 'fine-tuning vs rag' },
   ]}
@@ -141,9 +141,9 @@ const toc = [
   <strong>You can combine both.</strong> A fine-tuned model that has learned your output format and domain vocabulary can serve as the reader in a RAG pipeline. Fine-tune first to nail style and terminology; add RAG later to provide fresh facts. This is the highest-quality setup and also the most expensive to operate.
 </div>
 
-<h2 id="dataprep">DataPrep Works for Both</h2>
+<h2 id="dataprep">convertFlow Works for Both</h2>
 
-<p>Whether you are preparing fine-tuning data or RAG document chunks, DataPrep has a tab for it.</p>
+<p>Whether you are preparing fine-tuning data or RAG document chunks, convertFlow has a tab for it.</p>
 
 <p><strong>Convert tab (fine-tuning JSONL).</strong> Paste raw text, CSV rows, or existing conversation logs and convert them to validated JSONL in the format your chosen provider expects — OpenAI ChatML, Anthropic Harmony, Mistral, Llama, or others. Validation errors surface inline with line numbers before you upload.</p>
 

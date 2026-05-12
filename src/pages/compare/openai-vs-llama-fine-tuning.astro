@@ -21,7 +21,7 @@ const toc = [
   publishDate="2026-04-24"
   readMinutes={9}
   breadcrumb={[
-    { label: 'dataprep', href: '/' },
+    { label: 'convertFlow', href: '/' },
     { label: 'compare', href: '/compare' },
     { label: 'openai vs llama' },
   ]}
@@ -109,7 +109,7 @@ const toc = [
 
 <p>The practical differences that trip up cross-trainer datasets:</p>
 <ul>
-  <li><strong>Special tokens.</strong> Some Llama fine-tuning frameworks expect <code>&lt;|begin_of_text|&gt;</code> and <code>&lt;|eot_id|&gt;</code> tokens to be absent from the JSONL — they are added by the tokenizer. Others require them. Check your trainer's documentation. DataPrep's Llama preset validates the <em>absence</em> of these tokens, which is the right default for Axolotl and torchtune.</li>
+  <li><strong>Special tokens.</strong> Some Llama fine-tuning frameworks expect <code>&lt;|begin_of_text|&gt;</code> and <code>&lt;|eot_id|&gt;</code> tokens to be absent from the JSONL — they are added by the tokenizer. Others require them. Check your trainer's documentation. convertFlow's Llama preset validates the <em>absence</em> of these tokens, which is the right default for Axolotl and torchtune.</li>
   <li><strong>System message.</strong> Not strictly required for Llama, but strongly recommended. Models trained without consistent system prompts generalise poorly.</li>
   <li><strong>Assistant turn last.</strong> Same requirement as OpenAI — the final message must be the one you want the model to learn to produce.</li>
 </ul>

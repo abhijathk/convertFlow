@@ -121,11 +121,17 @@ export async function parseFile(file: File, opts: ParseOptions = {}): Promise<st
 
   if (ext === 'xlsx' || ext === 'xls') {
     onProgress?.(`reading ${file.name}…`);
+    if (file.size > 5_000_000) throw new Error('XLSX too large (max 5MB) — open in spreadsheet app first');
     const XLSX = await import('xlsx');
-    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-    return workbook.SheetNames.map((name: string) => {
-      const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[name]);
-      return workbook.SheetNames.length > 1 ? `--- ${name} ---\n${csv}` : csv;
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    let cellCount = 0;
+    for (const sheet of Object.values(wb.Sheets) as any[]) {
+      cellCount += Object.keys(sheet).filter(k => !k.startsWith('!')).length;
+    }
+    if (cellCount > 100_000) throw new Error('XLSX has too many cells (max 100,000)');
+    return wb.SheetNames.map((name: string) => {
+      const csv = XLSX.utils.sheet_to_csv(wb.Sheets[name]);
+      return wb.SheetNames.length > 1 ? `--- ${name} ---\n${csv}` : csv;
     }).join('\n\n');
   }
 

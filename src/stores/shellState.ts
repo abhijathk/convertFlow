@@ -72,6 +72,10 @@ export function toggleTheme() {
 import { writable as _writable } from 'svelte/store';
 export const paletteQuery = _writable('');
 
+// Ephemeral UI toggles for Convert tab — controlled from TabStrip, consumed by ConvertTab.
+export const convertStatsOpen = _writable(false);
+export const convertHfDialogOpen = _writable(false);
+
 export function openPalette() {
   shellState.update(s => ({ ...s, paletteOpen: true }));
 }

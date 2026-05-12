@@ -3,12 +3,12 @@ import DocLayout from '../layouts/DocLayout.astro';
 ---
 
 <DocLayout
-  title="How to use DataPrep"
+  title="How to use convertFlow"
   description="Complete guide — Convert, Chunk, Editor, and Utilities tabs. Format settings, file import, integrations, keyboard shortcuts, and settings."
   publishDate="2026-05-12"
   readMinutes={14}
   breadcrumb={[
-    { label: 'dataprep', href: '/' },
+    { label: 'convertFlow', href: '/' },
     { label: 'help' },
   ]}
   toc={[
@@ -19,6 +19,7 @@ import DocLayout from '../layouts/DocLayout.astro';
     { id: 'convert-presets',  label: 'Provider presets',    depth: 2 },
     { id: 'convert-autofix',  label: 'Auto-fix validation', depth: 2 },
     { id: 'convert-dataset',  label: 'Dataset panel',       depth: 2 },
+    { id: 'convert-stats',    label: 'Dataset stats',       depth: 2 },
     { id: 'convert-export',   label: 'Export + HF Hub',     depth: 2 },
     { id: 'convert-sampling', label: 'Sampling huge files', depth: 2 },
     { id: 'chunk-tab',        label: 'Chunk tab' },
@@ -34,6 +35,8 @@ import DocLayout from '../layouts/DocLayout.astro';
     { id: 'editor-readonly',  label: 'Read-only + paste',   depth: 2 },
     { id: 'utilities-tab',    label: 'Utilities tab' },
     { id: 'utility-tools',    label: 'Tool inventory',      depth: 2 },
+    { id: 'utility-pii',      label: 'PII Detector',        depth: 2 },
+    { id: 'utility-schema',   label: 'Schema Migrator',     depth: 2 },
     { id: 'utility-input',    label: 'Input sources',       depth: 2 },
     { id: 'utility-sendto',   label: 'Send-to actions',     depth: 2 },
     { id: 'command-palette',  label: 'Command palette' },
@@ -47,7 +50,7 @@ import DocLayout from '../layouts/DocLayout.astro';
 
 <h2 id="overview">Overview</h2>
 
-<p>DataPrep is an in-browser tool for preparing LLM training data, RAG document chunks, and quick text utilities. Nothing leaves your machine — files, datasets, and tokens stay in browser memory and localStorage only.</p>
+<p>convertFlow is an in-browser tool for preparing LLM training data, RAG document chunks, and quick text utilities. Nothing leaves your machine — files, datasets, and tokens stay in browser memory and localStorage only.</p>
 
 <p>There are four tabs:</p>
 
@@ -55,7 +58,7 @@ import DocLayout from '../layouts/DocLayout.astro';
   <li><strong>Convert</strong> (<kbd>⌘1</kbd>) — turn conversation data into JSONL, JSON, CSV, TSV, Parquet, Markdown, plain text, Alpaca, or ShareGPT.</li>
   <li><strong>Chunk</strong> (<kbd>⌘2</kbd>) — split documents into embedding-ready chunks with metadata.</li>
   <li><strong>Editor</strong> (<kbd>⌘3</kbd>) — multi-file Monaco editor with split-pane preview, linter, cross-file find, token gutter.</li>
-  <li><strong>Utilities</strong> (<kbd>⌘4</kbd>) — 14 lightweight tools (token estimator, validator, regex tester, dataset splitter, …).</li>
+  <li><strong>Utilities</strong> (<kbd>⌘4</kbd>) — 16 lightweight tools (token estimator, validator, regex tester, dataset splitter, PII detector, schema migrator, …).</li>
 </ul>
 
 <div class="callout">
@@ -127,6 +130,24 @@ import DocLayout from '../layouts/DocLayout.astro';
   <li>Click to select (single file shown in the editor). Shift-click to range-select. Cmd/Ctrl-click to multi-toggle.</li>
   <li>With ≥2 files selected, the footer swaps to bulk actions: <strong>remove N</strong> and <strong>combine N</strong>.</li>
 </ul>
+
+<h3 id="convert-stats">Dataset stats dashboard</h3>
+
+<p>Click the <strong>stats</strong> button in the tab strip (top-right, next to the gear icon) — visible only while you're on the Convert tab — to open a one-screen health check before you spend money fine-tuning.</p>
+
+<p>The dashboard shows:</p>
+
+<ul>
+  <li><strong>Records overview</strong> — total records, empty / blank lines, invalid (unparseable) lines.</li>
+  <li><strong>Token length percentiles</strong> — min / mean / median / p95 / p99 / max per record. Flags how many records exceed the active preset's <code>maxTokensPerExample</code>. Red dot if more than 5% of records are over-budget.</li>
+  <li><strong>Message-count distribution</strong> — how many records have 1, 2, 3, 4–5, 6–10, or 11+ messages. Quick way to spot single-turn vs multi-turn imbalance.</li>
+  <li><strong>Role frequency</strong> — counts of <code>system</code>, <code>user</code>, <code>assistant</code>, and "other" roles. Flags unusual ratios (no system turns, more assistant than user, etc.).</li>
+  <li><strong>Content stats</strong> — avg/median chars per record, empty-content count, very-short (&lt; 10 chars) and very-long (&gt; 4000 chars) record counts.</li>
+  <li><strong>Duplicates</strong> — exact + normalized (trim + lowercase) duplicate counts. Top 3 duplicate samples shown.</li>
+  <li><strong>Language hint</strong> — fast heuristic across a 50-record sample: mostly ASCII / non-ASCII / CJK / mixed. Marked "approximate".</li>
+</ul>
+
+<p>Each stat card has a status dot (green / amber / red) using the thresholds above. Re-computed live as you edit; click the button again to close.</p>
 
 <h3 id="convert-export">Export + HF Hub push</h3>
 
@@ -252,13 +273,63 @@ import DocLayout from '../layouts/DocLayout.astro';
     <tr><td rowspan="3">Text</td><td>Text Transformer</td><td>Trim / dedupe / normalize quotes / case / strip blank lines.</td></tr>
     <tr><td>Prompt Template Expander</td><td>Render <code>{`{{placeholder}}`}</code> templates with key=value variables; lists bound + unbound.</td></tr>
     <tr><td>Conversation Formatter</td><td>Transcript → OpenAI / Anthropic / Alpaca / ShareGPT JSONL.</td></tr>
-    <tr><td rowspan="2">Validation</td><td>Regex Tester</td><td>Pattern + flags + replace preview. 1000-match cap with timeout safeguard.</td></tr>
+    <tr><td rowspan="3">Validation</td><td>Regex Tester</td><td>Pattern + flags + replace preview. 1000-match cap with timeout safeguard.</td></tr>
     <tr><td>Duplicate Detector</td><td>Exact / normalized / semantic / field-path dedup scan over JSONL.</td></tr>
+    <tr><td>PII Detector</td><td>31 detector types across personal IDs, financial, network, secrets, health. Mask / hash / strip redaction modes.</td></tr>
+    <tr><td rowspan="3">Data</td><td>JSON / JSONL Validator</td><td>(listed above)</td></tr>
+    <tr><td>Dataset Splitter</td><td>(listed above)</td></tr>
+    <tr><td>Schema Migrator</td><td>Convert JSONL between OpenAI (chatml), Anthropic (harmony), Alpaca, and ShareGPT schemas. Auto-detect source, diff preview, dropped-field tracking.</td></tr>
     <tr><td>Encoding</td><td>Base64 / URL</td><td>Encode + decode (base64, URL, URL component).</td></tr>
     <tr><td rowspan="2">Utility</td><td>Hash Generator</td><td>SHA-1, SHA-256, SHA-512 via Web Crypto. Text or binary file input.</td></tr>
     <tr><td>Timestamp Converter</td><td>Auto-detect Unix (s/ms/μs/ns) ↔ ISO 8601 ↔ local time.</td></tr>
   </tbody>
 </table>
+
+<h3 id="utility-pii">PII Detector</h3>
+
+<p>Detects 31 categories of personally identifiable information and secrets, grouped into five sections:</p>
+
+<ul>
+  <li><strong>Personal IDs</strong> — email, US/international phone, US SSN, date of birth, passport, US driver license, IBAN, UK National Insurance, Indian Aadhaar + PAN, US EIN, US Medicare ID.</li>
+  <li><strong>Financial</strong> — credit cards (Luhn-validated), Bitcoin addresses, Ethereum addresses.</li>
+  <li><strong>Network</strong> — IPv4, IPv6, URL, UUID, MAC address.</li>
+  <li><strong>Secrets / API keys</strong> — generic API keys (sk-/hf_/pk_/ghp_), AWS access + secret keys, GitHub PAT, Slack tokens, Google API keys, Stripe keys, Twilio SIDs, JWT tokens, PEM private key blocks. A red warning banner appears whenever any secret type is detected — never share or commit these.</li>
+  <li><strong>Health</strong> — Medicare Beneficiary Identifier.</li>
+</ul>
+
+<p>Per-type redaction modes:</p>
+
+<ul>
+  <li><strong>Mask</strong> (default) — replace with <code>[EMAIL]</code>, <code>[PHONE]</code>, etc. Preserves record length.</li>
+  <li><strong>Hash</strong> — replace with <code>[EMAIL_&lt;sha256-first-8&gt;]</code>. Distinct values stay distinct, useful for analytics.</li>
+  <li><strong>Strip</strong> — remove the match entirely.</li>
+</ul>
+
+<p><strong>Scan</strong> previews matches without modifying. <strong>Redact</strong> produces the redacted text with Copy / Send to Editor / Send to Convert / Send to Chunk actions.</p>
+
+<p>All detection runs in-browser. Input is capped at 1MB or 100,000 matches to keep the UI responsive.</p>
+
+<h3 id="utility-schema">Schema Migrator</h3>
+
+<p>Convert a JSONL dataset between provider schemas without writing a migration script. Targets users switching providers (e.g. OpenAI → Anthropic, Llama → Mistral).</p>
+
+<p>Supported schemas:</p>
+
+<table>
+  <thead><tr><th>Schema</th><th>Shape</th></tr></thead>
+  <tbody>
+    <tr><td><code>chatml</code> (OpenAI)</td><td><code>{`{"messages":[{"role":"…","content":"…"}]}`}</code></td></tr>
+    <tr><td><code>harmony</code> (Anthropic)</td><td>Same as chatml, but first <code>system</code> lifted to top-level <code>system</code> field.</td></tr>
+    <tr><td><code>alpaca</code></td><td><code>{`{"instruction":"…","input":"…","output":"…"}`}</code></td></tr>
+    <tr><td><code>sharegpt</code></td><td><code>{`{"conversations":[{"from":"human|gpt|system","value":"…"}]}`}</code></td></tr>
+  </tbody>
+</table>
+
+<p>All 12 directional pairs are supported. Set <strong>source</strong> to <code>auto</code> to detect from the first 5 parseable lines, or pick explicitly. The diff preview shows the first 5 records side-by-side (source → target).</p>
+
+<p>Conversions go through chatml as a canonical form. Lossy conversions (e.g. multi-turn chatml → alpaca collapses to the last user/assistant pair) are flagged in the result's <code>droppedFields</code> list. The <code>chatml ↔ sharegpt</code> round-trip is lossless.</p>
+
+<p>Cap: 10 000 records per migration to keep the UI responsive.</p>
 
 <h3 id="utility-input">Input sources</h3>
 
@@ -360,7 +431,7 @@ import DocLayout from '../layouts/DocLayout.astro';
 
 <h2 id="privacy">Privacy + storage</h2>
 
-<p>DataPrep runs entirely in your browser. Specifically:</p>
+<p>convertFlow runs entirely in your browser. Specifically:</p>
 
 <ul>
   <li>Files you open, paste, or upload stay in browser memory and localStorage. They are never uploaded to a server.</li>
@@ -373,5 +444,7 @@ import DocLayout from '../layouts/DocLayout.astro';
 <h2 id="contact">Contact</h2>
 
 <p>Questions, bug reports, feature requests, or privacy enquiries: <a href="mailto:support@quakkainfo.com">support@quakkainfo.com</a></p>
+
+<p>See the <a href="/about">about page</a> for project background, the tech stack, and the roadmap.</p>
 
 </DocLayout>

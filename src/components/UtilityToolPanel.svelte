@@ -20,6 +20,8 @@
   import EmbeddingBudgetView from './utilities/EmbeddingBudgetView.svelte';
   import ConversationFormatterView from './utilities/ConversationFormatterView.svelte';
   import CsvTsvJsonView from './utilities/CsvTsvJsonView.svelte';
+  import PiiRedactorView from './utilities/PiiRedactorView.svelte';
+  import SchemaMigratorView from './utilities/SchemaMigratorView.svelte';
 
   interface Props {
     meta: UtilityMeta;
@@ -92,6 +94,10 @@
     <ConversationFormatterView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {:else if meta.id === 'csv-tsv-json'}
     <CsvTsvJsonView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
+  {:else if meta.id === 'pii-redactor'}
+    <PiiRedactorView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
+  {:else if meta.id === 'schema-migrator'}
+    <SchemaMigratorView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {/if}
 </div>
 

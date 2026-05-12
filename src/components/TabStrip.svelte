@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { shellState, setTab } from '../stores/shellState';
+  import { shellState, setTab, convertStatsOpen, convertHfDialogOpen } from '../stores/shellState';
+  import { convertState } from '../stores/convertState';
   import { isMac, shortcut } from '../lib/platform';
   import { appSettings, setSyntaxTheme, updateAppSetting, clearAllStoredData, clearHfHubToken } from '../stores/appSettings';
   import { THEMES } from '../lib/monaco-theme';
@@ -58,7 +59,7 @@
 
 <svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
 
-<div class="tabstrip" role="tablist" aria-label="DataPrep tabs">
+<div class="tabstrip" role="tablist" aria-label="convertFlow tabs">
   <button
     role="tab"
     aria-selected={activeTab === 'convert'}
@@ -89,20 +90,34 @@
   >
     Editor <kbd>{k3}</kbd>
   </button>
-
-  <div class="spacer"></div>
-
   <button
     role="tab"
     aria-selected={activeTab === 'utilities'}
     aria-controls="panel-utilities"
     id="tab-utilities"
     class:active={activeTab === 'utilities'}
-    class="utilities-tab-btn"
     onclick={() => setTab('utilities')}
   >
     Utilities <kbd>{k4}</kbd>
   </button>
+
+  <div class="spacer"></div>
+
+  {#if activeTab === 'convert'}
+    <button
+      class="convert-action-btn"
+      class:active={$convertStatsOpen}
+      onclick={() => convertStatsOpen.update(v => !v)}
+      disabled={!$convertState.editorContent?.trim()}
+      title="Dataset health stats"
+    >stats</button>
+    <button
+      class="convert-action-btn"
+      onclick={() => convertHfDialogOpen.set(true)}
+      disabled={!$convertState.editorContent?.trim()}
+      title="Push dataset to Hugging Face Hub"
+    >↑ HF Hub</button>
+  {/if}
 
   <!-- Settings -->
   <div class="settings-wrap">
@@ -275,6 +290,30 @@
   button[role="tab"].active kbd { opacity: 1; }
 
   .spacer { flex: 1; }
+
+  .convert-action-btn {
+    background: none;
+    border: 1px solid color-mix(in srgb, var(--syntax-key) 40%, transparent);
+    border-radius: 3px;
+    padding: 3px 9px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--syntax-key);
+    margin: 0 4px;
+    align-self: center;
+    transition: color 0.1s, border-color 0.1s, background 0.1s;
+  }
+  .convert-action-btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--syntax-key) 10%, transparent);
+    border-color: var(--syntax-key);
+  }
+  .convert-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .convert-action-btn.active {
+    background: color-mix(in srgb, var(--syntax-key) 18%, transparent);
+    color: var(--syntax-key);
+    border-color: var(--syntax-key);
+  }
 
   .settings-wrap {
     display: flex;

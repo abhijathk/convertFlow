@@ -86,7 +86,7 @@
     { value: 'csv',      label: 'CSV' },
     { value: 'json',     label: 'JSON' },
     { value: 'md',       label: 'Markdown' },
-    { value: 'txt',      label: 'Plain text' },
+    { value: 'txt',      label: 'TXT' },
     { value: 'alpaca',   label: 'Alpaca' },
     { value: 'sharegpt', label: 'ShareGPT' },
   ];

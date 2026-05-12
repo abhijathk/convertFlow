@@ -88,5 +88,23 @@
     "pricePerMTokens": 0,
     "sourceUrl": "https://huggingface.co/BAAI/bge-large-en-v1.5",
     "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "mistral-embed",
+    "name": "mistral-embed",
+    "provider": "mistral",
+    "dimensions": 1024,
+    "pricePerMTokens": 0.10,
+    "sourceUrl": "https://docs.mistral.ai/capabilities/embeddings/",
+    "lastVerified": "2026-05-12"
+  },
+  {
+    "id": "codestral-embed",
+    "name": "codestral-embed",
+    "provider": "mistral",
+    "dimensions": 1024,
+    "pricePerMTokens": 0.15,
+    "sourceUrl": "https://docs.mistral.ai/capabilities/embeddings/",
+    "lastVerified": "2026-05-12"
   }
 ]

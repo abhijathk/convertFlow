@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { convertState, type DatasetFile, type ExportFormat } from '../stores/convertState';
-  import { shellState, openPalette, clearPaletteAction, consumePendingConvertSource, setTab } from '../stores/shellState';
+  import { shellState, openPalette, clearPaletteAction, consumePendingConvertSource, setTab, convertStatsOpen, convertHfDialogOpen } from '../stores/shellState';
   import { openFile as openInEditorTab, openFileWithSplitPane, splitPaneInitialPreview, openFile, pendingJump } from '../stores/editorState';
   import { isMac } from '../lib/platform';
   import { analytics } from '../lib/analytics';
@@ -12,6 +12,7 @@
   import ConvertDatasetPanel from './ConvertDatasetPanel.svelte';
   import ChunkTrustStrip from './ChunkTrustStrip.svelte';
   import HfHubPushDialog from './HfHubPushDialog.svelte';
+  import ConvertStatsPanel from './ConvertStatsPanel.svelte';
   import { validateJsonl } from '../lib/validate';
   import { approximateTokens } from '../lib/tokenize';
   import { calculateTrainingCost } from '../lib/pricing';
@@ -38,7 +39,8 @@
   let confirmingClearDataset = $state(false);
   let pendingRemoveFileId = $state<string | null>(null);
   let filenameDialog = $state<{ type: 'combined' | 'zip'; ext: string; blob: Blob } | null>(null);
-  let showHfDialog = $state(false);
+  let showHfDialog = $derived($convertHfDialogOpen);
+  let statsOpen = $derived($convertStatsOpen);
   let filenameInput = $state('');
   let pendingPreset = $state<string | null>(null);
   let pendingPresetErrorDelta = $state(0);
@@ -703,7 +705,9 @@
   onformatchange={handleFormatChange}
   copyFeedback={copyFeedback}
   onimporttoggle={() => (showImportPanel = !showImportPanel)}
-  onhfpush={() => (showHfDialog = true)}
+  onhfpush={() => convertHfDialogOpen.set(true)}
+  onstatstoggle={() => convertStatsOpen.update(v => !v)}
+  statsOpen={statsOpen}
 />
 
 {#if showImportPanel}
@@ -724,7 +728,7 @@
 {/if}
 
 <div class="convert-body">
-  <div class="editor-area">
+  <div class="editor-area" class:hidden={statsOpen}>
     <EditorIsland
       bind:this={editorRef}
       mode="jsonl"
@@ -734,7 +738,10 @@
       onchange={handleEditorChange}
     />
   </div>
-  {#if $convertState.datasetFiles.length > 0}
+  {#if statsOpen}
+    <ConvertStatsPanel />
+  {/if}
+  {#if $convertState.datasetFiles.length > 0 && !statsOpen}
     <ConvertDatasetPanel
       selectedId={selectedDatasetFileId}
       globalFormat={$convertState.exportFormat}
@@ -846,7 +853,7 @@
   <HfHubPushDialog
     content={getActiveContent()}
     defaultFileName={`dataset.${$convertState.exportFormat === 'parquet' ? 'parquet' : $convertState.exportFormat === 'alpaca' || $convertState.exportFormat === 'sharegpt' ? 'jsonl' : $convertState.exportFormat}`}
-    onclose={() => (showHfDialog = false)}
+    onclose={() => convertHfDialogOpen.set(false)}
   />
 {/if}
 
@@ -862,6 +869,10 @@
     flex: 1;
     overflow: hidden;
     min-height: 0;
+  }
+
+  .editor-area.hidden {
+    display: none;
   }
 
   .sample-banner {

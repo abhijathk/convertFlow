@@ -72,14 +72,22 @@ const regexTester: UtilityToolModule = {
             });
           }
         } else {
-          const m = testString.match(regex);
-          if (m) {
-            matches.push({
-              index: m.index ?? 0,
-              value: m[0],
-              line: getLineNumber(testString, m.index ?? 0),
-              groups: (m.groups as Record<string, string>) ?? {},
-            });
+          // Use exec with a temporary global copy to allow Date.now() guard (ReDoS mitigation)
+          const gFlags = flags.replace(/[gy]/g, '') + 'g';
+          const gRegex = new RegExp(regex.source, gFlags);
+          gRegex.lastIndex = 0;
+          if (Date.now() - start <= TIMEOUT_MS) {
+            const m = gRegex.exec(testString);
+            if (m) {
+              matches.push({
+                index: m.index,
+                value: m[0],
+                line: getLineNumber(testString, m.index),
+                groups: (m.groups as Record<string, string>) ?? {},
+              });
+            }
+          } else {
+            timedOut = true;
           }
         }
       } catch {

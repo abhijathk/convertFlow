@@ -25,6 +25,8 @@ export const TOOLS: UtilityMeta[] = [
   { id: 'token-analyzer', name: 'Token-per-row Analyzer', category: 'llm', autoPrefillEligible: true, description: 'Per-row token counts with context window limit warnings.' },
   { id: 'embedding-budget', name: 'Embedding Budget Estimator', category: 'llm', autoPrefillEligible: true, description: 'Estimate embedding cost across providers for your text.' },
   { id: 'conversation-formatter', name: 'Conversation Formatter', category: 'text', autoPrefillEligible: true, description: 'Convert transcripts to OpenAI, Anthropic, Alpaca, or ShareGPT JSONL.' },
+  { id: 'pii-redactor', name: 'PII Detector', category: 'validation', autoPrefillEligible: true, description: 'Detect and redact emails, phones, SSNs, credit cards, API keys, and more.' },
+  { id: 'schema-migrator', name: 'Schema Migrator', category: 'data', autoPrefillEligible: true, description: 'Convert JSONL between OpenAI, Anthropic, Alpaca, and ShareGPT schemas.' },
 ];
 
 const toolLoaders = import.meta.glob('./tools/*.ts') as Record<

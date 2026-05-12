@@ -1,3 +1,10 @@
+function sanitize(msg: string): string {
+  return msg
+    .replace(/hf_[A-Za-z0-9]{20,}/g, 'hf_***')
+    .replace(/Bearer\s+\S+/gi, 'Bearer ***')
+    .replace(/Authorization:\s*\S+/gi, 'Authorization: ***');
+}
+
 export interface HfPushOptions {
   token: string;
   repo: string;
@@ -24,13 +31,13 @@ export async function pushToHfHub(opts: HfPushOptions): Promise<HfPushResult> {
   });
   if (!createRes.ok && createRes.status !== 409) {
     const msg = await createRes.text().catch(() => String(createRes.status));
-    throw new Error(`Create repo failed (${createRes.status}): ${msg}`);
+    throw new Error(`Create repo failed (${createRes.status}): ${sanitize(msg)}`);
   }
 
   // 2. Commit the file via the commit API (base64 payload, works for text files)
   const b64 = btoa(unescape(encodeURIComponent(content)));
   const commitBody = {
-    commit_message: `Upload ${fileName} via DataPrep`,
+    commit_message: `Upload ${fileName} via convertFlow`,
     operations: [
       {
         key: fileName,
@@ -46,7 +53,7 @@ export async function pushToHfHub(opts: HfPushOptions): Promise<HfPushResult> {
   );
   if (!commitRes.ok) {
     const msg = await commitRes.text().catch(() => String(commitRes.status));
-    throw new Error(`Commit failed (${commitRes.status}): ${msg}`);
+    throw new Error(`Commit failed (${commitRes.status}): ${sanitize(msg)}`);
   }
 
   return { ok: true, repoUrl: `https://huggingface.co/datasets/${repo}` };

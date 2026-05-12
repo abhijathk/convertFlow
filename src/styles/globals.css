@@ -105,7 +105,7 @@
   --ink:          #1a1d21;
   --ink-dim:      #57606a;
   --muted:        #8a8a8a;
-  --accent:       #b5710f;
+  --accent:       #8c5408;
   --ok:           #2e7d32;
   --err:          #b4261e;
   --warn:         #8a6d15;
@@ -167,7 +167,11 @@ body {
 
   .editor-area {
     flex: 1 1 auto !important;
-    min-height: 0 !important;
+    min-height: 50vh !important;
+  }
+
+  .editor-body {
+    min-height: 50vh !important;
   }
 
   /* Dataset panel becomes a bottom drawer */
@@ -272,4 +276,50 @@ body {
   .toolbar-tabs .actions {
     padding: 4px 0;
   }
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 2px 0;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--accent);
+  border: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5.5px;
+  background: transparent url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='6' y='10' text-anchor='middle' font-size='14' font-family='monospace' fill='%23e0a84e'>*</text></svg>") no-repeat center;
+  background-size: 12px 12px;
+  border: none;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--accent);
+  border: none;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: transparent url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='6' y='10' text-anchor='middle' font-size='14' font-family='monospace' fill='%23e0a84e'>*</text></svg>") no-repeat center;
+  background-size: 12px 12px;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
 }

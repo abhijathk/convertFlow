@@ -19,7 +19,7 @@ const { title, description, publishDate, readMinutes, breadcrumb, toc } = Astro.
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content={description} />
-  <title>{title} — DataPrep</title>
+  <title>{title} — convertFlow</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <script is:inline>
     (function() {
@@ -33,7 +33,7 @@ const { title, description, publishDate, readMinutes, breadcrumb, toc } = Astro.
 <body class="doc-body">
 
   <header class="doc-topbar">
-    <a href="/" class="brand">dataprep</a>
+    <a href="/" class="brand">convertFlow</a>
     <nav class="doc-breadcrumb" aria-label="Breadcrumb">
       {breadcrumb.map((crumb, i) => (
         <>
@@ -52,12 +52,34 @@ const { title, description, publishDate, readMinutes, breadcrumb, toc } = Astro.
     <aside class="sidebar" aria-label="Table of contents">
       <nav>
         <p class="toc-heading">contents</p>
-        <ul>
-          {toc.map(item => (
-            <li class={item.depth === 2 ? 'toc-sub' : ''}>
-              <a href={`#${item.id}`}>{item.label}</a>
-            </li>
-          ))}
+        <ul class="toc-tree">
+          {(() => {
+            const groups: { top: typeof toc[number]; subs: typeof toc[number][] }[] = [];
+            for (const item of toc) {
+              if (!item.depth || item.depth < 2) groups.push({ top: item, subs: [] });
+              else if (groups.length > 0) groups[groups.length - 1].subs.push(item);
+              else groups.push({ top: item, subs: [] });
+            }
+            return groups.map(g => (
+              g.subs.length === 0 ? (
+                <li class="toc-leaf"><a href={`#${g.top.id}`}>{g.top.label}</a></li>
+              ) : (
+                <li class="toc-branch">
+                  <details open>
+                    <summary>
+                      <span class="toc-toggle" aria-hidden="true">▸</span>
+                      <a href={`#${g.top.id}`}>{g.top.label}</a>
+                    </summary>
+                    <ul class="toc-subs">
+                      {g.subs.map(s => (
+                        <li><a href={`#${s.id}`}>{s.label}</a></li>
+                      ))}
+                    </ul>
+                  </details>
+                </li>
+              )
+            ));
+          })()}
         </ul>
       </nav>
     </aside>
@@ -144,7 +166,16 @@ const { title, description, publishDate, readMinutes, breadcrumb, toc } = Astro.
   .sidebar nav {
     position: sticky;
     top: 68px;
+    max-height: calc(100vh - 88px);
+    overflow-y: auto;
+    padding-right: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
+  .sidebar nav::-webkit-scrollbar { width: 6px; }
+  .sidebar nav::-webkit-scrollbar-track { background: transparent; }
+  .sidebar nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .sidebar nav::-webkit-scrollbar-thumb:hover { background: var(--ink-dim); }
 
   .toc-heading {
     font-size: 11px;
@@ -172,6 +203,37 @@ const { title, description, publishDate, readMinutes, breadcrumb, toc } = Astro.
   .sidebar a:hover { color: var(--accent); }
 
   .toc-sub a { padding-left: 10px; font-size: 11px; }
+
+  .toc-tree summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+  }
+  .toc-tree summary::-webkit-details-marker { display: none; }
+  .toc-toggle {
+    display: inline-block;
+    font-size: 9px;
+    color: var(--muted);
+    transition: transform 0.12s;
+    flex-shrink: 0;
+    width: 10px;
+  }
+  details[open] > summary .toc-toggle { transform: rotate(90deg); }
+  .toc-leaf { padding-left: 14px; }
+  .toc-branch > details > summary > a { flex: 1; }
+  .toc-subs {
+    list-style: none;
+    padding: 4px 0 0 14px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .toc-subs a { font-size: 11px; color: var(--ink-dim); }
+  .toc-subs a:hover { color: var(--accent); }
 
   .doc-main {
     flex: 1;

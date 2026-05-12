@@ -28,9 +28,11 @@
     onimporttoggle?: () => void;
     onformatchange?: (id: ExportFormat) => void;
     onhfpush?: () => void;
+    onstatstoggle?: () => void;
+    statsOpen?: boolean;
   }
 
-  let { oncopy, ondownload, ondownloadzip, onopeneditor, datasetFileCount = 0, onpresetchange, copyFeedback = '', onimporttoggle, onformatchange, onhfpush }: Props = $props();
+  let { oncopy, ondownload, ondownloadzip, onopeneditor, datasetFileCount = 0, onpresetchange, copyFeedback = '', onimporttoggle, onformatchange, onhfpush, onstatstoggle, statsOpen = false }: Props = $props();
 
 
   // ── Format tab definitions ────────────────────────────────────────────────
@@ -48,7 +50,7 @@
     { id: 'tsv',      label: 'TSV',        title: 'Tab-separated values — universal tabular format' },
     { id: 'parquet',  label: 'Parquet',    title: 'Apache Parquet — HuggingFace datasets compatible' },
     { id: 'md',       label: 'Markdown',   title: 'Conversations formatted as readable Markdown' },
-    { id: 'txt',      label: 'Plain text', title: 'Message content only, no JSON structure' },
+    { id: 'txt',      label: 'TXT',        title: 'Plain text — message content only, no JSON structure' },
     { id: 'alpaca',   label: 'Alpaca',     title: 'Alpaca JSONL — instruction/input/output format' },
     { id: 'sharegpt', label: 'ShareGPT',   title: 'ShareGPT JSONL — conversations [{from, value}] format' },
   ];
@@ -164,7 +166,6 @@
     <button onclick={onimporttoggle} title="Import files — single, multiple, or a folder">import ↓</button>
     <button onclick={onopeneditor} disabled={!hasContent} class="editor-btn" title="Edit current content in Editor tab (⌘3)">↗ Editor</button>
     <button onclick={openInUtilities} disabled={!$convertState.editorContent?.trim()} class="utilities-btn" title="Analyze content in Utilities tab">↗ Utilities</button>
-    <button onclick={onhfpush} disabled={!hasContent} class="hf-btn" title="Push dataset to Hugging Face Hub">↑ HF Hub</button>
     {#if !isBinary}
       <button
         onclick={oncopy}
@@ -426,6 +427,9 @@
   .actions button.hf-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--syntax-key) 10%, transparent); }
   .actions button.utilities-btn { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
   .actions button.utilities-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .actions button.stats-btn { color: var(--syntax-key); border-color: color-mix(in srgb, var(--syntax-key) 40%, transparent); }
+  .actions button.stats-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--syntax-key) 10%, transparent); }
+  .actions button.stats-btn.active { background: color-mix(in srgb, var(--syntax-key) 18%, transparent); color: var(--syntax-key); border-color: var(--syntax-key); }
 
   /* ── Row 2: info zone ───────────────────────────────────────────────────── */
   .toolbar-info {

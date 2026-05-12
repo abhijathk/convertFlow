@@ -14,7 +14,7 @@
     { id: 'jsonl', label: 'JSONL',     title: 'One JSON object per line (original format)' },
     { id: 'json',  label: 'JSON',      title: 'Pretty-printed JSON array' },
     { id: 'md',    label: 'Markdown',  title: 'Conversations formatted as readable Markdown' },
-    { id: 'txt',   label: 'Plain text', title: 'Message content only, no JSON structure' },
+    { id: 'txt',   label: 'TXT',       title: 'Plain text — message content only, no JSON structure' },
   ];
 
   let fmt = $derived($convertState.exportFormat);

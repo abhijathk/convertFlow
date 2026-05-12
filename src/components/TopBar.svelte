@@ -171,6 +171,12 @@
   }
   .actions button:hover,
   .actions a:hover { color: var(--ink); }
+  .actions button:focus-visible,
+  .actions a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
   .actions button.share-ok { color: var(--ok); }
   kbd {
     color: var(--accent);
@@ -221,6 +227,11 @@
     min-width: 0;
   }
   .cmd-input-field::placeholder { color: var(--muted); }
+  .cmd-input-field:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
   .cmd-input kbd {
     background: var(--bg);
     border: 1px solid var(--border);

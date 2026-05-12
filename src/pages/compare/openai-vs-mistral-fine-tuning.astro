@@ -22,7 +22,7 @@ const toc = [
   publishDate="2026-04-24"
   readMinutes={7}
   breadcrumb={[
-    { label: 'dataprep', href: '/' },
+    { label: 'convertFlow', href: '/' },
     { label: 'compare', href: '/compare' },
     { label: 'openai vs mistral' },
   ]}
@@ -71,7 +71,7 @@ const toc = [
   <li>Minimum 10 examples.</li>
 </ul>
 
-<p>The practical consequence: if your dataset has examples exceeding 32,768 tokens, they will pass OpenAI validation and fail Mistral's. Run both validators before committing to a provider. DataPrep's preset selector flags this with a per-line token count.</p>
+<p>The practical consequence: if your dataset has examples exceeding 32,768 tokens, they will pass OpenAI validation and fail Mistral's. Run both validators before committing to a provider. convertFlow's preset selector flags this with a per-line token count.</p>
 
 <h2 id="key-differences">Key Differences</h2>
 
@@ -127,7 +127,7 @@ const toc = [
   </tbody>
 </table>
 
-<p>The most important compatibility note: because both use <code>messages</code> arrays with the same role strings, a clean OpenAI dataset with no <code>name</code> fields, no tool calls, and examples under 32,768 tokens is a valid Mistral dataset. You can test one dataset against both providers without any conversion step — just change the preset in DataPrep's Convert tab.</p>
+<p>The most important compatibility note: because both use <code>messages</code> arrays with the same role strings, a clean OpenAI dataset with no <code>name</code> fields, no tool calls, and examples under 32,768 tokens is a valid Mistral dataset. You can test one dataset against both providers without any conversion step — just change the preset in convertFlow's Convert tab.</p>
 
 <h2 id="pricing">Pricing (Apr 2026)</h2>
 
@@ -159,7 +159,7 @@ const toc = [
 <p>On a 4M-token training dataset, OpenAI GPT-4.1 costs $100 to train; Mistral Large 3 costs $16. The training cost difference is dramatic. Inference costs are broadly similar — Mistral is slightly cheaper on output tokens at $9/M vs OpenAI's $12/M. For a high-volume product, the inference delta matters more than the one-time training cost.</p>
 
 <div class="callout">
-  <strong>Verify before you rely on these numbers.</strong> Mistral's La Plateforme pricing is published in EUR; the figures above are approximate USD conversions as of April 2026. Check <code>docs.mistral.ai</code> and <code>platform.openai.com/docs</code> for current rates. The DataPrep presets show a <code>lastVerified</code> date when you load them.
+  <strong>Verify before you rely on these numbers.</strong> Mistral's La Plateforme pricing is published in EUR; the figures above are approximate USD conversions as of April 2026. Check <code>docs.mistral.ai</code> and <code>platform.openai.com/docs</code> for current rates. The convertFlow presets show a <code>lastVerified</code> date when you load them.
 </div>
 
 <h2 id="calculator">Cost Calculator</h2>

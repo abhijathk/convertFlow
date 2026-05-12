@@ -1,0 +1,51 @@
+---
+import DocLayout from '../layouts/DocLayout.astro';
+---
+
+<DocLayout
+  title="About convertFlow"
+  description="Who built convertFlow, why it exists, and how to get in touch."
+  publishDate="2026-05-12"
+  readMinutes={2}
+  breadcrumb={[
+    { label: 'convertFlow', href: '/' },
+    { label: 'help', href: '/help' },
+    { label: 'about' },
+  ]}
+  toc={[
+    { id: 'what-is', label: 'What it is' },
+    { id: 'why',     label: 'Why it exists' },
+    { id: 'contact', label: 'Contact' },
+  ]}
+>
+
+<h2 id="what-is">What it is</h2>
+
+<p><strong>convertFlow</strong> is an in-browser workspace for everything that lives between "I have raw text/data" and "I have a clean fine-tuning dataset, RAG chunks, or working JSONL". Four tabs cover the full pipeline:</p>
+
+<ul>
+  <li><strong>Convert</strong> — turn conversation data into the JSONL/CSV/Parquet/Alpaca/ShareGPT/… your trainer or API expects, with auto-fix and validation against 51 provider presets.</li>
+  <li><strong>Chunk</strong> — split documents into embedding-ready chunks with overlap visualization, manual boundaries, and live cost estimates across embedding providers.</li>
+  <li><strong>Editor</strong> — Monaco-based multi-file editor with split-pane preview, diff view, cross-file find/replace, JSONL linter, and per-record token gutter.</li>
+  <li><strong>Utilities</strong> — 14 fast, focused tools: token estimator, cost calculator (46 models), regex tester, hash, timestamp, dataset splitter, duplicate detector, and more.</li>
+</ul>
+
+<p>Everything runs locally. Nothing about your data is transmitted to any server unless you explicitly push to Hugging Face Hub with your own token.</p>
+
+<h2 id="why">Why it exists</h2>
+
+<p>Most fine-tuning and RAG workflows currently mean stitching together five or six free websites — a token counter, a JSONL validator, a regex tester, a chunker — each of which forgets your data between visits and adds another tab to switch through.</p>
+
+<p>convertFlow is built around the idea that the dataset you're working on should be the centre of the workspace, not a copy-paste-able payload that lives on five different sites. Auto-prefill, "Send to Editor / Convert / Chunk", and "Use Editor selection" are all in service of that: once your data is in, every tool sees it.</p>
+
+<p>It's also built to be honest about privacy. Browser-only processing isn't a marketing line — it's the architectural constraint. Open the network tab and watch nothing happen while you parse a 50MB PDF.</p>
+
+<h2 id="contact">Contact</h2>
+
+<p>Questions, bug reports, feature requests, privacy enquiries, or just a hello:</p>
+
+<p style="font-size: 16px;"><a href="mailto:support@quakkainfo.com"><strong>support@quakkainfo.com</strong></a></p>
+
+<p>For bug reports, please include the browser + version and what you were trying to do.</p>
+
+</DocLayout>
