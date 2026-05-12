@@ -1,0 +1,109 @@
+---
+import TopBar from '../components/TopBar.svelte';
+import TabStrip from '../components/TabStrip.svelte';
+import StatusBar from '../components/StatusBar.svelte';
+import CommandPalette from '../components/CommandPalette.svelte';
+import ConvertTab from '../components/ConvertTab.svelte';
+import ChunkTab from '../components/ChunkTab.svelte';
+import EditorTab from '../components/EditorTab.svelte';
+import UtilitiesTab from '../components/UtilitiesTab.svelte';
+import '../styles/globals.css';
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="DataPrep — JSONL fine-tuning dataset prep and RAG document chunker for LLM developers. Free, in-browser, no signup." />
+  <title>DataPrep — LLM Data Prep Tool</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" href="/favicon.ico" />
+  <!-- Plausible analytics — replace data-domain when live -->
+  <!-- <script defer data-domain="dataprep.tool" src="https://plausible.io/js/script.js"></script> -->
+  <script is:inline>
+    (function() {
+      const t = localStorage.getItem('dataprep-theme');
+      document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app">
+    <TopBar client:load />
+    <TabStrip client:load />
+
+    <div id="panel-convert" role="tabpanel" aria-labelledby="tab-convert" class="tab-panel" data-tab="convert">
+      <ConvertTab client:load />
+    </div>
+
+    <div id="panel-chunk" role="tabpanel" aria-labelledby="tab-chunk" class="tab-panel" data-tab="chunk" hidden>
+      <ChunkTab client:load />
+    </div>
+
+    <div id="panel-editor" role="tabpanel" aria-labelledby="tab-editor" class="tab-panel" data-tab="editor" hidden>
+      <EditorTab client:load />
+    </div>
+
+    <div id="panel-utilities" role="tabpanel" class="tab-panel" data-tab="utilities" hidden>
+      <UtilitiesTab client:load />
+    </div>
+
+    <StatusBar client:load />
+    <CommandPalette client:load />
+  </div>
+
+  <script>
+    import { shellState, toggleTheme, openPalette, closePalette, setTab } from '../stores/shellState';
+    import { decodeShareFragment } from '../lib/share-url';
+    import { openFile } from '../stores/editorState';
+
+    // Sync tab panel visibility with active tab
+    shellState.subscribe((state) => {
+      const panels = document.querySelectorAll<HTMLElement>('.tab-panel');
+      panels.forEach((panel) => {
+        panel.hidden = panel.getAttribute('data-tab') !== state.activeTab;
+      });
+    });
+
+    // Rehydrate theme from localStorage on mount
+    const stored = localStorage.getItem('dataprep-theme');
+    const theme = stored === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    shellState.update((s) => ({ ...s, theme }));
+
+    // Restore Editor share fragment
+    const payload = decodeShareFragment(location.hash);
+    if (payload?.tab === 'editor') {
+      openFile(payload.name, payload.content);
+      setTab('editor');
+    }
+
+    // Global keyboard shortcuts (⌘ on Mac, Ctrl on Windows/Linux)
+    document.addEventListener('keydown', (e) => {
+      const mod = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent) ? e.metaKey : e.ctrlKey;
+      if (mod && e.key === 't') { e.preventDefault(); toggleTheme(); }
+      if (mod && e.key === 'k') { e.preventDefault(); openPalette(); }
+      if (e.key === 'Escape') { closePalette(); }
+    });
+  </script>
+</body>
+</html>
+
+<style>
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .tab-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .tab-panel[hidden] { display: none; }
+</style>

@@ -1,0 +1,55 @@
+import { writable } from 'svelte/store';
+
+export type ChunkStrategy = 'fixed' | 'paragraph' | 'semantic';
+export type ParseStatus = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
+
+export interface ChunkMeta {
+  chunk_id: string;
+  chunk_index: number;
+  total_siblings: number;
+  hash: string;
+  char_count: number;
+  word_count: number;
+  approx_tokens: number;
+  keywords: string[];
+  density_score: number;
+  content: string;
+  startOffset: number;
+  endOffset: number;
+}
+
+export interface ChunkState {
+  strategy: ChunkStrategy;
+  embedderId: string;
+  chunks: ChunkMeta[];
+  parseStatus: ParseStatus;
+  parseError: string | null;
+  parseProgress: number;
+  sourceCharCount: number;
+  sourceText: string;
+  docMetadata: { pages?: number; format?: string; sizeBytes?: number } | null;
+  userMeta: { doc_id: string; category: string; tags: string; author: string; language: string };
+  chunkSize: number;
+  chunkOverlap: number;
+  enableImages: boolean;
+  enableOcr: boolean;
+  manualBoundaries: number[] | null;
+}
+
+export const chunkState = writable<ChunkState>({
+  strategy: 'semantic',
+  embedderId: 'openai-text-embedding-3-small',
+  chunks: [],
+  parseStatus: 'idle',
+  parseError: null,
+  parseProgress: 0,
+  sourceCharCount: 0,
+  sourceText: '',
+  docMetadata: null,
+  userMeta: { doc_id: '', category: '', tags: '', author: '', language: 'en' },
+  chunkSize: 640,
+  chunkOverlap: 80,
+  enableImages: false,
+  enableOcr: false,
+  manualBoundaries: null,
+});

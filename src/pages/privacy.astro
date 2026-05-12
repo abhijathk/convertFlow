@@ -1,0 +1,169 @@
+---
+import '../styles/globals.css';
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="DataPrep privacy policy — how we handle your files and data." />
+  <title>Privacy — DataPrep</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script is:inline>
+    (function() {
+      const t = localStorage.getItem('dataprep-theme');
+      document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    })();
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">dataprep</a>
+    <span aria-hidden="true">›</span>
+    <span aria-current="page">privacy</span>
+  </nav>
+
+  <main>
+    <h1>Privacy — how DataPrep handles your data</h1>
+    <p class="meta">Last updated: 2026-05-12 · 3 min read</p>
+
+    <h2>What we do with your files</h2>
+    <p>Files you open, paste, or upload are processed <strong>entirely in your browser</strong>. Parsing libraries (pdf-parse, mammoth, xlsx, tesseract.js) run as WebAssembly / JavaScript modules loaded into your browser tab — they never see a server. No file content, filename, or extracted text is transmitted anywhere, logged, or stored on our infrastructure.</p>
+
+    <h2>Local storage</h2>
+    <p>DataPrep persists your in-progress work to your browser's localStorage so it survives page reloads. All keys begin with <code>dataprep</code>:</p>
+    <ul>
+      <li><code>dataprep-editor-state-v1</code> — open files, active file, split-pane state. Files larger than 3MB are kept in session only.</li>
+      <li><code>dataprep-convert-state-v1</code> — dataset files, preset, format settings.</li>
+      <li><code>dataprep-chunk-state-v1</code> — chunk strategy, embedder, source.</li>
+      <li><code>dataprep:appSettings</code> — your editor / convert / privacy preferences.</li>
+      <li><code>dataprep:utilities-state-v1</code> — per-utility input state.</li>
+      <li><code>dataprep:hf-token</code> — only if you check "remember on this device" when pushing to Hugging Face Hub.</li>
+      <li><code>dataprep-theme</code>, <code>dataprep:tour-seen</code>, <code>dataprep:chunk-show-overlap</code> — UI preferences.</li>
+    </ul>
+    <p>You can clear everything via <strong>Settings → Privacy → Clear all stored data</strong>. This removes every <code>dataprep*</code> key and reloads the page.</p>
+
+    <h2>When data leaves your browser</h2>
+    <p>There are only two situations where DataPrep makes a network request with your data:</p>
+    <ol>
+      <li><strong>Push to Hugging Face Hub</strong> — when you explicitly click <strong>↑ HF Hub</strong> on the Convert toolbar, the dataset you've chosen plus your HF write token are sent to <code>huggingface.co</code> via the Hugging Face Commits API. You can clear the saved token any time from Settings → Privacy → "Clear HF Hub token". Nothing else is sent unless you trigger that action.</li>
+      <li><strong>Anonymous analytics</strong> — page views and aggregate event counts are sent to Plausible (cookieless, no PII, EU-hosted). You can disable all analytics via <strong>Settings → Privacy → Anonymous telemetry</strong>.</li>
+    </ol>
+
+    <h2>What we log</h2>
+    <p>We do not run a server-side parsing endpoint. Plausible records pageviews and a small set of product-usage events without PII or cookies. Cloudflare may log IP addresses per their standard edge logging — see Cloudflare's privacy policy for details.</p>
+
+    <h2>Libraries used in-browser</h2>
+    <ul>
+      <li><strong>pdf-parse / pdfjs-dist</strong> — PDF text extraction (WASM in your tab)</li>
+      <li><strong>mammoth</strong> — DOCX text extraction</li>
+      <li><strong>xlsx</strong> — XLSX text extraction</li>
+      <li><strong>tesseract.js</strong> — OCR for image inputs (WASM in your tab)</li>
+      <li><strong>monaco-editor</strong> — the code editor surface</li>
+      <li><strong>js-tiktoken</strong> — token estimation</li>
+    </ul>
+
+    <h2>Third parties</h2>
+    <ul>
+      <li><strong>Cloudflare</strong> — static asset hosting (no application data passes through Cloudflare functions).</li>
+      <li><strong>Plausible</strong> — privacy-friendly, cookieless analytics. No PII collected, no cross-site tracking. EU-hosted. Opt-out available in Settings.</li>
+      <li><strong>Hugging Face</strong> — only contacted when you click "Push to HF Hub" with your token. Your dataset is uploaded directly to the repo you specify.</li>
+    </ul>
+
+    <h2>Your data rights</h2>
+    <p>Because DataPrep does not store your data on any server, there is nothing for us to delete on your behalf — clearing your browser's localStorage (or using the in-app "Clear all stored data" button) fully removes your data. If you've pushed a dataset to Hugging Face, you can delete the repo from your Hugging Face account.</p>
+
+    <h2>Contact</h2>
+    <p>Questions, privacy requests, or feedback: <a href="mailto:support@quakkainfo.com">support@quakkainfo.com</a></p>
+  </main>
+
+  <footer class="page-footer">
+    <a href="/">← back to tool</a>
+  </footer>
+</body>
+</html>
+
+<style>
+  body { margin: 0; padding: 0; }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-size: 12px;
+    color: var(--ink-dim);
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  .breadcrumb a {
+    color: var(--ink-dim);
+    text-decoration: none;
+  }
+
+  .breadcrumb a:hover { color: var(--ink); }
+
+  main {
+    max-width: 72ch;
+    margin: 0 auto;
+    padding: 48px 24px;
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  h1 {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+
+  h2 {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 36px 0 8px;
+    color: var(--ink);
+  }
+
+  .meta {
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin: 0 0 40px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  p, li { color: var(--ink); }
+
+  ul {
+    padding-left: 20px;
+    margin: 8px 0 16px;
+  }
+
+  li { margin-bottom: 6px; }
+
+  a { color: var(--accent); }
+  a:hover { text-decoration: underline; }
+
+  strong { font-weight: 500; color: var(--ink); }
+
+  .page-footer {
+    max-width: 72ch;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  .page-footer a {
+    color: var(--ink-dim);
+    text-decoration: none;
+  }
+
+  .page-footer a:hover { color: var(--ink); }
+</style>

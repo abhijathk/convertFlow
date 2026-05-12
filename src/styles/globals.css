@@ -1,0 +1,275 @@
+/* IBM Plex Mono — self-hosted (woff2 files go in public/fonts/)
+   Download from: https://github.com/IBM/plex/releases or fonts.google.com
+   Until font files are added, falls back to JetBrains Mono / system monospace. */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-SemiBold.woff2') format('woff2');
+}
+
+/* Inter Tight — for long-form content only (privacy, blog, comparison pages) */
+@font-face {
+  font-family: 'Inter Tight';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/InterTight-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Tight';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/InterTight-Medium.woff2') format('woff2');
+}
+
+@import "tailwindcss";
+
+/* Tailwind 4 CSS-first theme config */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-ok: var(--ok);
+  --color-err: var(--err);
+  --color-warn: var(--warn);
+  --color-syntax-key: var(--syntax-key);
+  --color-syntax-str: var(--syntax-str);
+  --color-syntax-num: var(--syntax-num);
+  --color-syntax-punct: var(--syntax-punct);
+  --color-border: var(--border);
+
+  --font-family-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-family-sans: 'Inter Tight', system-ui, sans-serif;
+
+  --font-size-2xs: 12px;
+  --font-size-xs: 13px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+
+  --radius-btn: 2px;
+  --radius-input: 3px;
+  --radius-panel: 4px;
+
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+}
+
+/* Design tokens — dark default */
+:root {
+  --bg:           #0e1116;
+  --surface:      #161a21;
+  --ink:          #e6e1d7;
+  --ink-dim:      #a8a296;
+  --muted:        #6b6558;
+  --accent:       #e0a84e;
+  --ok:           #8ab56b;
+  --err:          #e07575;
+  --warn:         #d4a24a;
+  --syntax-key:   #7ab0d8;
+  --syntax-str:   #c5a46c;
+  --syntax-num:   #b08fe8;
+  --syntax-punct: #a8a296;
+  --border:       #242933;
+}
+
+[data-theme="light"] {
+  --bg:           #f6f5ef;
+  --surface:      #ffffff;
+  --ink:          #1a1d21;
+  --ink-dim:      #57606a;
+  --muted:        #8a8a8a;
+  --accent:       #b5710f;
+  --ok:           #2e7d32;
+  --err:          #b4261e;
+  --warn:         #8a6d15;
+  --syntax-key:   #1c5a8a;
+  --syntax-str:   #8a5a10;
+  --syntax-num:   #5e37a1;
+  --syntax-punct: #57606a;
+  --border:       #e2dfd5;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+/* Tabular numerals for cost/token numbers */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Focus ring — 2px amber, always visible */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Scrollbars (Webkit) */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Mobile layout ── */
+@media (max-width: 768px) {
+  /* Convert: stack editor + dataset panel vertically */
+  .convert-body {
+    flex-direction: column !important;
+  }
+
+  .editor-area {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* Dataset panel becomes a bottom drawer */
+  .dataset-panel-mobile-drawer {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 50vh;
+    z-index: 80;
+    overflow-y: auto;
+    border-top: 2px solid var(--accent);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+  }
+
+  /* Chunk: stack panels vertically */
+  .chunk-body {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .chunk-body .editor-side {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 280px;
+  }
+
+  .chunk-body .list-pane {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 200px;
+  }
+
+  .chunk-body .preview-pane {
+    flex: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Hide drag handles on mobile */
+  .chunk-body .panel-handle {
+    display: none !important;
+  }
+
+  /* Touch targets */
+  button, a[role="button"], [role="tab"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Editor: file tabs scroll horizontally */
+  .file-tabs {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+  }
+
+  /* Editor: bottom panel slides up */
+  .bottom-panel {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 80;
+    border-top: 2px solid var(--accent);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+  }
+}
+
+@media (max-width: 600px) {
+  /* TopBar collapses: hide text labels, show compact icons */
+  .topbar .actions .sep {
+    display: none !important;
+  }
+
+  .topbar .actions button kbd,
+  .topbar .actions a kbd {
+    display: none !important;
+  }
+
+  /* Toolbar format tabs: scroll horizontally */
+  .format-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .format-tabs::-webkit-scrollbar { display: none; }
+
+  /* Toolbar actions wrap to second line */
+  .toolbar-tabs {
+    flex-wrap: wrap;
+    height: auto !important;
+    min-height: 36px;
+    padding-bottom: 4px;
+  }
+
+  .toolbar-tabs .actions {
+    padding: 4px 0;
+  }
+}

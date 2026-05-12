@@ -1,0 +1,79 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+
+const toc = [
+  { id: 'providers', label: 'Provider Comparisons' },
+  { id: 'strategies', label: 'Strategy Comparisons' },
+];
+
+const providerPages = [
+  {
+    href: '/compare/openai-vs-anthropic-fine-tuning',
+    title: 'OpenAI GPT-4.1 vs Claude',
+    desc: 'ChatML vs Harmony format, pricing breakdown, when to use each.',
+  },
+  {
+    href: '/compare/openai-vs-llama-fine-tuning',
+    title: 'OpenAI GPT-4.1 vs Llama 3.1 70B',
+    desc: 'Managed API vs self-hosted GPU — real cost breakdown including engineer time.',
+  },
+  {
+    href: '/compare/openai-vs-mistral-fine-tuning',
+    title: 'OpenAI GPT-4.1 vs Mistral Large 3',
+    desc: 'Near-identical ChatML formats, 6× training cost difference, EU data residency.',
+  },
+];
+
+const strategyPages = [
+  {
+    href: '/compare/fine-tuning-vs-rag',
+    title: 'Fine-Tuning vs RAG',
+    desc: 'Decision matrix, cost comparison, dataset size rules — when each approach wins.',
+  },
+  {
+    href: '/compare/lora-vs-full-finetune',
+    title: 'LoRA vs Full Fine-Tune',
+    desc: 'GPU cost table, VRAM requirements, and quality trade-offs from 7B to 70B models.',
+  },
+];
+---
+
+<DocLayout
+  title="Fine-Tuning Comparisons"
+  description="Compare LLM fine-tuning providers, costs, and JSONL formats. OpenAI vs Anthropic, cloud vs self-hosted, and more."
+  publishDate="2026-04-24"
+  readMinutes={1}
+  breadcrumb={[
+    { label: 'dataprep', href: '/' },
+    { label: 'compare' },
+  ]}
+  toc={toc}
+>
+
+<p>Side-by-side comparisons of fine-tuning costs, JSONL formats, and provider constraints. Each page includes an inline calculator — paste your dataset to see real numbers.</p>
+
+<h2 id="providers">Provider comparisons</h2>
+
+<ul>
+  {providerPages.map(p => (
+    <li>
+      <a href={p.href}>{p.title}</a>
+      <br />
+      <span style="font-size: 12px; color: var(--ink-dim);">{p.desc}</span>
+    </li>
+  ))}
+</ul>
+
+<h2 id="strategies">Strategy comparisons</h2>
+
+<ul>
+  {strategyPages.map(p => (
+    <li>
+      <a href={p.href}>{p.title}</a>
+      <br />
+      <span style="font-size: 12px; color: var(--ink-dim);">{p.desc}</span>
+    </li>
+  ))}
+</ul>
+
+</DocLayout>

@@ -1,0 +1,162 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+import EmailCapture from '../../components/EmailCapture.svelte';
+
+const toc = [
+  { id: 'what-each-does', label: 'What Each Approach Does' },
+  { id: 'fine-tuning-explained', label: 'Fine-Tuning', depth: 2 },
+  { id: 'rag-explained', label: 'RAG', depth: 2 },
+  { id: 'decision-matrix', label: 'Decision Matrix' },
+  { id: 'cost-comparison', label: 'Cost Comparison' },
+  { id: 'dataset-size', label: 'Dataset Size Rules' },
+  { id: 'dataprep', label: 'DataPrep for Both' },
+  { id: 'subscribe', label: 'Stay Updated' },
+];
+---
+
+<DocLayout
+  title="Fine-Tuning vs RAG — When to Use Each"
+  description="Tactical guide with real numbers. When fine-tuning beats RAG and vice versa — covering cost, dataset size, freshness, and auditability."
+  publishDate="2026-04-24"
+  readMinutes={7}
+  breadcrumb={[
+    { label: 'dataprep', href: '/' },
+    { label: 'compare', href: '/compare' },
+    { label: 'fine-tuning vs rag' },
+  ]}
+  toc={toc}
+>
+
+<h2 id="what-each-does">What Each Approach Does</h2>
+
+<h3 id="fine-tuning-explained">Fine-Tuning</h3>
+
+<p>Fine-tuning updates the weights of a pre-trained model by continuing gradient descent on your labeled dataset. The result is a new model checkpoint that has internalised your examples — it will reproduce the style, vocabulary, format, and decision patterns you trained it on without needing those examples at inference time. The knowledge is baked in. The tradeoff is that once trained, the model does not know anything that happened after the training cutoff of your dataset; updating it requires a new training run.</p>
+
+<h3 id="rag-explained">RAG</h3>
+
+<p>Retrieval-Augmented Generation keeps the base model's weights frozen and instead injects relevant documents into the prompt at inference time. A query arrives, a vector database retrieves the top-k most relevant chunks, and those chunks are prepended to the user message before the model generates a response. The model's job is reading comprehension over a freshly assembled context window, not recall from weights. This means the knowledge base can be updated independently of the model — add a document, re-embed it, done. The tradeoff is that every inference call pays for those retrieved tokens in the prompt.</p>
+
+<h2 id="decision-matrix">Decision Matrix</h2>
+
+<p><strong>Fine-tuning wins when:</strong></p>
+<ul>
+  <li><strong>Style and format consistency.</strong> You need every response to follow a specific structure — JSON schema, a particular tone, a house writing style — and that structure is hard to reliably enforce with a system prompt alone.</li>
+  <li><strong>Domain vocabulary and abbreviations.</strong> Your domain uses terminology, acronyms, or conventions that the base model does not know or frequently confuses. A single training pass on 1,000 examples internalises them reliably; a RAG system would need to retrieve the glossary on every call.</li>
+  <li><strong>Reducing prompt length at scale.</strong> If your current production prompt is 2,000+ tokens of instructions to get the model to behave correctly, fine-tuning can compress that to a 50-token system prompt, cutting inference cost per call significantly at volume.</li>
+  <li><strong>Offline or air-gapped deployment.</strong> RAG requires a live vector database. If your inference environment has no outbound network access — edge hardware, a regulated data center, a device running on-prem — fine-tuning is your only option.</li>
+</ul>
+
+<p><strong>RAG wins when:</strong></p>
+<ul>
+  <li><strong>Knowledge freshness matters.</strong> If the ground truth changes weekly or daily — pricing tables, legal regulations, product specs, news — RAG lets you update documents without retraining. A fine-tuned model's knowledge is frozen at training time.</li>
+  <li><strong>Knowledge base exceeds 100k documents.</strong> A fine-tuned model cannot memorise a 100,000-document knowledge base reliably. RAG retrieves exactly what is relevant. Fine-tuning a model to "know" a large corpus produces hallucinations at the edges where training coverage is thin.</li>
+  <li><strong>Auditability is required.</strong> RAG responses can be traced back to the exact document chunks that were retrieved and injected. Regulators, compliance teams, and users can verify the source. Fine-tuned responses cannot be traced — the answer came from weights, and there is no citation trail.</li>
+  <li><strong>No retraining budget.</strong> A single fine-tuning run on GPT-4.1 costs $25/M training tokens; a 4M-token dataset costs $100 plus iteration runs. If budget is constrained to infrastructure, a vector DB (Pinecone Serverless: ~$0.10/M vectors/month, Weaviate Cloud: free tier available) is cheaper to operate than repeated retraining.</li>
+</ul>
+
+<h2 id="cost-comparison">Cost Comparison</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Cost item</th>
+      <th>Fine-Tuning</th>
+      <th>RAG</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>One-time training cost (4M tokens, GPT-4.1)</td>
+      <td>$100 (one time)</td>
+      <td>$0</td>
+    </tr>
+    <tr>
+      <td>Vector DB hosting (1M chunks)</td>
+      <td>$0</td>
+      <td>$0.10–$1/month</td>
+    </tr>
+    <tr>
+      <td>Inference: input tokens per call</td>
+      <td>~50–200 tokens (short system prompt)</td>
+      <td>500–3,000 tokens (retrieved chunks + query)</td>
+    </tr>
+    <tr>
+      <td>Inference: latency added</td>
+      <td>None</td>
+      <td>20–100ms vector retrieval</td>
+    </tr>
+    <tr>
+      <td>Model size at inference</td>
+      <td>Can use smaller fine-tuned model</td>
+      <td>Usually needs larger model (reading comprehension)</td>
+    </tr>
+    <tr>
+      <td>Knowledge update cost</td>
+      <td>Full retrain (~$100 per run)</td>
+      <td>Re-embed changed docs (fractions of a cent)</td>
+    </tr>
+    <tr>
+      <td>Ongoing infra to maintain</td>
+      <td>None beyond inference endpoint</td>
+      <td>Vector DB + embedding pipeline</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The economics typically favour fine-tuning at high request volume when the per-call prompt can be shortened significantly. RAG's extra prompt tokens cost more per call than a fine-tuned model's concise prompt — but only once you are past the break-even on the training cost. For a product doing 1M calls/month, reducing prompt size by 1,000 tokens saves $3/month at OpenAI GPT-4.1 input pricing ($3.00/M tokens). The break-even on a $100 training run is ~33M prompt tokens saved.</p>
+
+<h2 id="dataset-size">Dataset Size Rules of Thumb</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Approach</th>
+      <th>Minimum effective size</th>
+      <th>Sweet spot</th>
+      <th>Diminishing returns beyond</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Fine-tuning (JSONL examples)</td>
+      <td>100 examples</td>
+      <td>500–5,000 examples</td>
+      <td>~50,000 examples (for most tasks)</td>
+    </tr>
+    <tr>
+      <td>RAG (document chunks)</td>
+      <td>10–20 docs</td>
+      <td>100–100,000 docs</td>
+      <td>Scales with retrieval quality, not count</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Fine-tuning with fewer than 100 examples produces inconsistent results — the model overfits to individual examples rather than learning the underlying pattern. Below 500 examples, expect to iterate on hyperparameters. The sweet spot is 500–5,000 well-curated examples: quality matters more than raw count at this scale.</p>
+
+<p>RAG performance depends more on chunk quality, chunk size, and retrieval strategy than document count. A 50-document knowledge base with well-structured chunks and good metadata outperforms a 10,000-document base with poor chunking. There is no lower floor the way there is for fine-tuning — a single retrieved document can answer a specific factual question correctly.</p>
+
+<div class="callout">
+  <strong>You can combine both.</strong> A fine-tuned model that has learned your output format and domain vocabulary can serve as the reader in a RAG pipeline. Fine-tune first to nail style and terminology; add RAG later to provide fresh facts. This is the highest-quality setup and also the most expensive to operate.
+</div>
+
+<h2 id="dataprep">DataPrep Works for Both</h2>
+
+<p>Whether you are preparing fine-tuning data or RAG document chunks, DataPrep has a tab for it.</p>
+
+<p><strong>Convert tab (fine-tuning JSONL).</strong> Paste raw text, CSV rows, or existing conversation logs and convert them to validated JSONL in the format your chosen provider expects — OpenAI ChatML, Anthropic Harmony, Mistral, Llama, or others. Validation errors surface inline with line numbers before you upload.</p>
+
+<p><strong>Chunk tab (RAG document prep).</strong> Paste a document — markdown, plain text, or pasted HTML — and split it into embedding-ready chunks. Choose chunk size (128–1024 tokens), overlap (0–20%), and separator strategy. The output is a JSONL file where each line is a chunk object ready to pass to an embedding API. Chunking consistently before embedding is one of the most common sources of retrieval quality problems; the Chunk tab handles it deterministically.</p>
+
+<p>If you are undecided between the two approaches, start with the Convert tab and build a 200-example fine-tuning dataset. Run a baseline eval. If your eval shows the model still struggles with factual recall on long-tail questions, layer in RAG on top.</p>
+
+<h2 id="subscribe">Stay updated</h2>
+
+<p>Vector DB pricing, fine-tuning API availability, and retrieval techniques all evolve. We track what changes.</p>
+
+<EmailCapture client:load />
+
+<p style="margin-top: 12px; font-size: 12px; color: var(--ink-dim);">One email when something material changes. No newsletters.</p>
+
+</DocLayout>

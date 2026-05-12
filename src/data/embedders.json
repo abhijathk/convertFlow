@@ -1,0 +1,92 @@
+[
+  {
+    "id": "openai-text-embedding-3-small",
+    "name": "text-embedding-3-small",
+    "provider": "openai",
+    "dimensions": 1536,
+    "pricePerMTokens": 0.02,
+    "sourceUrl": "https://platform.openai.com/docs/models/text-embedding-3-small",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "openai-text-embedding-3-large",
+    "name": "text-embedding-3-large",
+    "provider": "openai",
+    "dimensions": 3072,
+    "pricePerMTokens": 0.13,
+    "sourceUrl": "https://platform.openai.com/docs/models/text-embedding-3-large",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "openai-ada-002",
+    "name": "ada-002",
+    "provider": "openai",
+    "dimensions": 1536,
+    "pricePerMTokens": 0.10,
+    "sourceUrl": "https://platform.openai.com/docs/models/ada-002",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "cohere-embed-english-v3",
+    "name": "embed-english-v3",
+    "provider": "cohere",
+    "dimensions": 1024,
+    "pricePerMTokens": 0.10,
+    "sourceUrl": "https://docs.cohere.com/docs/cohere-embed",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "cohere-embed-multilingual-v3",
+    "name": "embed-multilingual-v3",
+    "provider": "cohere",
+    "dimensions": 1024,
+    "pricePerMTokens": 0.10,
+    "sourceUrl": "https://docs.cohere.com/docs/cohere-embed",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "voyage-large-2",
+    "name": "voyage-large-2",
+    "provider": "voyage",
+    "dimensions": 1536,
+    "pricePerMTokens": 0.12,
+    "sourceUrl": "https://docs.voyageai.com/docs/embeddings",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "voyage-code-2",
+    "name": "voyage-code-2",
+    "provider": "voyage",
+    "dimensions": 1536,
+    "pricePerMTokens": 0.12,
+    "sourceUrl": "https://docs.voyageai.com/docs/embeddings",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "jina-embeddings-v3",
+    "name": "jina-embeddings-v3",
+    "provider": "jina",
+    "dimensions": 1024,
+    "pricePerMTokens": 0.02,
+    "sourceUrl": "https://jina.ai/embeddings/",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "all-minilm-l6-v2",
+    "name": "all-MiniLM-L6-v2",
+    "provider": "local",
+    "dimensions": 384,
+    "pricePerMTokens": 0,
+    "sourceUrl": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
+    "lastVerified": "2026-04-24"
+  },
+  {
+    "id": "bge-large-en-v1.5",
+    "name": "bge-large-en-v1.5",
+    "provider": "local",
+    "dimensions": 1024,
+    "pricePerMTokens": 0,
+    "sourceUrl": "https://huggingface.co/BAAI/bge-large-en-v1.5",
+    "lastVerified": "2026-04-24"
+  }
+]

@@ -1,0 +1,197 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+import CompareWidget from '../../components/CompareWidget.svelte';
+import EmailCapture from '../../components/EmailCapture.svelte';
+
+const toc = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'formats', label: 'JSONL Format Comparison' },
+  { id: 'chatml-openai', label: 'OpenAI ChatML', depth: 2 },
+  { id: 'chatml-mistral', label: 'Mistral ChatML', depth: 2 },
+  { id: 'key-differences', label: 'Key Differences' },
+  { id: 'pricing', label: 'Pricing (Apr 2026)' },
+  { id: 'calculator', label: 'Cost Calculator' },
+  { id: 'when-to-use', label: 'When to Use Each' },
+  { id: 'subscribe', label: 'Stay Updated' },
+];
+---
+
+<DocLayout
+  title="OpenAI vs Mistral Fine-Tuning — Format & Cost"
+  description="Compare OpenAI GPT-4.1 and Mistral Large 3 fine-tuning: JSONL format compatibility, pricing as of April 2026, EU data residency, and tooling differences."
+  publishDate="2026-04-24"
+  readMinutes={7}
+  breadcrumb={[
+    { label: 'dataprep', href: '/' },
+    { label: 'compare', href: '/compare' },
+    { label: 'openai vs mistral' },
+  ]}
+  toc={toc}
+>
+
+<h2 id="overview">Overview</h2>
+
+<p>OpenAI and Mistral are the two managed fine-tuning APIs most commonly used by European teams — OpenAI for quality and tooling depth, Mistral for cost and EU data residency. The headline fact that surprises most people: both use the ChatML format with a <code>messages</code> array and <code>system</code>/<code>user</code>/<code>assistant</code> roles. A dataset validated for OpenAI will pass Mistral's validator with minor adjustments. The formats are close enough that the same JSONL file can often be used for both with zero changes.</p>
+
+<p>The real differences are in special token handling, system prompt conventions, pricing, and platform capabilities — not the base schema.</p>
+
+<h2 id="formats">JSONL Format Comparison</h2>
+
+<h3 id="chatml-openai">OpenAI GPT-4.1 — ChatML</h3>
+
+<pre><code>{`{"messages": [
+  {"role": "system", "content": "You are a concise code reviewer."},
+  {"role": "user",   "content": "Review this function:\n\ndef add(a, b):\n    return a+b"},
+  {"role": "assistant", "content": "Correct. Consider adding type hints: def add(a: int, b: int) -> int."}
+]}`}</code></pre>
+
+<p>OpenAI validation rules that matter:</p>
+<ul>
+  <li>Last message must have <code>"role": "assistant"</code>.</li>
+  <li>Roles must be exactly <code>system</code>, <code>user</code>, or <code>assistant</code>.</li>
+  <li>System message is optional but must be first if present.</li>
+  <li>A <code>name</code> field is permitted on messages for multi-agent datasets.</li>
+  <li>Minimum 10 examples; maximum 100,000 per run.</li>
+  <li>Maximum 128,000 tokens per example.</li>
+</ul>
+
+<h3 id="chatml-mistral">Mistral Large 3 — ChatML on La Plateforme</h3>
+
+<pre><code>{`{"messages": [
+  {"role": "system", "content": "You are a concise code reviewer."},
+  {"role": "user",   "content": "Review this function:\n\ndef add(a, b):\n    return a+b"},
+  {"role": "assistant", "content": "Correct. Consider adding type hints: def add(a: int, b: int) -> int."}
+]}`}</code></pre>
+
+<p>The schema is visually identical. Mistral's validation rules:</p>
+<ul>
+  <li>First message must have <code>"role": "user"</code> — the system message is handled separately as a top-level field or prepended by the tokeniser, not as a message in the array.</li>
+  <li>Roles <code>system</code>, <code>user</code>, and <code>assistant</code> are accepted, but Mistral's tokeniser injects its own <code>[INST]</code> and <code>[/INST]</code> special tokens around user turns — these must be absent from your JSONL content.</li>
+  <li>Maximum 32,768 tokens per example — significantly lower than OpenAI's 128k limit. Long examples need to be truncated or split.</li>
+  <li>Minimum 10 examples.</li>
+</ul>
+
+<p>The practical consequence: if your dataset has examples exceeding 32,768 tokens, they will pass OpenAI validation and fail Mistral's. Run both validators before committing to a provider. DataPrep's preset selector flags this with a per-line token count.</p>
+
+<h2 id="key-differences">Key Differences</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>OpenAI GPT-4.1</th>
+      <th>Mistral Large 3</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Base format</td>
+      <td>ChatML (<code>messages</code> array)</td>
+      <td>ChatML (<code>messages</code> array)</td>
+    </tr>
+    <tr>
+      <td>System message in array</td>
+      <td>Optional, first position</td>
+      <td>First message must be <code>user</code></td>
+    </tr>
+    <tr>
+      <td>Special tokens in content</td>
+      <td>None expected</td>
+      <td><code>[INST]</code>/<code>[/INST]</code> must be absent</td>
+    </tr>
+    <tr>
+      <td>Max tokens per example</td>
+      <td>128,000</td>
+      <td>32,768</td>
+    </tr>
+    <tr>
+      <td>Function / tool calling</td>
+      <td>Yes — tool_calls field supported</td>
+      <td>Limited — function calling in fine-tune is beta</td>
+    </tr>
+    <tr>
+      <td>Data residency</td>
+      <td>US (with EU DPA available)</td>
+      <td>EU by default on La Plateforme</td>
+    </tr>
+    <tr>
+      <td>Fine-tuning UI</td>
+      <td>Full dashboard, evals, metrics</td>
+      <td>CLI and API; lighter dashboard</td>
+    </tr>
+    <tr>
+      <td>Dataset portability</td>
+      <td>Hosted checkpoint, no export</td>
+      <td>Adapter download available</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The most important compatibility note: because both use <code>messages</code> arrays with the same role strings, a clean OpenAI dataset with no <code>name</code> fields, no tool calls, and examples under 32,768 tokens is a valid Mistral dataset. You can test one dataset against both providers without any conversion step — just change the preset in DataPrep's Convert tab.</p>
+
+<h2 id="pricing">Pricing (Apr 2026)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Training $/M tokens</th>
+      <th>Input inference $/M</th>
+      <th>Output inference $/M</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>OpenAI GPT-4.1</td>
+      <td>$25.00</td>
+      <td>$3.00</td>
+      <td>$12.00</td>
+    </tr>
+    <tr>
+      <td>Mistral Large 3</td>
+      <td>$4.00</td>
+      <td>$3.00</td>
+      <td>$9.00</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>On a 4M-token training dataset, OpenAI GPT-4.1 costs $100 to train; Mistral Large 3 costs $16. The training cost difference is dramatic. Inference costs are broadly similar — Mistral is slightly cheaper on output tokens at $9/M vs OpenAI's $12/M. For a high-volume product, the inference delta matters more than the one-time training cost.</p>
+
+<div class="callout">
+  <strong>Verify before you rely on these numbers.</strong> Mistral's La Plateforme pricing is published in EUR; the figures above are approximate USD conversions as of April 2026. Check <code>docs.mistral.ai</code> and <code>platform.openai.com/docs</code> for current rates. The DataPrep presets show a <code>lastVerified</code> date when you load them.
+</div>
+
+<h2 id="calculator">Cost Calculator</h2>
+
+<p>Paste your JSONL dataset below to see the training cost for GPT-4.1 vs Mistral Large 3 side by side. Token counts are approximated (character count ÷ 4); exact counts require provider tokenisers.</p>
+
+<CompareWidget client:load presetA="openai-gpt-4.1" presetB="mistral-large-3" />
+
+<h2 id="when-to-use">When to Use Each</h2>
+
+<p><strong>Choose OpenAI GPT-4.1 fine-tuning when:</strong></p>
+<ul>
+  <li>You need function calling or tool use in fine-tuned responses — OpenAI's implementation is mature and well-documented; Mistral's is still in beta.</li>
+  <li>Your examples regularly exceed 32,768 tokens per conversation (long-context tasks, multi-turn transcripts, document-heavy QA).</li>
+  <li>You want a full fine-tuning dashboard with training curves, eval metrics, and a/b test utilities without building your own tooling.</li>
+  <li>Your team is already deep in the OpenAI ecosystem and switching API dependencies has a real integration cost.</li>
+</ul>
+
+<p><strong>Choose Mistral Large 3 fine-tuning when:</strong></p>
+<ul>
+  <li>EU data residency is a hard requirement — GDPR compliance, French CNIL, or company policy that training data must stay in EU infrastructure.</li>
+  <li>Training cost is a primary constraint. At $4/M tokens vs $25/M, Mistral is 6x cheaper to train, which matters when you are iterating frequently with large datasets.</li>
+  <li>You want to download and version the fine-tuned adapter weights — Mistral allows adapter export; OpenAI keeps weights on their servers.</li>
+  <li>Your dataset is under 32,768 tokens per example and you do not need tool calling — in which case the format is identical and migration is trivial.</li>
+</ul>
+
+<h2 id="subscribe">Stay updated on pricing changes</h2>
+
+<p>Both providers adjust fine-tuning pricing periodically. Leave your email and we will send one note when either table changes materially.</p>
+
+<EmailCapture client:load />
+
+<p style="margin-top: 12px; font-size: 12px; color: var(--ink-dim);">One email when prices change. No newsletters, no sequences.</p>
+
+</DocLayout>

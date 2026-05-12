@@ -1,0 +1,172 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+import CompareWidget from '../../components/CompareWidget.svelte';
+import EmailCapture from '../../components/EmailCapture.svelte';
+
+const toc = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'pricing', label: 'Pricing (2026)' },
+  { id: 'formats', label: 'JSONL Formats' },
+  { id: 'chatml', label: 'ChatML (OpenAI)', depth: 2 },
+  { id: 'harmony', label: 'Harmony (Anthropic)', depth: 2 },
+  { id: 'calculator', label: 'Cost Calculator' },
+  { id: 'when-to-use', label: 'When to Use Each' },
+  { id: 'checklist', label: 'Pre-submit Checklist' },
+  { id: 'subscribe', label: 'Stay Updated' },
+];
+---
+
+<DocLayout
+  title="OpenAI GPT-4.1 vs Claude Fine-Tuning: Pricing and Format Guide"
+  description="Compare OpenAI GPT-4.1 and Anthropic Claude fine-tuning costs, JSONL dataset formats, and schema rules for 2026. Includes an inline cost calculator."
+  publishDate="2026-04-24"
+  readMinutes={8}
+  breadcrumb={[
+    { label: 'dataprep', href: '/' },
+    { label: 'compare', href: '/compare' },
+    { label: 'openai vs anthropic' },
+  ]}
+  toc={toc}
+>
+
+<h2 id="overview">Overview</h2>
+
+<p>Both OpenAI and Anthropic offer fine-tuning APIs that let you specialise a foundation model on your own labeled dataset. The cost structures and JSONL formats are different enough that a dataset that validates cleanly for GPT-4.1 will fail validation for Claude — and vice versa. This guide covers exactly what changes.</p>
+
+<p>The short version: OpenAI uses the ChatML format with a top-level <code>messages</code> array. Anthropic uses a similar structure but calls it "Harmony" internally, enforces a strict <code>system</code> message as the first turn, and rejects the <code>name</code> field that OpenAI allows on messages.</p>
+
+<h2 id="pricing">Pricing (2026)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Training $/M tokens</th>
+      <th>Input inference $/M</th>
+      <th>Output inference $/M</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>OpenAI GPT-4.1</td>
+      <td>$25.00</td>
+      <td>$2.00</td>
+      <td>$8.00</td>
+    </tr>
+    <tr>
+      <td>OpenAI GPT-4o mini</td>
+      <td>$3.00</td>
+      <td>$0.15</td>
+      <td>$0.60</td>
+    </tr>
+    <tr>
+      <td>Claude 3 Haiku</td>
+      <td>$2.00</td>
+      <td>$0.25</td>
+      <td>$1.25</td>
+    </tr>
+    <tr>
+      <td>Claude Opus 4.7</td>
+      <td>$30.00</td>
+      <td>$15.00</td>
+      <td>$75.00</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Training tokens are counted across the full conversation — system, user, and assistant turns all count. Neither provider charges for validation runs. Inference pricing matters when you plan to serve the fine-tuned model at scale: Claude Haiku's $1.25/M output is competitive with GPT-4o mini.</p>
+
+<div class="callout">
+  <strong>Verify before you rely on these numbers.</strong> Both providers update pricing periodically. The inline calculator below pulls from our verified dataset; check the <code>lastVerified</code> date shown in the DataPrep preset bar.
+</div>
+
+<h2 id="formats">JSONL Formats</h2>
+
+<p>Both use JSONL: one JSON object per line, no trailing commas, UTF-8 encoded. The structural differences are in the object schema.</p>
+
+<h3 id="chatml">ChatML — OpenAI GPT-4.1</h3>
+
+<pre><code>{`{"messages": [
+  {"role": "system", "content": "You are a helpful assistant."},
+  {"role": "user",   "content": "What is the capital of France?"},
+  {"role": "assistant", "content": "Paris."}
+]}`}</code></pre>
+
+<p>Rules that catch most validation failures:</p>
+<ul>
+  <li>The last message must have <code>"role": "assistant"</code>. A dataset that ends on a user turn is rejected.</li>
+  <li>Roles must be exactly <code>system</code>, <code>user</code>, or <code>assistant</code>. The string <code>"human"</code> fails.</li>
+  <li>The <code>system</code> message is optional, but if present it must be the first message.</li>
+  <li>A <code>name</code> field is permitted on messages for multi-agent datasets.</li>
+  <li>Minimum 10 examples, maximum 50,000 per training run.</li>
+  <li>Maximum 65,536 tokens per example (all messages combined).</li>
+</ul>
+
+<h3 id="harmony">Harmony — Anthropic Claude</h3>
+
+<pre><code>{`{"messages": [
+  {"role": "system",    "content": "You are a helpful assistant."},
+  {"role": "user",      "content": "What is the capital of France?"},
+  {"role": "assistant", "content": "Paris."}
+]}`}</code></pre>
+
+<p>The format looks identical but the validation rules differ:</p>
+<ul>
+  <li>A <code>system</code> message is <strong>required</strong> as the first message. Claude's fine-tuning API enforces this; omitting it returns a schema error.</li>
+  <li>The <code>name</code> field is not supported. If your OpenAI dataset uses named turns, strip them before converting.</li>
+  <li>Roles must be <code>system</code>, <code>user</code>, or <code>assistant</code> — same strings, no others.</li>
+  <li>The last message must be <code>assistant</code>.</li>
+  <li>Minimum 10 examples.</li>
+</ul>
+
+<p>In practice, the cleanest migration path from OpenAI to Claude is: ensure every example has a system turn, remove any <code>name</code> fields, and run the Claude preset validator in DataPrep. Most clean ChatML datasets pass with only those two fixes.</p>
+
+<h2 id="calculator">Cost Calculator</h2>
+
+<p>Paste your JSONL below to see the training cost for both models side by side. Tokens are approximated (character count ÷ 4); exact counts require the tiktoken tokeniser.</p>
+
+<CompareWidget client:load presetA="openai-gpt-4.1" presetB="claude-3-haiku" />
+
+<h2 id="when-to-use">When to Use Each</h2>
+
+<p><strong>Choose OpenAI GPT-4.1 fine-tuning when:</strong></p>
+<ul>
+  <li>You need the highest-quality base model and budget is not the primary constraint.</li>
+  <li>Your application already uses the OpenAI API and you want to minimise integration surface.</li>
+  <li>You need multi-agent / multi-turn conversation datasets with named participants.</li>
+  <li>You want to serve the fine-tuned model through OpenAI's hosted inference without managing infrastructure.</li>
+</ul>
+
+<p><strong>Choose Claude fine-tuning when:</strong></p>
+<ul>
+  <li>Training budget is tight and Claude 3 Haiku's lower per-token cost materially changes your economics.</li>
+  <li>Your use case requires long-context fidelity — Claude has a larger native context window.</li>
+  <li>You are building on Anthropic's Constitutional AI safety layer and want that preserved in the fine-tune.</li>
+  <li>You are already integrated with the Anthropic API and want to keep one API dependency.</li>
+</ul>
+
+<h2 id="checklist">Pre-submit Checklist</h2>
+
+<p>Run through this before uploading either dataset:</p>
+<ul>
+  <li>Every line is valid JSON (no trailing commas, no comments).</li>
+  <li>Every object has a top-level <code>messages</code> key.</li>
+  <li>Every message has <code>role</code> and <code>content</code>; <code>content</code> is a non-empty string.</li>
+  <li>First message role is <code>system</code> (required for Claude, best practice for OpenAI).</li>
+  <li>Last message role is <code>assistant</code>.</li>
+  <li>No unsupported fields: check your provider's current schema — it changes.</li>
+  <li>Dataset has at least 10 examples.</li>
+  <li>No example exceeds the provider's max token limit per example.</li>
+</ul>
+
+<p>The <a href="/">DataPrep Convert tab</a> validates all of these automatically against the provider preset you select. Paste your dataset, pick the preset, and errors surface inline with line numbers.</p>
+
+<h2 id="subscribe">Stay updated on pricing changes</h2>
+
+<p>Both providers update fine-tuning prices without much notice. Leave your email and we'll send a single note when either pricing table changes.</p>
+
+<EmailCapture client:load />
+
+<p style="margin-top: 12px; font-size: 12px; color: var(--ink-dim);">One email when prices change. No newsletters, no sequences.</p>
+
+</DocLayout>

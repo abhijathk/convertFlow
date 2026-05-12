@@ -1,0 +1,377 @@
+---
+import DocLayout from '../layouts/DocLayout.astro';
+---
+
+<DocLayout
+  title="How to use DataPrep"
+  description="Complete guide — Convert, Chunk, Editor, and Utilities tabs. Format settings, file import, integrations, keyboard shortcuts, and settings."
+  publishDate="2026-05-12"
+  readMinutes={14}
+  breadcrumb={[
+    { label: 'dataprep', href: '/' },
+    { label: 'help' },
+  ]}
+  toc={[
+    { id: 'overview',         label: 'Overview' },
+    { id: 'convert-tab',      label: 'Convert tab' },
+    { id: 'convert-input',    label: 'Input + import',      depth: 2 },
+    { id: 'convert-output',   label: 'Output formats',      depth: 2 },
+    { id: 'convert-presets',  label: 'Provider presets',    depth: 2 },
+    { id: 'convert-autofix',  label: 'Auto-fix validation', depth: 2 },
+    { id: 'convert-dataset',  label: 'Dataset panel',       depth: 2 },
+    { id: 'convert-export',   label: 'Export + HF Hub',     depth: 2 },
+    { id: 'convert-sampling', label: 'Sampling huge files', depth: 2 },
+    { id: 'chunk-tab',        label: 'Chunk tab' },
+    { id: 'chunk-strategies', label: 'Chunking strategies', depth: 2 },
+    { id: 'chunk-manual',     label: 'Manual boundaries',   depth: 2 },
+    { id: 'chunk-overlap',    label: 'Overlap visualizer',  depth: 2 },
+    { id: 'chunk-embed',      label: 'Embedding cost',      depth: 2 },
+    { id: 'editor-tab',       label: 'Editor tab' },
+    { id: 'editor-files',     label: 'Multi-file workspace',depth: 2 },
+    { id: 'editor-split',     label: 'Split pane + diff',   depth: 2 },
+    { id: 'editor-linter',    label: 'Linter + Find',       depth: 2 },
+    { id: 'editor-actions',   label: 'Actions + undo',      depth: 2 },
+    { id: 'editor-readonly',  label: 'Read-only + paste',   depth: 2 },
+    { id: 'utilities-tab',    label: 'Utilities tab' },
+    { id: 'utility-tools',    label: 'Tool inventory',      depth: 2 },
+    { id: 'utility-input',    label: 'Input sources',       depth: 2 },
+    { id: 'utility-sendto',   label: 'Send-to actions',     depth: 2 },
+    { id: 'command-palette',  label: 'Command palette' },
+    { id: 'settings',         label: 'Settings' },
+    { id: 'share-tour',       label: 'Share + tour' },
+    { id: 'keyboard',         label: 'Keyboard shortcuts' },
+    { id: 'privacy',          label: 'Privacy + storage' },
+    { id: 'contact',          label: 'Contact' },
+  ]}
+>
+
+<h2 id="overview">Overview</h2>
+
+<p>DataPrep is an in-browser tool for preparing LLM training data, RAG document chunks, and quick text utilities. Nothing leaves your machine — files, datasets, and tokens stay in browser memory and localStorage only.</p>
+
+<p>There are four tabs:</p>
+
+<ul>
+  <li><strong>Convert</strong> (<kbd>⌘1</kbd>) — turn conversation data into JSONL, JSON, CSV, TSV, Parquet, Markdown, plain text, Alpaca, or ShareGPT.</li>
+  <li><strong>Chunk</strong> (<kbd>⌘2</kbd>) — split documents into embedding-ready chunks with metadata.</li>
+  <li><strong>Editor</strong> (<kbd>⌘3</kbd>) — multi-file Monaco editor with split-pane preview, linter, cross-file find, token gutter.</li>
+  <li><strong>Utilities</strong> (<kbd>⌘4</kbd>) — 14 lightweight tools (token estimator, validator, regex tester, dataset splitter, …).</li>
+</ul>
+
+<div class="callout">
+  All processing runs in your browser via Web Workers. The only network requests are to Hugging Face when you explicitly click "Push to HF Hub" with your own token.
+</div>
+
+<h2 id="convert-tab">Convert tab</h2>
+
+<h3 id="convert-input">Input + import</h3>
+
+<p>Paste content directly into the editor, drop a file onto it, or click <strong>import ↓</strong> for the import panel. Supported file types are <strong>always enabled</strong> in the picker regardless of which output format you've chosen:</p>
+
+<p><code>.txt</code> <code>.md</code> <code>.json</code> <code>.jsonl</code> <code>.csv</code> <code>.tsv</code> <code>.docx</code> <code>.pdf</code> <code>.xlsx</code> <code>.png</code> <code>.jpg</code> + other image formats (OCR via tesseract).</p>
+
+<p>The import panel offers three template flows for document → JSONL conversion:</p>
+
+<ul>
+  <li><strong>Q&amp;A skeleton</strong> — chunk becomes the user turn, assistant is blank.</li>
+  <li><strong>Context-answer</strong> — chunk goes into system; user + assistant are blank.</li>
+  <li><strong>Instruction tuning</strong> — Alpaca-style instruction / input / output.</li>
+</ul>
+
+<h3 id="convert-output">Output formats</h3>
+
+<table>
+  <thead><tr><th>Format</th><th>When to use</th></tr></thead>
+  <tbody>
+    <tr><td><code>JSONL</code></td><td>Default for fine-tuning. One conversation per line.</td></tr>
+    <tr><td><code>JSON</code></td><td>Single JSON array. Easier to inspect; slower to stream.</td></tr>
+    <tr><td><code>CSV</code></td><td>Flat table, one row per turn. Configurable delimiter (comma, tab, pipe, semicolon).</td></tr>
+    <tr><td><code>TSV</code></td><td>Same as CSV but tab-default; useful for spreadsheet pipelines that prefer tabs.</td></tr>
+    <tr><td><code>Markdown</code></td><td>Human-readable conversation transcript.</td></tr>
+    <tr><td><code>Plain text</code></td><td>Configurable role prefix style.</td></tr>
+    <tr><td><code>Alpaca</code></td><td>Instruction / input / output JSONL.</td></tr>
+    <tr><td><code>ShareGPT</code></td><td>Conversations array with <code>from</code>/<code>value</code>.</td></tr>
+    <tr><td><code>Parquet</code></td><td>Columnar binary; smallest file size for large datasets.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="convert-presets">Provider presets</h3>
+
+<p>The toolbar's preset picker is split into two dropdowns — <strong>provider</strong> (OpenAI, Anthropic, Google, Meta, Mistral, xAI, DeepSeek, Cohere, Microsoft, Alibaba, IBM, BigCode, TII, 01.AI) and <strong>model</strong> (filtered to that provider). Selecting a preset enables provider-specific validation: required role names, token limits, message constraints.</p>
+
+<p><strong>Preset-diff preview:</strong> switching presets while content is loaded runs validation against the new preset first. If it produces more errors than the current preset, you get a confirmation dialog showing the error delta before the switch is applied.</p>
+
+<h3 id="convert-autofix">Auto-fix validation errors</h3>
+
+<p>Validation errors appear in the problems panel below the editor. Most error types now have a <strong>fix</strong> button that applies a targeted repair:</p>
+
+<ul>
+  <li><strong>JSON parse errors / trailing commas</strong> — runs the line through <code>jsonrepair</code>; replaces if the result parses.</li>
+  <li><strong>Missing <code>messages</code> wrapper</strong> — wraps a bare <code>{`{role, content}`}</code> as <code>{`{"messages":[…]}`}</code>.</li>
+  <li><strong>Unknown role</strong> — maps aliases (<code>human → user</code>, <code>ai/bot/gpt/chatgpt → assistant</code>) or falls back to the first allowed role.</li>
+  <li><strong>Missing <code>content</code></strong> — adds an empty content field to the offending message.</li>
+  <li><strong>Missing <code>role</code></strong> — prepends <code>"role":"user"</code>.</li>
+  <li><strong>Forbidden field</strong> — strips disallowed top-level keys.</li>
+</ul>
+
+<p>Each error also has an <strong>↗ editor</strong> button — opens the dataset in the Editor tab and jumps the cursor to the offending line.</p>
+
+<h3 id="convert-dataset">Dataset panel (multi-file)</h3>
+
+<p>When you import more than one file, the dataset panel appears on the right. Each row has:</p>
+
+<ul>
+  <li>The file name + line count.</li>
+  <li>A <strong>format override</strong> dropdown ("auto" uses the global format; or pick a per-file format for export).</li>
+  <li>A <strong>⠿</strong> drag handle (on hover) — drag-reorder the list.</li>
+  <li>Click to select (single file shown in the editor). Shift-click to range-select. Cmd/Ctrl-click to multi-toggle.</li>
+  <li>With ≥2 files selected, the footer swaps to bulk actions: <strong>remove N</strong> and <strong>combine N</strong>.</li>
+</ul>
+
+<h3 id="convert-export">Export + HF Hub push</h3>
+
+<p>Toolbar actions:</p>
+
+<ul>
+  <li><strong>copy</strong> — copy current format output to clipboard.</li>
+  <li><strong>download</strong> — single file download (or zip when multiple dataset files).</li>
+  <li><strong>↑ HF Hub</strong> — opens a dialog to push the current dataset to a Hugging Face dataset repo. Requires a write token (paste once; optionally remember on this device — stored in localStorage). Creates the repo if it doesn't exist, then commits the file via the Commits API.</li>
+  <li><strong>↗ Editor</strong> — opens the current dataset in the Editor tab.</li>
+  <li><strong>↗ Utilities</strong> — opens Utilities with content seeded into JSON Validator, Token Analyzer, Token Estimator, Duplicate Detector.</li>
+</ul>
+
+<h3 id="convert-sampling">Sampling for huge files</h3>
+
+<p>When a dataset file is larger than the <strong>Sample threshold</strong> setting (default 500 rows; configurable in the gear menu), the editor shows the first 50 + last 50 rows with a "…(N records hidden)…" separator. Validation and token counting still see the full content; only the editor display is sampled.</p>
+
+<p>The banner above the editor shows: <em>"Sampled: first 50 + last 50 of N records. [show all] [edit full]"</em> — <strong>show all</strong> loads the full content into the editor (may be slow), <strong>edit full</strong> hands the file to the Editor tab.</p>
+
+<h2 id="chunk-tab">Chunk tab</h2>
+
+<p>Splits a document into chunks ready for vector embedding. Each chunk carries metadata: token count, character count, density score, keyword pills, and byte offsets in the source.</p>
+
+<h3 id="chunk-strategies">Chunking strategies</h3>
+
+<table>
+  <thead><tr><th>Strategy</th><th>How it works</th><th>Best for</th></tr></thead>
+  <tbody>
+    <tr><td>Fixed token</td><td>Hard token boundary with optional overlap.</td><td>Code, logs, anything with weak semantic structure.</td></tr>
+    <tr><td>Paragraph</td><td>Splits on blank lines; merges short paragraphs to target size.</td><td>Articles, docs, anything with clear paragraph breaks.</td></tr>
+    <tr><td>Semantic (beta)</td><td>Splits at bag-of-words similarity dips between consecutive sentences.</td><td>Long prose, transcripts. Marked <em>(beta)</em> — quality varies.</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Chunk size</strong> (typical: 256–1024) and <strong>overlap</strong> (typical: 10–20% of size) sliders re-chunk live as you drag.</p>
+
+<h3 id="chunk-manual">Manual boundary editing</h3>
+
+<p>After auto-chunking, drag the boundary markers in the source view to manually adjust where chunks split. Manually-edited boundaries persist (stored in <code>chunkState.manualBoundaries</code>) until you reset or clear the source. A <strong>reset to auto</strong> button re-runs the strategy and discards manual edits.</p>
+
+<h3 id="chunk-overlap">Overlap visualizer</h3>
+
+<p>In the chunk preview, the selected chunk's text shows:</p>
+
+<ul>
+  <li><span style="background:rgba(60,140,255,0.25);padding:1px 4px">blue tint</span> — the overlap region with the <em>previous</em> chunk.</li>
+  <li><span style="background:rgba(255,160,60,0.25);padding:1px 4px">orange tint</span> — the overlap region with the <em>next</em> chunk.</li>
+  <li><span style="background:rgba(170,100,255,0.25);padding:1px 4px">purple</span> — three-way overlap at chunk boundaries (rare).</li>
+</ul>
+
+<p>Toggle the visualizer in the preview header. Setting persists to <code>dataprep:chunk-show-overlap</code>.</p>
+
+<h3 id="chunk-embed">Embedding cost estimate</h3>
+
+<p>The embedder picker shows live cost: <em>"Embedding cost ≈ $X.XX (Y tokens)"</em> computed across all chunks using the selected embedder's per-1M-token pricing (read from <code>embedders.json</code>). Free / local embedders show no cost.</p>
+
+<h2 id="editor-tab">Editor tab</h2>
+
+<p>Full Monaco code editor with multi-file workspace, split-pane preview, live linter, cross-file find/replace, and per-record token gutter.</p>
+
+<h3 id="editor-files">Multi-file workspace</h3>
+
+<ul>
+  <li><strong>open ↑</strong> — upload one or more files; supports the same formats as Convert.</li>
+  <li><strong>new +</strong> — create an untitled file (counter is monotonic — won't collide with closed tabs).</li>
+  <li><strong>Drag &amp; drop</strong> — drop files anywhere on the editor area.</li>
+  <li>File tabs at the top of the editor — click to switch; <strong>×</strong> to close. Dirty files prompt before closing.</li>
+  <li>State (open files, active file, cursor positions) persists to localStorage; files &gt;3MB are kept in session only.</li>
+</ul>
+
+<h3 id="editor-split">Split pane + diff view</h3>
+
+<p>The <strong>split</strong> toggle opens a preview pane next to the source. Pick a format (JSONL / CSV / JSON / MD / TXT / Alpaca / ShareGPT) — the preview re-renders live as you edit. The <strong>orientation</strong> toggle switches between vertical and horizontal split.</p>
+
+<p><strong>Diff view</strong> — when split is on and the format is not CSV, the <strong>diff ✓</strong> toggle replaces the preview pane with a Monaco diff editor showing source ↔ generated. Useful for inspecting what the conversion actually changed.</p>
+
+<p>The CSV preview uses a table view (not Monaco) — that's why CSV doesn't support diff mode.</p>
+
+<h3 id="editor-linter">Linter + cross-file find</h3>
+
+<p>The bottom panel has two tabs:</p>
+
+<ul>
+  <li><strong>Linter</strong> — runs <code>validateJsonl</code> on the active <code>.jsonl</code> file with a default preset, debounced 200ms. Each problem row is clickable — jumps the cursor to the line. The tab label shows the problem count.</li>
+  <li><strong>Find</strong> — cross-file find &amp; replace across all open files. Match-case and regex toggles. Matches are grouped by file and clickable. Replace one, replace all in current file, or replace all across all files.</li>
+</ul>
+
+<h3 id="editor-actions">Actions menu + toast undo</h3>
+
+<p>The <strong>actions ▾</strong> menu has destructive transforms with one-click undo:</p>
+
+<ul>
+  <li>Sort lines · Dedupe · Trim trailing whitespace · Normalize unicode · UPPERCASE · lowercase</li>
+  <li>Convert active file to JSON / CSV / Markdown / plain text / Alpaca / ShareGPT</li>
+  <li>Open linter panel</li>
+</ul>
+
+<p>Each transform shows a toast like <em>"✓ sorted lines [undo]"</em> — clicking <strong>undo</strong> restores the pre-transform content snapshot. Toast stays for 5 seconds (vs 2s for plain toasts).</p>
+
+<h3 id="editor-readonly">Read-only + format-on-paste</h3>
+
+<p><strong>🔒 read-only</strong> in the toolbar toggles read-only mode for the active file. Per-file state — different files can have different read-only flags. Persists to localStorage.</p>
+
+<p><strong>Format-on-paste</strong> — when you paste a JSON array literal (<code>[{`{"a":1}`}, {`{"a":2}`}]</code>) into the editor, a toast offers <strong>expand to JSONL</strong>. Clicking it replaces the paste with one record per line. Detection is strict: the pasted text must trim to <code>[…]</code>, parse as an array of objects, and have ≥2 elements.</p>
+
+<p><strong>Per-record token gutter</strong> — for <code>.jsonl</code> files, the <strong>tokens</strong> toggle in the toolbar shows the approximate token count at the end of every line. Re-computes 300ms after typing.</p>
+
+<h2 id="utilities-tab">Utilities tab</h2>
+
+<p>Stateless helper tools that connect to Editor / Convert / Chunk. Each tool lazy-loads when first opened.</p>
+
+<h3 id="utility-tools">Tool inventory</h3>
+
+<table>
+  <thead><tr><th>Category</th><th>Tool</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="4">LLM</td><td>Token Estimator</td><td>Approximate tokens, chars, words, lines.</td></tr>
+    <tr><td>Cost Calculator</td><td>Input / cached / output cost for 46 models across 8 providers. Provider → model two-list picker.</td></tr>
+    <tr><td>Token-per-row Analyzer</td><td>Per-row token count with context-window warnings. Click warnings to jump to the line in Editor.</td></tr>
+    <tr><td>Embedding Budget Estimator</td><td>Total embedding cost across providers for your text.</td></tr>
+    <tr><td rowspan="2">Data</td><td>JSON / JSONL Validator</td><td>Validate, pretty-print, minify. Errors include "↗ line N in Editor".</td></tr>
+    <tr><td>Dataset Splitter</td><td>Train/val/test split with seeded reproducibility (Fisher-Yates + seedrandom).</td></tr>
+    <tr><td rowspan="3">Text</td><td>Text Transformer</td><td>Trim / dedupe / normalize quotes / case / strip blank lines.</td></tr>
+    <tr><td>Prompt Template Expander</td><td>Render <code>{`{{placeholder}}`}</code> templates with key=value variables; lists bound + unbound.</td></tr>
+    <tr><td>Conversation Formatter</td><td>Transcript → OpenAI / Anthropic / Alpaca / ShareGPT JSONL.</td></tr>
+    <tr><td rowspan="2">Validation</td><td>Regex Tester</td><td>Pattern + flags + replace preview. 1000-match cap with timeout safeguard.</td></tr>
+    <tr><td>Duplicate Detector</td><td>Exact / normalized / semantic / field-path dedup scan over JSONL.</td></tr>
+    <tr><td>Encoding</td><td>Base64 / URL</td><td>Encode + decode (base64, URL, URL component).</td></tr>
+    <tr><td rowspan="2">Utility</td><td>Hash Generator</td><td>SHA-1, SHA-256, SHA-512 via Web Crypto. Text or binary file input.</td></tr>
+    <tr><td>Timestamp Converter</td><td>Auto-detect Unix (s/ms/μs/ns) ↔ ISO 8601 ↔ local time.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="utility-input">Input sources</h3>
+
+<p>Every utility (except Timestamp) accepts input from three sources:</p>
+
+<ul>
+  <li><strong>Paste / type</strong> in the textarea — persisted per-tool to localStorage.</li>
+  <li><strong>↑ Upload file</strong> — text files up to 100KB load directly; larger files truncate with a warning + <strong>Load full file</strong> button.</li>
+  <li><strong>↳ Use Editor selection</strong> — uses the currently-selected text in the Editor tab as input. Disabled when no selection.</li>
+</ul>
+
+<p><strong>Auto-prefill</strong>: opening the Utilities tab while a file is active in the Editor automatically seeds every eligible tool with that file's content (truncated to 100KB). Editing any field clears the auto-prefilled flag for that tool.</p>
+
+<h3 id="utility-sendto">Send-to actions + cross-utility flow</h3>
+
+<p>Tool results expose <strong>Send to Editor</strong>, <strong>Send to Convert</strong>, and <strong>Send to Chunk</strong> buttons where output makes sense in another tab. Plus:</p>
+
+<ul>
+  <li><strong>Token Estimator → Cost Calculator</strong> — one-click hand-off; the input text carries over and Cost Calculator opens.</li>
+  <li><strong>JSON Validator errors → Editor line</strong> — each error gets "↗ line N in Editor" when input was prefilled from a file.</li>
+  <li><strong>Reverse entries</strong> — Convert toolbar, Chunk strategy bar, and Editor actions menu each have a <strong>↗ Utilities</strong> button that seeds and opens Utilities with the most relevant tool selected.</li>
+</ul>
+
+<h2 id="command-palette">Command palette</h2>
+
+<p>The centered text box in the topbar is the command palette. Click it or press <kbd>⌘K</kbd> to focus. Typing filters actions live; the list drops directly below the input (no modal). Press <kbd>↑</kbd> / <kbd>↓</kbd> to navigate, <kbd>Enter</kbd> to execute, <kbd>Esc</kbd> to close.</p>
+
+<p>Available actions depend on the active tab and always include:</p>
+
+<ul>
+  <li>Tab switches (<kbd>⌘1</kbd> – <kbd>⌘4</kbd>) and theme toggle.</li>
+  <li>Open help / privacy docs.</li>
+  <li>One launcher per utility tool (<code>Utility: …</code>).</li>
+</ul>
+
+<p><strong>Convert tab</strong> adds: export-format switches (9 formats), calculate-exact-tokens, copy-share-link, toggle CSV/TSV header row.</p>
+<p><strong>Chunk tab</strong> adds: strategy switches (fixed / paragraph / semantic), chunk size presets (256, 512, 1024, 2048), overlap presets (0%, 10%, 15%, 20%).</p>
+<p><strong>Editor tab</strong> adds: new untitled file, toggle split pane, change split format, open Linter / Find panels.</p>
+
+<h2 id="settings">Settings</h2>
+
+<p>The gear icon next to the Utilities tab opens a settings popover with four sections:</p>
+
+<h3>Syntax theme</h3>
+<p>Monaco color theme — light/dark variants matching the global theme toggle.</p>
+
+<h3>Editor</h3>
+<ul>
+  <li><strong>Word wrap</strong> — toggle line wrapping in Monaco.</li>
+  <li><strong>Minimap</strong> — show/hide the file overview minimap.</li>
+  <li><strong>Font size</strong> — 10 to 24px.</li>
+</ul>
+
+<h3>Convert</h3>
+<ul>
+  <li><strong>Sample threshold (rows)</strong> — at what row count to enable the sampled view (default 500).</li>
+  <li><strong>Default preset</strong> — two-list provider → model picker. Used when convert state initializes (e.g. after clearing data).</li>
+</ul>
+
+<h3>Privacy</h3>
+<ul>
+  <li><strong>Anonymous telemetry</strong> — opt out of Plausible event tracking. Toggle off and no events are sent.</li>
+  <li><strong>Clear HF Hub token</strong> — removes the saved Hugging Face write token from localStorage.</li>
+  <li><strong>Clear all stored data…</strong> — destructive. Confirms, then removes every <code>dataprep*</code> key from localStorage and reloads the page. Resets to defaults.</li>
+</ul>
+
+<h2 id="share-tour">Share + tour</h2>
+
+<p><strong>share</strong> button (topbar) copies a shareable URL with the current tab's state encoded in the URL fragment:</p>
+<ul>
+  <li><strong>Convert</strong> — preset + editor content (capped at 40k chars before compression).</li>
+  <li><strong>Chunk</strong> — strategy + embedder + chunk size + overlap.</li>
+  <li><strong>Editor</strong> — the active file's name and content.</li>
+  <li><strong>Utilities</strong> — just the tab.</li>
+</ul>
+<p>Opening a share URL restores the encoded state automatically.</p>
+
+<p><strong>tour ?</strong> in the topbar runs the guided tour — 6 highlighted steps covering Convert, Chunk, Editor, and the import / dataset features. The tour auto-runs once on first visit (stored as <code>dataprep:tour-seen</code>) and re-opens any time from the link. Edge-aware: tooltips reposition to stay on-screen near the highlighted region.</p>
+
+<h2 id="keyboard">Keyboard shortcuts</h2>
+
+<table>
+  <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>⌘1</kbd> / <kbd>Ctrl+1</kbd></td><td>Switch to Convert</td></tr>
+    <tr><td><kbd>⌘2</kbd> / <kbd>Ctrl+2</kbd></td><td>Switch to Chunk</td></tr>
+    <tr><td><kbd>⌘3</kbd> / <kbd>Ctrl+3</kbd></td><td>Switch to Editor</td></tr>
+    <tr><td><kbd>⌘4</kbd> / <kbd>Ctrl+4</kbd></td><td>Switch to Utilities</td></tr>
+    <tr><td><kbd>⌘K</kbd> / <kbd>Ctrl+K</kbd></td><td>Open command palette</td></tr>
+    <tr><td><kbd>⌘T</kbd> / <kbd>Ctrl+T</kbd></td><td>Toggle theme</td></tr>
+    <tr><td><kbd>⌘⏎</kbd> / <kbd>Ctrl+⏎</kbd></td><td>Calculate exact tokens (Convert)</td></tr>
+    <tr><td><kbd>?</kbd></td><td>Open this help page (skipped while typing in inputs)</td></tr>
+    <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate palette results</td></tr>
+    <tr><td><kbd>⏎</kbd></td><td>Execute selected palette action</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Close palette / dismiss tour</td></tr>
+    <tr><td><kbd>← / →</kbd></td><td>Tour: previous / next step</td></tr>
+  </tbody>
+</table>
+
+<h2 id="privacy">Privacy + storage</h2>
+
+<p>DataPrep runs entirely in your browser. Specifically:</p>
+
+<ul>
+  <li>Files you open, paste, or upload stay in browser memory and localStorage. They are never uploaded to a server.</li>
+  <li>The only network requests are: (a) Hugging Face when you explicitly click <strong>↑ HF Hub</strong> using your own token, and (b) optional anonymous Plausible analytics for product usage stats — disable via Settings → Privacy.</li>
+  <li>localStorage keys all begin with <code>dataprep</code>. The Settings → "Clear all stored data" button removes every one of them.</li>
+  <li>Files larger than 3MB are kept in session memory only — they do not survive a reload.</li>
+  <li>If storage fills up, the oldest files are evicted automatically (with a warning).</li>
+</ul>
+
+<h2 id="contact">Contact</h2>
+
+<p>Questions, bug reports, feature requests, or privacy enquiries: <a href="mailto:support@quakkainfo.com">support@quakkainfo.com</a></p>
+
+</DocLayout>

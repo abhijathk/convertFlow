@@ -1,0 +1,181 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+import EmailCapture from '../../components/EmailCapture.svelte';
+
+const toc = [
+  { id: 'what-is-lora', label: 'What LoRA Is' },
+  { id: 'what-is-full', label: 'What Full Fine-Tune Is' },
+  { id: 'gpu-costs', label: 'GPU Cost Table' },
+  { id: 'quality', label: 'Quality Trade-offs' },
+  { id: 'when-lora', label: 'When to Use LoRA' },
+  { id: 'when-full', label: 'When to Use Full Fine-Tune' },
+  { id: 'dataset-format', label: 'Dataset Format (Identical)' },
+  { id: 'subscribe', label: 'Stay Updated' },
+];
+---
+
+<DocLayout
+  title="LoRA vs Full Fine-Tune — GPU Cost & Trade-offs"
+  description="Compare LoRA and full fine-tuning on real GPU costs, VRAM requirements, and quality trade-offs. Covers 7B to 70B models with actual A100 cost estimates."
+  publishDate="2026-04-24"
+  readMinutes={8}
+  breadcrumb={[
+    { label: 'dataprep', href: '/' },
+    { label: 'compare', href: '/compare' },
+    { label: 'lora vs full fine-tune' },
+  ]}
+  toc={toc}
+>
+
+<h2 id="what-is-lora">What LoRA Is</h2>
+
+<p>LoRA (Low-Rank Adaptation) fine-tunes a model by adding small trainable weight matrices alongside the frozen original weights, rather than modifying the original weights directly. Concretely, for each weight matrix <code>W</code> in the attention layers, LoRA adds two low-rank matrices <code>A</code> and <code>B</code> such that the effective update is <code>W + αAB</code>, where <code>α</code> is a scaling factor. Only <code>A</code> and <code>B</code> are trained — the original model is untouched. Typical LoRA configurations train roughly 1–3% of total parameters. On a 7B-parameter model that is 70–210 million trainable parameters, versus 7 billion for full fine-tuning. The adapter files produced are small — typically 50–500 MB — and can be distributed separately from the base model.</p>
+
+<h2 id="what-is-full">What Full Fine-Tune Is</h2>
+
+<p>Full fine-tuning updates every parameter in the model on your training data. The optimiser (typically AdamW) maintains first and second moment estimates for every trainable parameter, which means the memory footprint during training is roughly 4–6× the model size in float32, or 2–3× in mixed precision bfloat16. For a 7B model at bfloat16, the model weights alone occupy ~14GB of VRAM; add optimiser states and you need 40–60GB. That requires at minimum a single A100 80GB, and in practice 4 A100s are used to run training at a reasonable batch size. The result is a fully independent model checkpoint — no separate base model needed at inference, and the weights reflect your training data at every layer, not just the adapter deltas.</p>
+
+<h2 id="gpu-costs">GPU Cost Table</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>GPUs needed</th>
+      <th>Wall-clock time</th>
+      <th>Cost at ~$2/hr per A100</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>LoRA, 7B model, 4M tokens, 3 epochs</td>
+      <td>1× A100 80GB</td>
+      <td>~1 hr</td>
+      <td>~$2</td>
+    </tr>
+    <tr>
+      <td>LoRA, 7B model, 40M tokens, 3 epochs</td>
+      <td>1× A100 80GB</td>
+      <td>~8–10 hrs</td>
+      <td>~$16–20</td>
+    </tr>
+    <tr>
+      <td>Full fine-tune, 7B model, 4M tokens, 3 epochs</td>
+      <td>4× A100 80GB</td>
+      <td>~3 hrs</td>
+      <td>~$24</td>
+    </tr>
+    <tr>
+      <td>Full fine-tune, 7B model, 40M tokens, 3 epochs</td>
+      <td>4× A100 80GB</td>
+      <td>~24–32 hrs</td>
+      <td>~$192–256</td>
+    </tr>
+    <tr>
+      <td>LoRA, 70B model, 4M tokens, 3 epochs</td>
+      <td>2× A100 80GB (QLoRA 4-bit)</td>
+      <td>~4–6 hrs</td>
+      <td>~$16–24</td>
+    </tr>
+    <tr>
+      <td>Full fine-tune, 70B model, 4M tokens, 3 epochs</td>
+      <td>8× A100 80GB</td>
+      <td>~8–12 hrs</td>
+      <td>~$128–192</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>GPU hours above assume A100 80GB on-demand at RunPod (~$1.99/hr) or Lambda Labs (~$2.00/hr). Spot pricing on Vast.ai can be 40–60% lower but risks interruption on long runs. Time estimates assume standard learning rates and a well-formed dataset — first-run failures due to hyperparameter issues are not included; budget 2–3 iteration runs before converging.</p>
+
+<p>QLoRA (Quantized LoRA) uses 4-bit quantisation of the base model to fit larger models on fewer GPUs. A 70B model in 4-bit QLoRA fits on 2× A100 80GB; full fine-tuning of a 70B model requires 8× A100 80GB minimum. QLoRA quality is slightly below standard LoRA due to quantisation noise, but is the practical default for 70B+ models on limited hardware.</p>
+
+<h2 id="quality">Quality Trade-offs</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Task type</th>
+      <th>LoRA quality vs full fine-tune</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Format and style adherence</td>
+      <td>90–95%</td>
+      <td>LoRA handles this very well</td>
+    </tr>
+    <tr>
+      <td>Tone and persona consistency</td>
+      <td>85–95%</td>
+      <td>Most commercial use cases are here</td>
+    </tr>
+    <tr>
+      <td>Domain vocabulary and abbreviations</td>
+      <td>80–90%</td>
+      <td>LoRA may miss rare long-tail terms</td>
+    </tr>
+    <tr>
+      <td>Classification and structured output</td>
+      <td>90–95%</td>
+      <td>LoRA is competitive</td>
+    </tr>
+    <tr>
+      <td>Radical behaviour change (new reasoning style)</td>
+      <td>60–75%</td>
+      <td>Full fine-tune wins clearly here</td>
+    </tr>
+    <tr>
+      <td>Deep domain knowledge injection</td>
+      <td>70–80%</td>
+      <td>Full fine-tune reaches more layers</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>For the majority of production fine-tuning use cases — consistent output format, brand voice, domain-specific terminology, task specialisation — LoRA achieves 80–95% of full fine-tune quality at 5–12% of the cost. The gap widens meaningfully only when you need to fundamentally change how the model reasons, or when you are injecting dense domain knowledge that is entirely absent from the base model's pre-training corpus.</p>
+
+<h2 id="when-lora">When to Use LoRA</h2>
+
+<ul>
+  <li><strong>Budget constrained.</strong> $2 per training run vs $24 for the same dataset means you can run 12 LoRA iterations for the price of one full fine-tune. Iteration speed matters more than theoretical maximum quality for most product development cycles.</li>
+  <li><strong>Style and format tasks.</strong> If your goal is consistent JSON output, a specific tone, or structured responses, LoRA captures these patterns efficiently. The adapter layers in attention heads are sufficient for this kind of surface-level behavioural change.</li>
+  <li><strong>Iterating quickly on a dataset.</strong> LoRA runs complete in 1–2 hours on a single A100. You can run morning and afternoon iterations on the same day, evaluate both, and converge in a week. Full fine-tune cycles of 3–12 hours per run slow this feedback loop significantly.</li>
+  <li><strong>Serving multiple fine-tunes from one base model.</strong> LoRA adapters are small files (~100–500 MB). You can load and swap adapters at inference time without reloading the base model, making it practical to serve many specialised variants from a single GPU cluster.</li>
+  <li><strong>Single A100 budget.</strong> If your infrastructure is a single A100 80GB, full fine-tuning a 7B model is technically feasible but tight on memory and very slow. LoRA is the comfortable path on single-GPU setups.</li>
+</ul>
+
+<h2 id="when-full">When to Use Full Fine-Tune</h2>
+
+<ul>
+  <li><strong>Domain-specific vocabulary injection at depth.</strong> If your domain uses specialised terminology across every layer of reasoning — medical diagnosis, legal analysis, highly specific engineering domains — full fine-tuning updates all weights and injects that vocabulary at every representation layer. LoRA's shallow adapter may not reach deep enough.</li>
+  <li><strong>Fundamental behaviour change.</strong> Changing how a model approaches problems — its reasoning strategy, chain-of-thought style, or default assumptions — requires updating weights throughout the network. LoRA adapts the model at the attention layer boundaries; full fine-tuning reshapes representations everywhere.</li>
+  <li><strong>You have multi-GPU infrastructure already.</strong> If you are running on 4× A100s for inference anyway, the incremental cost of full fine-tuning is lower than it appears in absolute terms — you are already paying for the hardware.</li>
+  <li><strong>You need a fully self-contained checkpoint.</strong> LoRA inference requires loading the base model plus the adapter. Full fine-tuning produces a standalone checkpoint that runs independently — simpler deployment, no adapter versioning, no base model dependency tracking.</li>
+  <li><strong>Dataset is very large (&gt;50M tokens).</strong> At scale, the quality gap between LoRA and full fine-tune narrows the cost difference. A $200 full fine-tune run that achieves clearly better evaluation metrics may justify itself when the dataset is large enough to saturate LoRA's capacity.</li>
+</ul>
+
+<h2 id="dataset-format">Dataset Format Is Identical</h2>
+
+<p>The key operational fact: <strong>whether you use LoRA or full fine-tuning does not change your JSONL dataset format.</strong> Both methods consume the same conversation format — a <code>messages</code> array with <code>system</code>, <code>user</code>, and <code>assistant</code> roles. The training framework (Axolotl, LLaMA-Factory, torchtune, Hugging Face Trainer) selects the LoRA vs full fine-tune mode through a configuration flag, not through the dataset itself.</p>
+
+<pre><code>{`{"messages": [
+  {"role": "system", "content": "You are a medical coding assistant."},
+  {"role": "user",   "content": "Code this diagnosis: acute appendicitis without mention of peritonitis"},
+  {"role": "assistant", "content": "ICD-10-CM: K37 — Unspecified appendicitis"}
+]}`}</code></pre>
+
+<p>This example works identically as input to a LoRA run and a full fine-tune run. The only dataset-level decision is quality and quantity of examples — which applies equally to both methods.</p>
+
+<p>DataPrep's Convert tab validates and reformats your data into the correct JSONL schema regardless of which training method you plan to use. Build your dataset once, validate it in DataPrep, then pass the same file to your training framework with either the LoRA or full fine-tune configuration flag set.</p>
+
+<h2 id="subscribe">Stay updated</h2>
+
+<p>GPU pricing, LoRA techniques (DoRA, rsLoRA, LoRA+), and fine-tuning framework support all evolve quickly. We track them.</p>
+
+<EmailCapture client:load />
+
+<p style="margin-top: 12px; font-size: 12px; color: var(--ink-dim);">One email when something material changes. No newsletters.</p>
+
+</DocLayout>
