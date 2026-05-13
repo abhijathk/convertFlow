@@ -32,12 +32,12 @@
 
   // ── panel resize ─────────────────────────────────────────────────────────
   // Editor toolbar content (approx px at 12px font, gap 4px, padding 14px each side):
-  //   "source text" ~76 + "Export as:" ~60 + format-select ~52 + import ↓ ~64 + generate → ~76
-  //   + collapse ‹ ~22 + gaps ~24 + padding 28 = ~402
-  //   add "clear ×" (~54 + 4 gap) when chunks exist = ~460
+  //   "Export as:" ~60 + format-select ~52 + import ↓ ~64 + generate → ~76
+  //   + collapse ‹ ~22 + gaps ~20 + padding 28 = ~322
+  //   add "clear ×" (~54 + 4 gap) when chunks exist = ~380
   // Use CSS min-width on the panel (enforced even if flex-basis drifts lower).
-  const MIN_EDITOR_BASE  = 410; // px — source label + Export as + JSONL + import + generate + ‹
-  const MIN_EDITOR_CLEAR = 470; // px — + clear × button
+  const MIN_EDITOR_BASE  = 340; // px — Export as + JSONL + import + generate + ‹
+  const MIN_EDITOR_CLEAR = 400; // px — + clear × button
   // export bar: 28px padding + ~140px label + ~44px copy + 6px gap + ~72px download = ~290px
   const MIN_LIST         = 290; // px — export bar: chunk count + copy + download
   // preview toolbar: ~150px chunk-id + ~120px nav-actions + 28px padding = ~300px
@@ -51,7 +51,7 @@
       : MIN_EDITOR_BASE
   );
 
-  let editorWidth     = $state(470);
+  let editorWidth     = $state(420);
   let listWidth       = $state(290);
   let isPanelDragging = $state(false);
   let chunkBodyEl: HTMLDivElement | undefined = $state();
@@ -110,14 +110,15 @@
   let hasContent = $state(false);
   let confirmingClear = $state(false);
 
-  // Format-specific source-panel rendering
+  // Format-specific source-panel rendering. Image data lives in chunkState
+  // (sourceImageData / sourceImageFilename) so the source preview shows it
+  // immediately on upload, before the user clicks Generate.
   let sourceFormat = $derived($chunkState.docMetadata?.format ?? '');
   let isImageSource = $derived(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff'].includes(sourceFormat));
   let isCsvSource = $derived(sourceFormat === 'csv');
   let isPdfSource = $derived(sourceFormat === 'pdf');
-  let firstChunk = $derived($chunkState.chunks[0]);
-  let sourceImageData = $derived(isImageSource && firstChunk?.image_data ? firstChunk.image_data : '');
-  let sourceImageFilename = $derived(isImageSource && firstChunk?.image_filename ? firstChunk.image_filename : '');
+  let sourceImageData = $derived($chunkState.sourceImageData);
+  let sourceImageFilename = $derived($chunkState.sourceImageFilename);
 
   function getWorker(): Worker {
     if (!worker) {
@@ -189,6 +190,32 @@
   }
 
   function generate() {
+    // Image source → produce a single image chunk that bundles the image data
+    // + OCR text. Skip the text chunker entirely.
+    const s = $chunkState;
+    if (s.sourceImageData) {
+      const content = s.sourceText || `[Image: ${s.sourceImageFilename}]`;
+      const chunkId = `img-${Date.now().toString(36)}`;
+      const imageChunk: import('../stores/chunkState').ChunkMeta = {
+        chunk_id: chunkId,
+        chunk_index: 0,
+        total_siblings: 1,
+        hash: chunkId,
+        char_count: content.length,
+        word_count: content.split(/\s+/).filter(Boolean).length,
+        approx_tokens: Math.ceil(content.length / 4),
+        keywords: [],
+        density_score: 1,
+        content,
+        startOffset: 0,
+        endOffset: content.length,
+        image_data: s.sourceImageData,
+        image_filename: s.sourceImageFilename,
+      };
+      chunkState.update(prev => ({ ...prev, chunks: [imageChunk], parseStatus: 'done' }));
+      selectedChunkIndex = 0;
+      return;
+    }
     const content = editorRef?.getValue() ?? '';
     if (content.trim()) runChunking(content);
   }
@@ -245,6 +272,10 @@
       parseStatus: 'uploading',
       parseProgress: 20,
       parseError: null,
+      // Reset stale image state from a previous upload — the image-file branch
+      // sets these again, every other branch leaves them empty.
+      sourceImageData: '',
+      sourceImageFilename: '',
       docMetadata: { format: ext, sizeBytes: file.size },
     }));
 
@@ -330,40 +361,26 @@
           }
         }
 
-        // Build a single image chunk and write it directly to state
+        // Stash the image data + OCR text in state so the source panel can
+        // display it, but DO NOT create a chunk yet — generate() will do that
+        // when the user clicks the button.
         const content = ocrText || `[Image: ${file.name}]`;
-        const chunkId = `img-${Date.now().toString(36)}`;
-        const imageChunk: import('../stores/chunkState').ChunkMeta = {
-          chunk_id: chunkId,
-          chunk_index: 0,
-          total_siblings: 1,
-          hash: chunkId,
-          char_count: content.length,
-          word_count: content.split(/\s+/).filter(Boolean).length,
-          approx_tokens: Math.ceil(content.length / 4),
-          keywords: [],
-          density_score: 1,
-          content,
-          startOffset: 0,
-          endOffset: content.length,
-          image_data: dataUrl,
-          image_filename: file.name,
-        };
-
         suppressNextChange = true;
         editorRef?.setValue(content);
         hasContent = true;
         chunkState.update(s => ({
           ...s,
-          chunks: [imageChunk],
+          chunks: [],
           sourceText: content,
           sourceCharCount: content.length,
+          sourceImageData: dataUrl,
+          sourceImageFilename: file.name,
           parseStatus: 'idle',
           parseProgress: 0,
           docMetadata: { format: ext, sizeBytes: file.size },
           manualBoundaries: null,
         }));
-        selectedChunkIndex = 0; // Auto-select the image chunk so preview shows it
+        selectedChunkIndex = undefined;
         analytics.fileUploaded(ext);
         return; // Skip the text-chunking path below
 
@@ -389,10 +406,6 @@
       }
       chunkState.update(s => ({ ...s, parseStatus: 'idle', parseProgress: 0 }));
       analytics.fileUploaded(ext);
-
-      // Auto-chunk after a successful parse. Without this, OCR on images / PDFs
-      // produces text but the user has to click "generate" before any chunks appear.
-      runChunking(text);
 
     } catch (err) {
       chunkState.update(s => ({
@@ -465,6 +478,8 @@
       parseProgress: 0,
       sourceCharCount: 0,
       sourceText: '',
+      sourceImageData: '',
+      sourceImageFilename: '',
       manualBoundaries: null,
     }));
     confirmingClear = false;
@@ -551,9 +566,6 @@
           aria-label="Expand source panel"
         >›</button>
       {:else}
-        <div class="toolbar-left">
-          <span class="toolbar-label">source text</span>
-        </div>
         <div class="toolbar-actions">
           <label class="format-label">
             <span class="format-label-text">Export as:</span>
@@ -767,13 +779,13 @@
   .editor-toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     height: 32px;
     padding: 0 14px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .editor-side.collapsed .editor-toolbar {

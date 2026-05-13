@@ -29,6 +29,10 @@ export interface ChunkState {
   parseProgress: number;
   sourceCharCount: number;
   sourceText: string;
+  // Populated when source is an image (cleared on clearAll). generate() reads
+  // these and produces an image chunk instead of running the text chunker.
+  sourceImageData: string;
+  sourceImageFilename: string;
   docMetadata: { pages?: number; format?: string; sizeBytes?: number } | null;
   userMeta: { doc_id: string; category: string; tags: string; author: string; language: string };
   chunkSize: number;
@@ -48,6 +52,8 @@ export const chunkState = writable<ChunkState>({
   parseProgress: 0,
   sourceCharCount: 0,
   sourceText: '',
+  sourceImageData: '',
+  sourceImageFilename: '',
   docMetadata: null,
   userMeta: { doc_id: '', category: '', tags: '', author: '', language: 'en' },
   chunkSize: 640,
