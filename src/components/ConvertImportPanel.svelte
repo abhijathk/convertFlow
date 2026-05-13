@@ -348,7 +348,10 @@
 </div>
 
 <style>
-  .import-panel {
+  /* All selectors wrapped in :global() — Svelte 5 build was tree-shaking
+     this component's scoped CSS away. :global keeps the rules in the bundle.
+     Class names are unique to this panel so global scope is safe. */
+  :global(.import-panel) {
     position: relative;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -360,7 +363,7 @@
     font-size: 12px;
   }
 
-  .close-btn {
+  :global(.import-panel .close-btn) {
     position: absolute;
     top: 8px;
     right: 12px;
@@ -372,20 +375,19 @@
     line-height: 1;
     padding: 0 4px;
   }
-  .close-btn:hover { color: var(--ink); }
+  :global(.import-panel .close-btn:hover) { color: var(--ink); }
 
-  /* ── Header ───────────────────────────────────────────────────────────────  */
-  .header-row {
+  :global(.import-panel .header-row) {
     display: flex;
     align-items: baseline;
     gap: 10px;
   }
-  .header-title {
+  :global(.import-panel .header-title) {
     color: var(--ink);
     font-weight: 500;
     white-space: nowrap;
   }
-  .header-desc {
+  :global(.import-panel .header-desc) {
     color: var(--ink-dim);
     font-size: 11px;
     overflow: hidden;
@@ -393,8 +395,7 @@
     white-space: nowrap;
   }
 
-  /* ── Drop zone ────────────────────────────────────────────────────────────  */
-  .drop-zone {
+  :global(.import-panel .drop-zone) {
     border: 1px dashed var(--border);
     border-radius: 3px;
     padding: 10px;
@@ -402,22 +403,23 @@
     cursor: pointer;
     transition: border-color 0.1s, background 0.1s;
   }
-  .drop-zone:hover:not(.busy), .drop-zone.dragging {
+  :global(.import-panel .drop-zone:hover:not(.busy)),
+  :global(.import-panel .drop-zone.dragging) {
     border-color: var(--accent);
     background: rgba(224, 168, 78, 0.05);
   }
-  .drop-zone.has-file {
+  :global(.import-panel .drop-zone.has-file) {
     border-style: solid;
     border-color: var(--ok);
     background: rgba(138, 181, 107, 0.04);
   }
-  .drop-zone.busy { cursor: default; opacity: 0.6; }
-  .drop-hint { color: var(--ink-dim); }
-  .processing-msg { color: var(--accent); font-size: 11px; }
-  .file-loaded { color: var(--ink); }
-  .file-name { color: var(--ok); font-weight: 500; }
-  .file-change { color: var(--ink-dim); margin-left: 6px; }
-  .folder-btn {
+  :global(.import-panel .drop-zone.busy) { cursor: default; opacity: 0.6; }
+  :global(.import-panel .drop-hint) { color: var(--ink-dim); }
+  :global(.import-panel .processing-msg) { color: var(--accent); font-size: 11px; }
+  :global(.import-panel .file-loaded) { color: var(--ink); }
+  :global(.import-panel .file-name) { color: var(--ok); font-weight: 500; }
+  :global(.import-panel .file-change) { color: var(--ink-dim); margin-left: 6px; }
+  :global(.import-panel .folder-btn) {
     background: none;
     border: none;
     color: var(--accent);
@@ -428,23 +430,24 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
-  .folder-btn:hover { color: var(--ink); }
+  :global(.import-panel .folder-btn:hover) { color: var(--ink); }
 
-  /* ── Rows ─────────────────────────────────────────────────────────────────  */
-  .options-row, .preview-row, .prompt-row, .controls-row {
+  :global(.import-panel .options-row),
+  :global(.import-panel .preview-row),
+  :global(.import-panel .prompt-row),
+  :global(.import-panel .controls-row) {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-  .row-label {
+  :global(.import-panel .row-label) {
     color: var(--ink-dim);
     white-space: nowrap;
     min-width: 90px;
   }
 
-  /* ── Template buttons ─────────────────────────────────────────────────────  */
-  .template-buttons { display: flex; gap: 4px; flex-shrink: 0; }
-  .template-btn {
+  :global(.import-panel .template-buttons) { display: flex; gap: 4px; flex-shrink: 0; }
+  :global(.import-panel .template-btn) {
     background: none;
     border: 1px solid var(--border);
     border-radius: 2px;
@@ -455,12 +458,11 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  .template-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
-  .template-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(224, 168, 78, 0.07); }
-  .template-desc { color: var(--ink-dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  :global(.import-panel .template-btn:hover) { color: var(--ink); border-color: var(--ink-dim); }
+  :global(.import-panel .template-btn.active) { color: var(--accent); border-color: var(--accent); background: rgba(224, 168, 78, 0.07); }
+  :global(.import-panel .template-desc) { color: var(--ink-dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 
-  /* ── Output preview ───────────────────────────────────────────────────────  */
-  .preview-code {
+  :global(.import-panel .preview-code) {
     font-family: inherit;
     font-size: 11px;
     color: var(--syntax-str);
@@ -475,8 +477,7 @@
     min-width: 0;
   }
 
-  /* ── System prompt ────────────────────────────────────────────────────────  */
-  .prompt-input {
+  :global(.import-panel .prompt-input) {
     flex: 1;
     background: none;
     border: 1px solid var(--border);
@@ -487,9 +488,9 @@
     padding: 3px 7px;
     outline: none;
   }
-  .prompt-input:focus { border-color: var(--accent); }
-  .prompt-input::placeholder { color: var(--muted); font-style: italic; }
-  .reset-btn {
+  :global(.import-panel .prompt-input:focus) { border-color: var(--accent); }
+  :global(.import-panel .prompt-input::placeholder) { color: var(--muted); font-style: italic; }
+  :global(.import-panel .reset-btn) {
     background: none;
     border: none;
     cursor: pointer;
@@ -498,10 +499,9 @@
     padding: 0 3px;
     line-height: 1;
   }
-  .reset-btn:hover { color: var(--ink); }
+  :global(.import-panel .reset-btn:hover) { color: var(--ink); }
 
-  /* ── Controls ─────────────────────────────────────────────────────────────  */
-  .slider {
+  :global(.import-panel .slider) {
     -webkit-appearance: none;
     appearance: none;
     width: 130px;
@@ -513,12 +513,12 @@
     padding: 0;
     margin: 0;
   }
-  .slider::-webkit-slider-runnable-track {
+  :global(.import-panel .slider::-webkit-slider-runnable-track) {
     height: 1px;
     background: var(--accent);
     border: none;
   }
-  .slider::-webkit-slider-thumb {
+  :global(.import-panel .slider::-webkit-slider-thumb) {
     -webkit-appearance: none;
     width: 12px;
     height: 12px;
@@ -528,12 +528,12 @@
     border: none;
     cursor: pointer;
   }
-  .slider::-moz-range-track {
+  :global(.import-panel .slider::-moz-range-track) {
     height: 1px;
     background: var(--accent);
     border: none;
   }
-  .slider::-moz-range-thumb {
+  :global(.import-panel .slider::-moz-range-thumb) {
     width: 12px;
     height: 12px;
     background: transparent url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='6' y='10' text-anchor='middle' font-size='14' font-family='monospace' fill='%23e0a84e'>*</text></svg>") no-repeat center;
@@ -542,8 +542,8 @@
     border-radius: 0;
     cursor: pointer;
   }
-  .chunk-val { color: var(--accent); font-weight: 500; min-width: 36px; flex-shrink: 0; }
-  .generate-btn {
+  :global(.import-panel .chunk-val) { color: var(--accent); font-weight: 500; min-width: 36px; flex-shrink: 0; }
+  :global(.import-panel .generate-btn) {
     margin-left: auto;
     background: none;
     border: 1px solid var(--accent);
@@ -555,9 +555,8 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  .generate-btn:hover:not(:disabled) { background: rgba(224, 168, 78, 0.1); }
-  .generate-btn:disabled { opacity: 0.35; cursor: default; border-color: var(--border); color: var(--ink-dim); }
+  :global(.import-panel .generate-btn:hover:not(:disabled)) { background: rgba(224, 168, 78, 0.1); }
+  :global(.import-panel .generate-btn:disabled) { opacity: 0.35; cursor: default; border-color: var(--border); color: var(--ink-dim); }
 
-  /* ── Error ────────────────────────────────────────────────────────────────  */
-  .error-row { color: var(--err); font-size: 12px; }
+  :global(.import-panel .error-row) { color: var(--err); font-size: 12px; }
 </style>
