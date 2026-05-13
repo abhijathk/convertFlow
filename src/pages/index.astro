@@ -15,12 +15,125 @@ import '../styles/globals.css';
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="convertFlow — JSONL fine-tuning dataset prep and RAG document chunker for LLM developers. Free, in-browser, no signup." />
-  <title>convertFlow — LLM Data Prep Tool</title>
+  <meta name="theme-color" content="#0e1116" />
+
+  <title>convertFlow — Free JSONL Fine-Tuning Data Converter & RAG Chunker for LLMs</title>
+  <meta name="description" content="Convert datasets to JSONL for OpenAI, Anthropic, Mistral, Llama fine-tuning. Chunk docs for RAG. 17 utilities. 100% in-browser, no signup, no upload. Free." />
+  <meta name="keywords" content="JSONL converter, fine-tuning dataset, ChatML to Alpaca, ShareGPT converter, Harmony format, RAG chunking, OpenAI fine-tuning, Anthropic fine-tuning, Mistral fine-tuning, LLM data prep, token counter, JSONL validator, schema migrator, PII detector" />
+  <meta name="author" content="convertFlow" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://convertflow.live/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="convertFlow" />
+  <meta property="og:title" content="convertFlow — Free LLM Dataset Prep & RAG Chunking, In-Browser" />
+  <meta property="og:description" content="Convert datasets to JSONL for OpenAI, Anthropic, Mistral fine-tuning. Chunk docs for RAG. 17 utilities. Free, no signup, runs in your browser." />
+  <meta property="og:url" content="https://convertflow.live/" />
+  <meta property="og:image" content="https://convertflow.live/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="convertFlow — in-browser LLM dataset prep tool" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="convertFlow — Free LLM Dataset Prep & RAG Chunking" />
+  <meta name="twitter:description" content="Convert datasets to JSONL for fine-tuning across 14 providers. Chunk docs for RAG. 17 utilities. Free, in-browser, no signup." />
+  <meta name="twitter:image" content="https://convertflow.live/og-image.png" />
+  <meta name="twitter:image:alt" content="convertFlow — LLM dataset prep tool" />
+
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" href="/favicon.ico" />
-  <!-- Plausible analytics — replace data-domain when live -->
-  <!-- <script defer data-domain="dataprep.tool" src="https://plausible.io/js/script.js"></script> -->
+
+  <!-- JSON-LD: WebApplication -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "convertFlow",
+    "url": "https://convertflow.live",
+    "description": "Free in-browser tool for preparing LLM fine-tuning datasets (JSONL, ChatML, Alpaca, ShareGPT, Harmony) and chunking documents for RAG. 17 utilities, multi-provider validation, no signup required.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any (Web Browser)",
+    "browserRequirements": "Requires a modern browser with JavaScript enabled.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "JSONL fine-tuning dataset conversion",
+      "Multi-provider schema validation (OpenAI, Anthropic, Mistral, Llama, and 10 more)",
+      "ChatML / Alpaca / ShareGPT / Harmony format migration",
+      "RAG document chunking with semantic, paragraph, and fixed strategies",
+      "PII detection (31 categories)",
+      "Token counter and cost calculator",
+      "JSONL validator and repair",
+      "Dataset splitter (train/val/test)",
+      "Hugging Face Hub direct push",
+      "100% client-side processing"
+    ],
+    "creator": {
+      "@type": "Organization",
+      "name": "convertFlow"
+    }
+  })} />
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is convertFlow free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. convertFlow is completely free with no signup, no account, and no usage limits. It runs entirely in your browser."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does my data leave the browser?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. All processing happens locally in your browser. Files are never uploaded to a server. The only network calls are optional Hugging Face Hub uploads using your own access token."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which fine-tuning formats does convertFlow support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "convertFlow supports JSONL (ChatML), Alpaca, ShareGPT, Harmony (gpt-oss), JSON, CSV, TSV, Parquet, Markdown, and plain text. It validates against schemas for 14 providers: OpenAI, Anthropic, Google, Meta, Mistral, xAI, DeepSeek, Cohere, Microsoft, Alibaba, IBM, BigCode, TII, and 01.AI."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can convertFlow chunk documents for RAG?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. The Chunk tab splits documents into embedding-ready chunks using fixed-token, paragraph, or semantic strategies. It includes overlap visualization, manual boundary editing, and live embedding cost estimates across providers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What file formats can I import?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "convertFlow accepts .txt, .md, .json, .jsonl, .csv, .tsv, .docx, .pdf, .xlsx, .png, .jpg, and other image formats (with OCR via tesseract.js). All processing is local."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is convertFlow different from OpenPipe or Entry Point AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "convertFlow is 100% client-side with no signup required. Commercial platforms like OpenPipe and Entry Point AI require accounts and upload your data to their servers. convertFlow keeps everything in your browser."
+        }
+      }
+    ]
+  })} />
+
   <script is:inline>
     (function() {
       const t = localStorage.getItem('dataprep-theme');
@@ -87,10 +200,61 @@ import '../styles/globals.css';
       if (e.key === 'Escape') { closePalette(); }
     });
   </script>
+
+  <!-- SEO content for search engines -->
+  <div class="sr-only" aria-hidden="true">
+    <h1>convertFlow — Free Browser-Based LLM Dataset Prep Tool</h1>
+    <p>convertFlow is a free, in-browser tool for preparing fine-tuning datasets and RAG document chunks for Large Language Models. No signup, no upload, no account required. Everything runs locally in your browser.</p>
+
+    <h2>What convertFlow Does</h2>
+    <ul>
+      <li><strong>JSONL fine-tuning conversion</strong> — Turn CSV, JSON, plain text, or conversation transcripts into JSONL formats accepted by OpenAI, Anthropic, Mistral, Llama, and 11 other providers.</li>
+      <li><strong>Schema migration</strong> — Convert datasets between ChatML, Alpaca, ShareGPT, and Harmony (gpt-oss) formats with auto-detection and diff preview.</li>
+      <li><strong>RAG document chunking</strong> — Split documents into embedding-ready chunks using fixed-token, paragraph, or semantic strategies. Includes overlap visualization and live embedding cost estimates.</li>
+      <li><strong>17 bundled utilities</strong> — Token counter, cost calculator, JSON/JSONL validator, JSONL repair, dataset splitter, PII detector (31 categories), regex tester, duplicate detector, schema migrator, template expander, conversation formatter, hash generator, encoding tools, timestamp converter, and more.</li>
+      <li><strong>Hugging Face Hub push</strong> — Upload datasets directly to HF from your browser using your own token. No server middleman.</li>
+    </ul>
+
+    <h2>Supported Fine-Tuning Formats</h2>
+    <p>OpenAI ChatML, Anthropic Harmony, Alpaca instruction tuning, ShareGPT conversations, raw JSONL, JSON, CSV, TSV, Parquet, Markdown, plain text.</p>
+
+    <h2>Supported Providers</h2>
+    <p>OpenAI (GPT-4, GPT-4o, GPT-3.5), Anthropic (Claude 3.5, Claude 4), Google (Gemini), Meta (Llama 3.1, Llama 3.3), Mistral (Large 3, Mixtral), xAI (Grok), DeepSeek (V3, R1), Cohere (Command R), Microsoft (Phi-4), Alibaba (Qwen 2.5), IBM (Granite), BigCode (StarCoder), TII (Falcon), 01.AI (Yi).</p>
+
+    <h2>Common Use Cases</h2>
+    <ul>
+      <li>Convert OpenAI fine-tuning JSONL to Anthropic Harmony format</li>
+      <li>Migrate Alpaca instruction datasets to ShareGPT format</li>
+      <li>Split documents into RAG chunks before vector embedding</li>
+      <li>Validate JSONL files against OpenAI, Anthropic, or Mistral schemas</li>
+      <li>Detect and redact PII before training</li>
+      <li>Count tokens across multiple model tokenizers</li>
+      <li>Estimate embedding costs before running on large datasets</li>
+      <li>Repair malformed JSONL files (trailing commas, single quotes, truncated lines)</li>
+    </ul>
+
+    <h2>Why convertFlow</h2>
+    <p>Most fine-tuning data prep tools require signup, upload your data to their servers, or only support OpenAI. convertFlow is the only tool that bundles JSONL conversion, RAG chunking, multi-provider validation, schema migration, and 17 utilities — all running 100% in your browser with zero data ever leaving your machine.</p>
+
+    <h2>Open the Tool</h2>
+    <p>Use the four tabs above: Convert for fine-tuning data, Chunk for RAG documents, Editor for hand-editing JSONL, Utilities for token counting, validation, and other tools. Press ⌘K / Ctrl+K to open the command palette. <a href="/help">Read the full guide</a> or <a href="/about">learn more</a>.</p>
+  </div>
 </body>
 </html>
 
 <style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   #app {
     display: flex;
     flex-direction: column;

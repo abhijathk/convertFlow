@@ -18,17 +18,76 @@ const { title, description, publishDate, readMinutes, breadcrumb, toc } = Astro.
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content={description} />
+  <meta name="theme-color" content="#0e1116" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+
   <title>{title} — convertFlow</title>
+  <meta name="description" content={description} />
+  <meta name="author" content="convertFlow" />
+
+  <link rel="canonical" href={`https://convertflow.live${Astro.url.pathname.replace(/\/$/, '')}`} />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="convertFlow" />
+  <meta property="og:title" content={`${title} — convertFlow`} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={`https://convertflow.live${Astro.url.pathname}`} />
+  <meta property="og:image" content="https://convertflow.live/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="article:published_time" content={publishDate} />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={`${title} — convertFlow`} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content="https://convertflow.live/og-image.png" />
+
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": title,
+    "description": description,
+    "datePublished": publishDate,
+    "dateModified": publishDate,
+    "author": {
+      "@type": "Organization",
+      "name": "convertFlow",
+      "url": "https://convertflow.live"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "convertFlow",
+      "url": "https://convertflow.live"
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://convertflow.live${Astro.url.pathname}`
+    }
+  })} />
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": breadcrumb.map((crumb, i) => ({
+      "@type": "ListItem",
+      "position": i + 1,
+      "name": crumb.label,
+      ...(crumb.href ? { "item": `https://convertflow.live${crumb.href}` } : {})
+    }))
+  })} />
+
   <script is:inline>
     (function() {
       const t = localStorage.getItem('dataprep-theme');
       document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
     })();
   </script>
-  <!-- Plausible analytics (replace data-domain when live) -->
-  <!-- <script defer data-domain="dataprep.tool" src="https://plausible.io/js/script.js"></script> -->
 </head>
 <body class="doc-body">
 

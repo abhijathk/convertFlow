@@ -7,6 +7,7 @@ import monacoEditorPluginRaw from 'vite-plugin-monaco-editor';
 const monacoEditorPlugin = /** @type {any} */ (monacoEditorPluginRaw).default ?? monacoEditorPluginRaw;
 
 export default defineConfig({
+  site: 'https://convertflow.live',
   integrations: [svelte()],
   output: 'static',
   vite: {
