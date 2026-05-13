@@ -331,6 +331,10 @@
       chunkState.update(s => ({ ...s, parseStatus: 'idle', parseProgress: 0 }));
       analytics.fileUploaded(ext);
 
+      // Auto-chunk after a successful parse. Without this, OCR on images / PDFs
+      // produces text but the user has to click "generate" before any chunks appear.
+      runChunking(text);
+
     } catch (err) {
       chunkState.update(s => ({
         ...s,
