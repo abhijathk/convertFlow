@@ -20,7 +20,15 @@ function loadFromStorage(): UtilitiesState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as UtilitiesState;
+    const parsed = JSON.parse(raw) as UtilitiesState;
+    // Drop any previously auto-prefilled entries — those came from the
+    // old behavior that copied the Editor's active file into every utility.
+    const cleaned: UtilitiesState = {};
+    for (const [id, ts] of Object.entries(parsed)) {
+      if (ts.autoPrefilled) continue;
+      cleaned[id] = ts;
+    }
+    return cleaned;
   } catch {
     return {};
   }

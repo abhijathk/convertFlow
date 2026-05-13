@@ -1,9 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { TOOLS } from '../lib/utilities/registry';
-  import { shellState } from '../stores/shellState';
-  import { editorState } from '../stores/editorState';
-  import { utilitiesState, setToolPrefilled, getToolState, selectedUtilityId } from '../stores/utilitiesState';
+  import { selectedUtilityId } from '../stores/utilitiesState';
   import UtilityToolPanel from './UtilityToolPanel.svelte';
 
   let selectedId = $state($selectedUtilityId);
@@ -21,30 +18,6 @@
   const categories = $derived([...new Set(filtered.map(t => t.category))]);
 
   let selectedMeta = $derived(TOOLS.find(t => t.id === selectedId) ?? TOOLS[0]);
-
-  function runPrefill() {
-    const es = $editorState;
-    const activeFile = es.openFiles.find(f => f.id === es.activeFileId) ?? null;
-    if (!activeFile) return;
-    for (const tool of TOOLS) {
-      if (!tool.autoPrefillEligible) continue;
-      const ts = getToolState(tool.id);
-      if (ts.autoPrefilled || ts.primaryInput !== '') continue;
-      if (activeFile.content.length <= 100_000) {
-        setToolPrefilled(tool.id, activeFile.content, activeFile.id, false);
-      } else {
-        setToolPrefilled(tool.id, activeFile.content.slice(0, 100_000), activeFile.id, true);
-      }
-    }
-  }
-
-  onMount(() => {
-    if ($shellState.activeTab === 'utilities') runPrefill();
-  });
-
-  $effect(() => {
-    if ($shellState.activeTab === 'utilities') runPrefill();
-  });
 </script>
 
 <div class="utilities-tab">
