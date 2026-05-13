@@ -2,6 +2,13 @@
   import { chunkState } from '../stores/chunkState';
   import type { ChunkStrategy } from '../stores/chunkState';
 
+  interface Props {
+    onEditor?: () => void;
+    onUtilities?: () => void;
+    actionsDisabled?: boolean;
+  }
+  let { onEditor, onUtilities, actionsDisabled = false }: Props = $props();
+
   const strategies: { id: ChunkStrategy; label: string; badge?: string; description: string }[] = [
     {
       id: 'semantic',
@@ -73,18 +80,40 @@
 </script>
 
 <!-- Row 1: Strategy tabs -->
-<div class="strategy-picker" role="radiogroup" aria-label="Chunking strategy">
-  {#each strategies as s}
-    <button
-      role="radio"
-      aria-checked={strategy === s.id}
-      class:active={strategy === s.id}
-      onclick={() => pick(s.id)}
-      title={s.description}
-    >
-      {s.label}{#if s.badge}<span class="strategy-badge">{s.badge}</span>{/if}
-    </button>
-  {/each}
+<div class="strategy-picker">
+  <div class="strategy-tabs" role="radiogroup" aria-label="Chunking strategy">
+    {#each strategies as s}
+      <button
+        role="radio"
+        aria-checked={strategy === s.id}
+        class:active={strategy === s.id}
+        onclick={() => pick(s.id)}
+        title={s.description}
+      >
+        {s.label}{#if s.badge}<span class="strategy-badge">{s.badge}</span>{/if}
+      </button>
+    {/each}
+  </div>
+  {#if onEditor || onUtilities}
+    <div class="strategy-actions">
+      {#if onEditor}
+        <button
+          class="strategy-action-btn"
+          onclick={onEditor}
+          disabled={actionsDisabled}
+          title="Edit source in Editor tab"
+        >↗ Editor</button>
+      {/if}
+      {#if onUtilities}
+        <button
+          class="strategy-action-btn"
+          onclick={onUtilities}
+          disabled={actionsDisabled}
+          title="Analyze source in Utilities tab"
+        >↗ Utilities</button>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <!-- Row 2: Chunk Size + Overlap sliders -->
@@ -171,15 +200,22 @@
   .strategy-picker {
     display: flex;
     align-items: stretch;
+    justify-content: space-between;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     padding: 0 16px;
     height: 36px;
-    gap: 0;
+    gap: 12px;
     flex-shrink: 0;
   }
 
-  .strategy-picker button {
+  .strategy-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .strategy-tabs button {
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
@@ -192,11 +228,38 @@
     transition: color 0.1s;
   }
 
-  .strategy-picker button:hover { color: var(--ink); }
+  .strategy-tabs button:hover { color: var(--ink); }
 
-  .strategy-picker button.active {
+  .strategy-tabs button.active {
     color: var(--ink);
     font-weight: 700;
+  }
+
+  .strategy-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .strategy-action-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 9px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-dim);
+    transition: color 0.1s, border-color 0.1s;
+    white-space: nowrap;
+  }
+  .strategy-action-btn:hover:not(:disabled) {
+    color: var(--ink);
+    border-color: var(--ink-dim);
+  }
+  .strategy-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .strategy-badge {

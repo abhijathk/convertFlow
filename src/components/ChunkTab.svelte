@@ -513,7 +513,11 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<ChunkStrategyPicker />
+<ChunkStrategyPicker
+  onEditor={openInEditor}
+  onUtilities={openInUtilities}
+  actionsDisabled={!hasContent}
+/>
 <ChunkEmbedderPicker />
 
 <div class="chunk-body" class:panel-dragging={isPanelDragging} bind:this={chunkBodyEl}>
@@ -538,26 +542,27 @@
       {:else}
         <div class="toolbar-left">
           <span class="toolbar-label">source text</span>
-          <select
-            class="format-select"
-            value={exportFormat}
-            onchange={(e) => (exportFormat = e.currentTarget.value as ChunkExportFormat)}
-            disabled={$chunkState.chunks.length > 0}
-            title={$chunkState.chunks.length > 0 ? 'Format locked — clear editor to change' : 'Output format'}
-            aria-label="Output format"
-          >
-            <option value="jsonl">JSONL</option>
-            <option value="json">JSON</option>
-            <option value="csv">CSV</option>
-          </select>
         </div>
         <div class="toolbar-actions">
+          <label class="format-label">
+            <span class="format-label-text">Export as:</span>
+            <select
+              class="format-select"
+              value={exportFormat}
+              onchange={(e) => (exportFormat = e.currentTarget.value as ChunkExportFormat)}
+              disabled={$chunkState.chunks.length > 0}
+              title={$chunkState.chunks.length > 0 ? 'Format locked — clear editor to change' : 'Output format for generated chunks'}
+              aria-label="Output format"
+            >
+              <option value="jsonl">JSONL</option>
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+            </select>
+          </label>
           {#if $chunkState.chunks.length > 0 || $chunkState.parseStatus !== 'idle'}
             <button class="clear-btn" onclick={clearAll} title="Clear editor and chunks">clear ×</button>
           {/if}
           <button class="upload-btn" onclick={openFilePicker}>import ↓</button>
-          <button class="upload-btn" onclick={openInEditor} disabled={!hasContent} title="Edit source in Editor tab (⌘3)">↗ Editor</button>
-          <button class="upload-btn" onclick={openInUtilities} disabled={!hasContent} title="Analyze source in Utilities tab">↗ Utilities</button>
           <button class="generate-btn" onclick={generate} disabled={!hasContent}>generate →</button>
           <button
             class="collapse-btn"
@@ -833,6 +838,18 @@
   }
 
   .collapse-btn:hover { background: var(--border); color: var(--ink); }
+
+  .format-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 4px;
+  }
+  .format-label-text {
+    font-size: 11px;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
 
   .format-select {
     appearance: none;
