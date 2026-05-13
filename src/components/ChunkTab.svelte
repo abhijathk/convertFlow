@@ -352,6 +352,7 @@
           docMetadata: { format: ext, sizeBytes: file.size },
           manualBoundaries: null,
         }));
+        selectedChunkIndex = 0; // Auto-select the image chunk so preview shows it
         analytics.fileUploaded(ext);
         return; // Skip the text-chunking path below
 
