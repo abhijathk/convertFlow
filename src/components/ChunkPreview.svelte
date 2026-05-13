@@ -275,6 +275,20 @@
       </div>
     {/if}
 
+    {#if chunk.image_data}
+      <div class="chunk-image-wrap">
+        <img
+          class="chunk-image"
+          src={chunk.image_data}
+          alt={chunk.image_filename ?? 'Chunk image'}
+          loading="lazy"
+        />
+        {#if chunk.image_filename}
+          <span class="chunk-image-caption">{chunk.image_filename}</span>
+        {/if}
+      </div>
+    {/if}
+
     <div class="console">
       <div class="console-prompt" aria-hidden="true">
         <span class="prompt-caret">›</span>
@@ -547,5 +561,32 @@
     font-size: 11px;
     color: var(--ink-dim);
     margin-right: 6px;
+  }
+
+  /* ── image chunk display ── */
+  .chunk-image-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+    padding: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin: 8px 14px;
+  }
+  .chunk-image {
+    max-width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    background: #000;
+    border-radius: 3px;
+    align-self: flex-start;
+  }
+  .chunk-image-caption {
+    font-size: 11px;
+    color: var(--ink-dim);
+    font-family: var(--font-mono, ui-monospace, monospace);
   }
 </style>

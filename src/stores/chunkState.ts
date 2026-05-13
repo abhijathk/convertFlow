@@ -16,6 +16,8 @@ export interface ChunkMeta {
   content: string;
   startOffset: number;
   endOffset: number;
+  image_data?: string;       // base64 data URL (data:image/png;base64,...)
+  image_filename?: string;
 }
 
 export interface ChunkState {

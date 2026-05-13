@@ -297,16 +297,63 @@
 
       } else if (enableImages && ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff'].includes(ext)) {
         chunkState.update(s => ({ ...s, parseStatus: 'parsing', parseProgress: 40 }));
-        const { createWorker } = await import('tesseract.js');
-        const worker = await createWorker('eng');
-        const blobUrl = URL.createObjectURL(file);
-        try {
-          const { data: { text: ocrText } } = await worker.recognize(blobUrl);
-          text = ocrText.trim();
-        } finally {
-          URL.revokeObjectURL(blobUrl);
-          await worker.terminate();
+
+        // Read image as base64 data URL
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read image'));
+          reader.readAsDataURL(file);
+        });
+
+        // OCR if user enabled it; otherwise leave OCR text empty
+        let ocrText = '';
+        if (enableOcr) {
+          const { createWorker } = await import('tesseract.js');
+          const worker = await createWorker('eng');
+          try {
+            const { data: { text: t } } = await worker.recognize(dataUrl);
+            ocrText = t.trim();
+          } finally {
+            await worker.terminate();
+          }
         }
+
+        // Build a single image chunk and write it directly to state
+        const content = ocrText || `[Image: ${file.name}]`;
+        const chunkId = `img-${Date.now().toString(36)}`;
+        const imageChunk: import('../stores/chunkState').ChunkMeta = {
+          chunk_id: chunkId,
+          chunk_index: 0,
+          total_siblings: 1,
+          hash: chunkId,
+          char_count: content.length,
+          word_count: content.split(/\s+/).filter(Boolean).length,
+          approx_tokens: Math.ceil(content.length / 4),
+          keywords: [],
+          density_score: 1,
+          content,
+          startOffset: 0,
+          endOffset: content.length,
+          image_data: dataUrl,
+          image_filename: file.name,
+        };
+
+        suppressNextChange = true;
+        editorRef?.setValue(content);
+        hasContent = true;
+        chunkState.update(s => ({
+          ...s,
+          chunks: [imageChunk],
+          sourceText: content,
+          sourceCharCount: content.length,
+          parseStatus: 'idle',
+          parseProgress: 0,
+          docMetadata: { format: ext, sizeBytes: file.size },
+          manualBoundaries: null,
+        }));
+        analytics.fileUploaded(ext);
+        return; // Skip the text-chunking path below
 
       } else {
         chunkState.update(s => ({

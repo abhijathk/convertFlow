@@ -157,7 +157,7 @@
           </div>
         {/if}
         <div class="chunk-preview">
-          {chunk.content.slice(0, 140)}{chunk.content.length > 140 ? '…' : ''}
+          {#if chunk.image_data}<span class="image-indicator" aria-label="Image chunk" title={chunk.image_filename}>🖼</span>{/if}{chunk.content.slice(0, 140)}{chunk.content.length > 140 ? '…' : ''}
         </div>
       </div>
     {/each}
@@ -331,5 +331,11 @@
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  .image-indicator {
+    font-size: 12px;
+    margin-right: 4px;
+    opacity: 0.8;
   }
 </style>
