@@ -5,6 +5,7 @@
   import { isMac } from '../lib/platform';
   import { encodeChunkShare, decodeShareFragment } from '../lib/share-url';
   import EditorIsland from './EditorIsland.svelte';
+  import CsvTableView from './CsvTableView.svelte';
   import ChunkStrategyPicker from './ChunkStrategyPicker.svelte';
   import ChunkEmbedderPicker from './ChunkEmbedderPicker.svelte';
   import ChunkTrustStrip from './ChunkTrustStrip.svelte';
@@ -107,6 +108,15 @@
   let suppressNextChange = false;
   let hasContent = $state(false);
   let confirmingClear = $state(false);
+
+  // Format-specific source-panel rendering
+  let sourceFormat = $derived($chunkState.docMetadata?.format ?? '');
+  let isImageSource = $derived(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff'].includes(sourceFormat));
+  let isCsvSource = $derived(sourceFormat === 'csv');
+  let isPdfSource = $derived(sourceFormat === 'pdf');
+  let firstChunk = $derived($chunkState.chunks[0]);
+  let sourceImageData = $derived(isImageSource && firstChunk?.image_data ? firstChunk.image_data : '');
+  let sourceImageFilename = $derived(isImageSource && firstChunk?.image_filename ? firstChunk.image_filename : '');
 
   function getWorker(): Worker {
     if (!worker) {
@@ -583,6 +593,28 @@
           editable={false}
           onchange={handleEditorChange}
         />
+        {#if isImageSource && sourceImageData}
+          <div class="source-format-overlay source-image-overlay">
+            <img class="source-image" src={sourceImageData} alt={sourceImageFilename || 'Source image'} loading="lazy" />
+            {#if sourceImageFilename}
+              <span class="source-image-caption">{sourceImageFilename}</span>
+            {/if}
+            {#if hasContent && $chunkState.sourceText && !$chunkState.sourceText.startsWith('[Image:')}
+              <details class="source-ocr-text">
+                <summary>OCR text ({$chunkState.sourceText.length} chars)</summary>
+                <pre>{$chunkState.sourceText}</pre>
+              </details>
+            {/if}
+          </div>
+        {:else if isCsvSource && $chunkState.sourceText}
+          <div class="source-format-overlay source-csv-overlay">
+            <CsvTableView csvText={$chunkState.sourceText} delimiter="," hasHeader={true} />
+          </div>
+        {:else if isPdfSource && hasContent}
+          <div class="source-format-banner">
+            <span>📄 {$chunkState.docMetadata?.format?.toUpperCase()} — text extracted ({$chunkState.sourceCharCount.toLocaleString()} chars)</span>
+          </div>
+        {/if}
         <ChunkBoundaryOverlay containerEl={editorWrapEl} onresetToAuto={generate} />
       </div>
       {#if isDragging}
@@ -893,6 +925,76 @@
   }
 
   .dragging .editor-wrap { opacity: 0.4; pointer-events: none; }
+
+  /* ── Format-specific source-panel overlays ───────────────── */
+  .source-format-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    background: var(--bg);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .source-image-overlay {
+    padding: 14px 16px;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .source-image {
+    max-width: 100%;
+    max-height: 60%;
+    object-fit: contain;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .source-image-caption {
+    font-size: 12px;
+    color: var(--ink-dim);
+    font-family: var(--font-mono, ui-monospace, monospace);
+  }
+  .source-ocr-text {
+    width: 100%;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+  .source-ocr-text summary {
+    cursor: pointer;
+    padding: 4px 0;
+    user-select: none;
+  }
+  .source-ocr-text summary:hover { color: var(--ink); }
+  .source-ocr-text pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin: 4px 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--ink);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 11px;
+    max-height: 240px;
+    overflow: auto;
+  }
+  .source-csv-overlay {
+    padding: 0;
+  }
+  .source-format-banner {
+    position: absolute;
+    top: 6px;
+    left: 12px;
+    z-index: 4;
+    font-size: 11px;
+    color: var(--ink-dim);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    padding: 3px 9px;
+    border-radius: 3px;
+    pointer-events: none;
+  }
 
   .drop-overlay {
     position: absolute;
