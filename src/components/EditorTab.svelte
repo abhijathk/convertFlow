@@ -1422,7 +1422,7 @@
     position: relative;
     display: flex;
   }
-  .editor-pane { flex: 1; min-width: 0; min-height: 0; }
+  .editor-pane { flex: 1; min-width: 0; min-height: 0; position: relative; }
   .csv-overlay {
     position: absolute;
     inset: 0;
