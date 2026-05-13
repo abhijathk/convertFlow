@@ -3,4 +3,4 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://plausible.io https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://huggingface.co https://plausible.io https://cloudflareinsights.com blob:; worker-src 'self' blob:; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://plausible.io https://static.cloudflareinsights.com https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data: https://huggingface.co https://plausible.io https://cloudflareinsights.com https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob:; frame-ancestors 'none'
