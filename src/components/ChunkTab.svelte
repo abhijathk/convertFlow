@@ -32,11 +32,12 @@
 
   // ── panel resize ─────────────────────────────────────────────────────────
   // Editor toolbar content (approx px at 12px font, gap 4px, padding 14px each side):
-  //   label "source text" ~76  +  format-select ~52  +  share ~50  +  upload ~54  +  collapse ~22  +  gaps ~16  +  padding 28  = ~298
-  //   add "clear ×" (~54 + 4 gap) when active = ~356
+  //   "source text" ~76 + "Export as:" ~60 + format-select ~52 + import ↓ ~64 + generate → ~76
+  //   + collapse ‹ ~22 + gaps ~24 + padding 28 = ~402
+  //   add "clear ×" (~54 + 4 gap) when chunks exist = ~460
   // Use CSS min-width on the panel (enforced even if flex-basis drifts lower).
-  const MIN_EDITOR_BASE  = 300; // px — label + JSONL + share + upload + ‹
-  const MIN_EDITOR_CLEAR = 358; // px — + clear × button
+  const MIN_EDITOR_BASE  = 410; // px — source label + Export as + JSONL + import + generate + ‹
+  const MIN_EDITOR_CLEAR = 470; // px — + clear × button
   // export bar: 28px padding + ~140px label + ~44px copy + 6px gap + ~72px download = ~290px
   const MIN_LIST         = 290; // px — export bar: chunk count + copy + download
   // preview toolbar: ~150px chunk-id + ~120px nav-actions + 28px padding = ~300px
@@ -50,7 +51,7 @@
       : MIN_EDITOR_BASE
   );
 
-  let editorWidth     = $state(400);
+  let editorWidth     = $state(470);
   let listWidth       = $state(290);
   let isPanelDragging = $state(false);
   let chunkBodyEl: HTMLDivElement | undefined = $state();
