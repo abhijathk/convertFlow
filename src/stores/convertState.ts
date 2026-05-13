@@ -48,26 +48,74 @@ export interface ConvertState {
   datasetFiles: DatasetFile[];
 }
 
-export const convertState = writable<ConvertState>({
-  editorContent: '',
-  editorDisplayOverride: null,
-  datasetFiles: [],
-  presetId: get(appSettings).defaultPresetId,
-  approximateTokens: null,
-  exactTokens: null,
-  cost: null,
-  errors: [],
-  lineCount: 0,
-  exportFormat: 'jsonl',
-  formatSettings: {
-    jsonl:    { systemPrompt: '', roleUser: 'user', roleAssistant: 'assistant', filterIncomplete: false },
-    json:     { indent: 2 },
-    csv:      { delimiter: ',', header: true },
-    tsv:      { delimiter: '\t', header: true },
-    parquet:  { compression: 'snappy' },
-    md:       { headingLevel: 2, separator: '---' },
-    txt:      { rolePrefix: 'bracket' },
-    alpaca:   { systemAs: 'input', splitMultiTurn: true },
-    sharegpt: { roleHuman: 'human', roleAssistant: 'gpt', includeSystem: true },
-  },
+const STORAGE_KEY = 'dataprep:convert-state-v1';
+
+function defaultState(): ConvertState {
+  return {
+    editorContent: '',
+    editorDisplayOverride: null,
+    datasetFiles: [],
+    presetId: get(appSettings).defaultPresetId,
+    approximateTokens: null,
+    exactTokens: null,
+    cost: null,
+    errors: [],
+    lineCount: 0,
+    exportFormat: 'jsonl',
+    formatSettings: {
+      jsonl:    { systemPrompt: '', roleUser: 'user', roleAssistant: 'assistant', filterIncomplete: false },
+      json:     { indent: 2 },
+      csv:      { delimiter: ',', header: true },
+      tsv:      { delimiter: '\t', header: true },
+      parquet:  { compression: 'snappy' },
+      md:       { headingLevel: 2, separator: '---' },
+      txt:      { rolePrefix: 'bracket' },
+      alpaca:   { systemAs: 'input', splitMultiTurn: true },
+      sharegpt: { roleHuman: 'human', roleAssistant: 'gpt', includeSystem: true },
+    },
+  };
+}
+
+function loadFromStorage(): ConvertState {
+  if (typeof localStorage === 'undefined') return defaultState();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw) as Partial<ConvertState>;
+    // Merge with default so a schema bump (new field) doesn't break loading.
+    return {
+      ...defaultState(),
+      ...parsed,
+      // Recomputed on next edit — don't restore stale tokens/cost/errors.
+      approximateTokens: null,
+      exactTokens: null,
+      cost: null,
+      errors: [],
+      formatSettings: { ...defaultState().formatSettings, ...(parsed.formatSettings ?? {}) },
+    };
+  } catch {
+    return defaultState();
+  }
+}
+
+export const convertState = writable<ConvertState>(
+  typeof localStorage !== 'undefined' ? loadFromStorage() : defaultState()
+);
+
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+convertState.subscribe(state => {
+  if (typeof localStorage === 'undefined') return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Quota exceeded — drop dataset file content (largest items) but keep
+      // settings and the active editor content.
+      try {
+        const trimmed = { ...state, datasetFiles: [] };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      } catch { /* give up */ }
+    }
+  }, 500);
 });

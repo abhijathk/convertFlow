@@ -163,7 +163,7 @@
   </div>
 
   <div class="actions">
-    <button onclick={onimporttoggle} title="Import files — single, multiple, or a folder">import ↓</button>
+    <button class="import-btn" onclick={onimporttoggle} title="Import files — single, multiple, or a folder">import ↓</button>
     <button onclick={onopeneditor} disabled={!hasContent} class="editor-btn" title="Edit current content in Editor tab (⌘3)">↗ Editor</button>
     <button onclick={openInUtilities} disabled={!$convertState.editorContent?.trim()} class="utilities-btn" title="Analyze content in Utilities tab">↗ Utilities</button>
     {#if !isBinary}
@@ -420,6 +420,12 @@
 
   .actions button:hover:not(:disabled) { background: var(--border); }
   .actions button:disabled { opacity: 0.35; cursor: default; }
+  /* Import is the primary entry-point — slightly larger than peers. */
+  .actions button.import-btn {
+    font-size: 13px;
+    padding: 3px 10px;
+    font-weight: 500;
+  }
   .actions button.ok { color: var(--ok); border-color: var(--ok); }
   .actions button.editor-btn { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
   .actions button.editor-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); }

@@ -3,11 +3,12 @@
   import type { ChunkStrategy } from '../stores/chunkState';
 
   interface Props {
+    onImport?: () => void;
     onEditor?: () => void;
     onUtilities?: () => void;
     actionsDisabled?: boolean;
   }
-  let { onEditor, onUtilities, actionsDisabled = false }: Props = $props();
+  let { onImport, onEditor, onUtilities, actionsDisabled = false }: Props = $props();
 
   const strategies: { id: ChunkStrategy; label: string; badge?: string; description: string }[] = [
     {
@@ -94,8 +95,15 @@
       </button>
     {/each}
   </div>
-  {#if onEditor || onUtilities}
+  {#if onImport || onEditor || onUtilities}
     <div class="strategy-actions">
+      {#if onImport}
+        <button
+          class="strategy-action-btn import"
+          onclick={onImport}
+          title="Import a file"
+        >import ↓</button>
+      {/if}
       {#if onEditor}
         <button
           class="strategy-action-btn"
@@ -241,25 +249,35 @@
     gap: 6px;
   }
 
+  /* Match the Convert toolbar's .actions button styling — accent text,
+     accent-tinted border for Editor/Utilities, neutral border for Import.
+     Import is slightly larger as the primary entry-point action. */
   .strategy-action-btn {
     background: none;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 3px 9px;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    border-radius: 2px;
+    padding: 2px 8px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 11px;
-    color: var(--ink-dim);
-    transition: color 0.1s, border-color 0.1s;
+    font-size: 12px;
+    color: var(--accent);
+    transition: background 0.1s, border-color 0.1s;
     white-space: nowrap;
   }
   .strategy-action-btn:hover:not(:disabled) {
-    color: var(--ink);
-    border-color: var(--ink-dim);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-color: var(--accent);
   }
   .strategy-action-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+    opacity: 0.35;
+    cursor: default;
+  }
+  .strategy-action-btn.import {
+    font-size: 13px;
+    padding: 3px 10px;
+    font-weight: 500;
+    /* Import keeps the accent style for consistency with the primary
+       entry-point button on the Convert page. */
   }
 
   .strategy-badge {

@@ -32,12 +32,12 @@
 
   // ── panel resize ─────────────────────────────────────────────────────────
   // Editor toolbar content (approx px at 12px font, gap 4px, padding 14px each side):
-  //   "Export as:" ~60 + format-select ~52 + import ↓ ~64 + generate → ~76
-  //   + collapse ‹ ~22 + gaps ~20 + padding 28 = ~322
-  //   add "clear ×" (~54 + 4 gap) when chunks exist = ~380
+  //   "Export as:" ~60 + format-select ~52 + generate → ~76 + collapse ‹ ~22
+  //   + gaps ~16 + padding 28 = ~254
+  //   add "clear ×" (~54 + 4 gap) when chunks exist = ~312
   // Use CSS min-width on the panel (enforced even if flex-basis drifts lower).
-  const MIN_EDITOR_BASE  = 340; // px — Export as + JSONL + import + generate + ‹
-  const MIN_EDITOR_CLEAR = 400; // px — + clear × button
+  const MIN_EDITOR_BASE  = 270; // px — Export as + JSONL + generate + ‹
+  const MIN_EDITOR_CLEAR = 330; // px — + clear × button
   // export bar: 28px padding + ~140px label + ~44px copy + 6px gap + ~72px download = ~290px
   const MIN_LIST         = 290; // px — export bar: chunk count + copy + download
   // preview toolbar: ~150px chunk-id + ~120px nav-actions + 28px padding = ~300px
@@ -540,6 +540,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <ChunkStrategyPicker
+  onImport={openFilePicker}
   onEditor={openInEditor}
   onUtilities={openInUtilities}
   actionsDisabled={!hasContent}
@@ -585,7 +586,6 @@
           {#if $chunkState.chunks.length > 0 || $chunkState.parseStatus !== 'idle'}
             <button class="clear-btn" onclick={clearAll} title="Clear editor and chunks">clear ×</button>
           {/if}
-          <button class="upload-btn" onclick={openFilePicker}>import ↓</button>
           <button class="generate-btn" onclick={generate} disabled={!hasContent}>generate →</button>
           <button
             class="collapse-btn"

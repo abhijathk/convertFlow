@@ -43,7 +43,9 @@ export interface ChunkState {
   manualBoundaries: number[] | null;
 }
 
-export const chunkState = writable<ChunkState>({
+const STORAGE_KEY = 'dataprep:chunk-state-v1';
+
+const defaultState: ChunkState = {
   strategy: 'semantic',
   embedderId: 'openai-text-embedding-3-small',
   chunks: [],
@@ -62,4 +64,46 @@ export const chunkState = writable<ChunkState>({
   enableImages: false,
   enableOcr: false,
   manualBoundaries: null,
+};
+
+function loadFromStorage(): ChunkState {
+  if (typeof localStorage === 'undefined') return defaultState;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState;
+    const parsed = JSON.parse(raw) as Partial<ChunkState>;
+    // parseStatus/parseProgress should never survive a reload — anything that
+    // was "uploading"/"parsing" mid-flight is dead state now.
+    return {
+      ...defaultState,
+      ...parsed,
+      parseStatus: 'idle',
+      parseProgress: 0,
+      parseError: null,
+    };
+  } catch {
+    return defaultState;
+  }
+}
+
+export const chunkState = writable<ChunkState>(
+  typeof localStorage !== 'undefined' ? loadFromStorage() : defaultState
+);
+
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+chunkState.subscribe(state => {
+  if (typeof localStorage === 'undefined') return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Quota exceeded (large base64 image, long source text) — drop the
+      // largest fields and try again so settings still persist.
+      try {
+        const trimmed = { ...state, sourceImageData: '', chunks: [] };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      } catch { /* give up */ }
+    }
+  }, 500);
 });
