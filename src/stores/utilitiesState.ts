@@ -63,7 +63,24 @@ export function setToolInput(id: string, input: string): void {
   }));
 }
 
-export const selectedUtilityId = writable<string>('token-estimator');
+const SELECTED_KEY = 'dataprep:selected-utility-v1';
+
+function loadSelectedUtility(): string {
+  if (typeof localStorage === 'undefined') return 'token-estimator';
+  try {
+    const v = localStorage.getItem(SELECTED_KEY);
+    return v && typeof v === 'string' ? v : 'token-estimator';
+  } catch {
+    return 'token-estimator';
+  }
+}
+
+export const selectedUtilityId = writable<string>(loadSelectedUtility());
+
+selectedUtilityId.subscribe(id => {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(SELECTED_KEY, id); } catch { /* ignore */ }
+});
 
 export function setToolPrefilled(id: string, content: string, sourceFileId: string, truncated: boolean): void {
   utilitiesState.update(s => ({
