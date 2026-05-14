@@ -319,15 +319,16 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 18px;
     color: var(--muted);
-    padding: 0 2px;
+    padding: 2px 6px;
     line-height: 1;
-    border-radius: 2px;
+    border-radius: 3px;
     flex-shrink: 0;
+    font-weight: 500;
   }
 
-  .remove-btn:hover { color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); }
+  .remove-btn:hover { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
 
   .open-editor-btn {
     background: none;
