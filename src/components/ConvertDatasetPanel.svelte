@@ -132,41 +132,45 @@
         ondrop={(e) => onRowDrop(e, file.id)}
         ondragend={onRowDragend}
       >
-        <span
-          class="drag-handle"
-          aria-hidden="true"
-          onmousedown={() => onHandleMousedown(file.id)}
-          onmouseup={() => { if (handleMousedownId === file.id && !draggingId) handleMousedownId = null; }}
-        >⠿</span>
-        <span class="file-name" title={file.name}>{file.name}</span>
-        <select
-          class="fmt-select"
-          value={file.formatOverride ?? ''}
-          onchange={(e) => {
-            const val = (e.currentTarget as HTMLSelectElement).value;
-            onformatchange(file.id, val === '' ? null : val as ExportFormat);
-          }}
-          onclick={(e) => e.stopPropagation()}
-          title="Format override for {file.name}"
-          aria-label="Format for {file.name}"
-        >
-          <option value="">auto</option>
-          {#each FORMAT_OPTIONS as fmt}
-            <option value={fmt}>{fmt}</option>
-          {/each}
-        </select>
-        <button
-          class="open-editor-btn"
-          onclick={(e) => { e.stopPropagation(); openInEditor(file); }}
-          title="Open {file.name} in Editor tab"
-          aria-label="Open {file.name} in Editor tab"
-        >↗ Editor</button>
-        <button
-          class="remove-btn"
-          onclick={(e) => { e.stopPropagation(); onremove(file.id); }}
-          title="Remove {file.name}"
-          aria-label="Remove {file.name}"
-        >×</button>
+        <div class="file-row-top">
+          <span
+            class="drag-handle"
+            aria-hidden="true"
+            onmousedown={() => onHandleMousedown(file.id)}
+            onmouseup={() => { if (handleMousedownId === file.id && !draggingId) handleMousedownId = null; }}
+          >⠿</span>
+          <span class="file-name" title={file.name}>{file.name}</span>
+        </div>
+        <div class="file-row-bottom">
+          <select
+            class="fmt-select"
+            value={file.formatOverride ?? ''}
+            onchange={(e) => {
+              const val = (e.currentTarget as HTMLSelectElement).value;
+              onformatchange(file.id, val === '' ? null : val as ExportFormat);
+            }}
+            onclick={(e) => e.stopPropagation()}
+            title="Format override for {file.name}"
+            aria-label="Format for {file.name}"
+          >
+            <option value="">auto</option>
+            {#each FORMAT_OPTIONS as fmt}
+              <option value={fmt}>{fmt}</option>
+            {/each}
+          </select>
+          <button
+            class="open-editor-btn"
+            onclick={(e) => { e.stopPropagation(); openInEditor(file); }}
+            title="Open {file.name} in Editor tab"
+            aria-label="Open {file.name} in Editor tab"
+          >↗ Editor</button>
+          <button
+            class="remove-btn"
+            onclick={(e) => { e.stopPropagation(); onremove(file.id); }}
+            title="Remove {file.name}"
+            aria-label="Remove {file.name}"
+          >×</button>
+        </div>
       </div>
     {/each}
 
@@ -242,13 +246,25 @@
 
   .file-row {
     display: flex;
-    align-items: center;
-    height: 28px;
-    padding: 0 8px 0 4px;
+    flex-direction: column;
+    padding: 6px 8px 8px 4px;
     font-size: 12px;
     cursor: pointer;
-    gap: 4px;
+    gap: 5px;
     position: relative;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  }
+  .file-row-top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .file-row-bottom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 18px; /* line up with .file-name (after drag handle) */
   }
 
   .file-row:hover { background: var(--surface); }
