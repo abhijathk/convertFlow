@@ -272,33 +272,43 @@
     <span class="header-desc">{info.description}</span>
   </div>
 
-  <!-- Drop zone -->
-  <div
-    class="drop-zone"
-    class:dragging={isDragging}
-    class:has-file={loadedFiles.length > 0}
-    class:busy={isProcessing}
-    onclick={() => { if (!isProcessing && fileInput) { fileInput.value = ''; fileInput.click(); } }}
-    role="button"
-    tabindex={isProcessing ? -1 : 0}
-    aria-label="Click or drop files to import"
-    onkeydown={e => { if (!isProcessing && e.key === 'Enter' && fileInput) { fileInput.value = ''; fileInput.click(); } }}
-  >
-    {#if isProcessing}
-      <span class="drop-hint processing-msg">{processingMsg}</span>
-    {:else if loadedFiles.length === 1}
-      <span class="drop-hint file-loaded">
-        <span class="file-name">{loadedFiles[0].name}</span>
-        <span class="file-change">· click to change</span>
-      </span>
-    {:else if loadedFiles.length > 1}
-      <span class="drop-hint file-loaded">
-        <span class="file-name">{loadedFiles.length} files loaded</span>
-        <span class="file-change">· click to change</span>
-      </span>
-    {:else}
-      <span class="drop-hint">drop files here, or click to select · <button class="folder-btn" onclick={(e) => { e.stopPropagation(); if (folderInput) { folderInput.value = ''; folderInput.click(); } }}>select folder</button></span>
-    {/if}
+  <!-- Drop zone + Generate button packaged as one visual panel.
+       The drop zone hosts the file picker; the Generate button sits
+       inside the same bordered container so it reads as one unit. -->
+  <div class="drop-panel" class:dragging={isDragging} class:busy={isProcessing}>
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div
+      class="drop-zone"
+      class:has-file={loadedFiles.length > 0}
+      onclick={() => { if (!isProcessing && fileInput) { fileInput.value = ''; fileInput.click(); } }}
+      role="button"
+      tabindex={isProcessing ? -1 : 0}
+      aria-label="Click or drop files to import"
+      onkeydown={e => { if (!isProcessing && e.key === 'Enter' && fileInput) { fileInput.value = ''; fileInput.click(); } }}
+    >
+      {#if isProcessing}
+        <span class="drop-hint processing-msg">{processingMsg}</span>
+      {:else if loadedFiles.length === 1}
+        <span class="drop-hint file-loaded">
+          <span class="file-name">{loadedFiles[0].name}</span>
+          <span class="file-change">· click to change</span>
+        </span>
+      {:else if loadedFiles.length > 1}
+        <span class="drop-hint file-loaded">
+          <span class="file-name">{loadedFiles.length} files loaded</span>
+          <span class="file-change">· click to change</span>
+        </span>
+      {:else}
+        <span class="drop-hint">drop files here, or click to select · <button class="folder-btn" onclick={(e) => { e.stopPropagation(); if (folderInput) { folderInput.value = ''; folderInput.click(); } }}>select folder</button></span>
+      {/if}
+    </div>
+
+    <button
+      class="generate-btn"
+      onclick={generate}
+      disabled={isProcessing || !loadedFiles.length}
+      title={loadedFiles.length ? 'Generate from loaded files' : 'Load files first'}
+    >{loadedFiles.length ? 'Generate →' : 'load files first'}</button>
   </div>
 
   <input bind:this={fileInput} type="file" multiple accept={acceptString} style="display:none" onchange={handleFileSelect} />
@@ -307,16 +317,6 @@
   {#if isProcessing}
     <ChunkLoader status="parsing" progress={0} sourceCharCount={0} />
   {/if}
-
-  <!-- Generate button -->
-  <div class="controls-row">
-    <button
-      class="generate-btn"
-      onclick={generate}
-      disabled={isProcessing || !loadedFiles.length}
-      title={loadedFiles.length ? 'Generate from loaded files' : 'Load files first'}
-    >{loadedFiles.length ? 'Generate →' : 'load files first'}</button>
-  </div>
 
   {#if errorMsg}
     <div class="error-row">× {errorMsg}</div>
@@ -371,25 +371,43 @@
     white-space: nowrap;
   }
 
-  :global(.import-panel .drop-zone) {
+  /* drop-panel wraps drop-zone + generate-btn in one bordered container so
+     they read as one component. Stacks vertically; on wide screens the
+     generate button sits next to the drop zone via flex-wrap. */
+  :global(.import-panel .drop-panel) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
     border: 1px dashed var(--border);
     border-radius: 3px;
-    padding: 10px;
-    text-align: center;
-    cursor: pointer;
+    padding: 8px;
     transition: border-color 0.1s, background 0.1s;
   }
-  :global(.import-panel .drop-zone:hover:not(.busy)),
-  :global(.import-panel .drop-zone.dragging) {
+  :global(.import-panel .drop-panel.dragging) {
     border-color: var(--accent);
     background: rgba(224, 168, 78, 0.05);
   }
+  :global(.import-panel .drop-panel.busy) { opacity: 0.6; }
+
+  :global(.import-panel .drop-zone) {
+    flex: 1 1 220px;
+    min-width: 0;
+    padding: 8px 10px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  :global(.import-panel .drop-zone:hover) {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
   :global(.import-panel .drop-zone.has-file) {
-    border-style: solid;
-    border-color: var(--ok);
+    border: 1px solid var(--ok);
     background: rgba(138, 181, 107, 0.04);
   }
-  :global(.import-panel .drop-zone.busy) { cursor: default; opacity: 0.6; }
   :global(.import-panel .drop-hint) { color: var(--ink-dim); }
   :global(.import-panel .processing-msg) { color: var(--accent); font-size: 11px; }
   :global(.import-panel .file-loaded) { color: var(--ink); }
@@ -408,26 +426,22 @@
   }
   :global(.import-panel .folder-btn:hover) { color: var(--ink); }
 
-  :global(.import-panel .controls-row) {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
   :global(.import-panel .generate-btn) {
-    margin-left: auto;
+    flex: 0 0 auto;
+    align-self: stretch;
     background: none;
     border: 1px solid var(--accent);
     border-radius: 2px;
     color: var(--accent);
     font-family: inherit;
     font-size: 12px;
-    padding: 3px 10px;
+    padding: 6px 14px;
     cursor: pointer;
     white-space: nowrap;
+    min-width: 120px;
   }
   :global(.import-panel .generate-btn:hover:not(:disabled)) { background: rgba(224, 168, 78, 0.1); }
-  :global(.import-panel .generate-btn:disabled) { opacity: 0.35; cursor: default; border-color: var(--border); color: var(--ink-dim); }
+  :global(.import-panel .generate-btn:disabled) { opacity: 0.5; cursor: default; border-color: var(--border); color: var(--ink-dim); }
 
   :global(.import-panel .error-row) { color: var(--err); font-size: 12px; }
 </style>

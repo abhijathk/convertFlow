@@ -458,11 +458,13 @@
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 
   /* ── Row 1: tabs + actions ──────────────────────────────────────────────── */
   .toolbar-tabs {
-    height: 36px;
+    min-height: 36px;
     justify-content: space-between;
     padding-right: 16px;
     position: relative;
@@ -472,7 +474,8 @@
   .format-tabs {
     display: flex;
     align-items: stretch;
-    height: 100%;
+    flex-wrap: wrap;
+    min-height: 36px;
   }
 
   .format-tabs button {
@@ -502,6 +505,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
+    padding: 4px 0;
   }
 
   .actions button {
@@ -536,9 +541,9 @@
 
   /* ── Row 2: info zone ───────────────────────────────────────────────────── */
   .toolbar-info {
-    height: 32px;
-    padding: 0 16px;
-    gap: 0;
+    min-height: 32px;
+    padding: 4px 16px;
+    gap: 8px;
     font-size: 12px;
     overflow: visible;
     position: relative;
@@ -650,6 +655,8 @@
   .info-left {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
     position: relative;
   }
 
@@ -788,11 +795,11 @@
 
   /* ── Row 3: JSONL conversation settings ─────────────────────────────────── */
   .toolbar-jsonl-settings {
-    height: 32px;
-    padding: 0 16px;
-    gap: 0;
+    min-height: 32px;
+    padding: 4px 16px;
+    gap: 8px;
     font-size: 12px;
-    overflow: hidden;
+    overflow: visible;
     position: relative;
     z-index: 15;
   }
