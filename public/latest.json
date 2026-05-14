@@ -1,19 +1,19 @@
 {
-  "version": "0.1.3",
+  "version": "0.1.4",
   "releaseDate": "2026-05-14",
   "downloadUrl": "https://convertflow.live/download",
   "notes": "Desktop UX polish + bug fixes: hides the Download/Help nav items inside the app, fixes the Support button (now opens via the system browser), adds a Support section to Settings, fixes the Convert/Chunk editors being empty (CSP fix), and pins the default theme to dark on platforms where prefers-color-scheme is unreliable.",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.3_x64-setup.exe",
+      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.4_x64-setup.exe",
       "signature": ""
     },
     "darwin-universal": {
-      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.3_universal.dmg",
+      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.4_universal.dmg",
       "signature": ""
     },
     "linux-x86_64": {
-      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.3_amd64.AppImage",
+      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.4_amd64.AppImage",
       "signature": ""
     }
   }
