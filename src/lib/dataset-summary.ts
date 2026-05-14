@@ -50,7 +50,12 @@ export function generateDatasetSummary(
     const perLine = validationErrors.filter(e => e.line > 0);
 
     for (const e of datasetLevel.slice(0, 2)) {
-      bullets.push({ status: 'err', text: e.message + (e.suggestion ? ` — ${e.suggestion}` : '') });
+      // Use a period + space to separate the situation from the action so we
+      // don't end up with chains of em-dashes when the message already has one
+      // (e.g. "8 examples — GPT requires at least 10. Add 2 more examples.").
+      const sentence = /[.!?]$/.test(e.message) ? e.message : e.message + '.';
+      const suggestion = e.suggestion ? ` ${e.suggestion.replace(/[.!?]?$/, '.')}` : '';
+      bullets.push({ status: 'err', text: sentence + suggestion });
     }
     if (datasetLevel.length > 2) {
       bullets.push({ status: 'err', text: `${datasetLevel.length - 2} more dataset-level error${datasetLevel.length - 2 === 1 ? '' : 's'} blocking training.` });
