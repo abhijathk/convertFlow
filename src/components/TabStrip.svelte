@@ -34,7 +34,7 @@
   }
 
   // ── About / update check ──────────────────────────────────────────────────
-  const APP_VERSION = '0.1.2'; // keep in sync with src-tauri/tauri.conf.json and package.json
+  const APP_VERSION = '0.1.3'; // keep in sync with src-tauri/tauri.conf.json and package.json
   let updateStatus = $state<'idle' | 'checking' | 'uptodate' | 'available' | 'error'>('idle');
   let latestVersion = $state<string | null>(null);
 
