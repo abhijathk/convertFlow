@@ -422,7 +422,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: #090c10;
+    background: var(--bg);
     overflow: hidden;
     min-height: 0;
   }
@@ -432,9 +432,9 @@
     align-items: center;
     gap: 6px;
     padding: 7px 14px 6px;
-    border-bottom: 1px solid #1a1f28;
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    background: #0b0e14;
+    background: var(--surface);
   }
 
   .prompt-caret {
@@ -465,14 +465,14 @@
     padding: 0 10px 0 14px;
     flex-shrink: 0;
     user-select: none;
-    border-right: 1px solid #1a1f28;
+    border-right: 1px solid var(--border);
     margin-right: 14px;
   }
 
   .ln {
     font-size: 11px;
     line-height: 1.7;
-    color: #3a3f4a;
+    color: var(--muted);
     text-align: right;
     min-width: 18px;
     display: block;
@@ -580,7 +580,7 @@
     max-width: 100%;
     max-height: 280px;
     object-fit: contain;
-    background: #000;
+    background: var(--bg);
     border-radius: 3px;
     align-self: flex-start;
   }

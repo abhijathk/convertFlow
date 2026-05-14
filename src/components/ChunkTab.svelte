@@ -517,6 +517,24 @@
       }));
       analytics.shareOpenedFromUrl();
     }
+
+    // Rehydrate the source editor + content flag from persisted chunkState.
+    // Without this, the source text is in localStorage but the Monaco editor
+    // on the left renders empty until the user uploads something new.
+    const persistedSource = $chunkState.sourceText;
+    if (persistedSource) {
+      hasContent = true;
+      if ($chunkState.chunks.length > 0) {
+        selectedChunkIndex = 0;
+      }
+      // Wait one tick so editorRef is bound.
+      queueMicrotask(() => {
+        if (editorRef && persistedSource) {
+          suppressNextChange = true;
+          editorRef.setValue(persistedSource);
+        }
+      });
+    }
   });
 
   // Consume pendingChunkSource when set (Send-from-Editor)

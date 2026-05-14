@@ -898,7 +898,27 @@
       <!-- Undo / Redo / Read-only -->
       <button class="tb-btn" onclick={editorUndo} disabled={!mainEditor} title="Undo (⌘Z)">↩ undo</button>
       <button class="tb-btn" onclick={editorRedo} disabled={!mainEditor} title="Redo (⌘⇧Z)">↪ redo</button>
-      <button class="tb-btn" class:active={activeFile?.readOnly} onclick={toggleReadOnly} disabled={!activeFile} title="Toggle read-only">🔒{activeFile?.readOnly ? ' locked' : ''}</button>
+      <button
+        class="tb-btn tb-readonly"
+        class:locked={activeFile?.readOnly}
+        class:unlocked={activeFile && !activeFile?.readOnly}
+        onclick={toggleReadOnly}
+        disabled={!activeFile}
+        title={activeFile?.readOnly ? 'Locked — click to unlock' : 'Unlocked — click to lock'}
+        aria-label={activeFile?.readOnly ? 'Locked — click to unlock' : 'Unlocked — click to lock'}
+      >
+        {#if activeFile?.readOnly}
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="7" width="10" height="7" rx="1"/>
+            <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+          </svg>
+        {:else}
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="7" width="10" height="7" rx="1"/>
+            <path d="M5 7V5a3 3 0 0 1 5.4-1.8"/>
+          </svg>
+        {/if}
+      </button>
       <div class="save-wrap" style="position:relative">
         <button class="tb-btn" disabled={!activeFile} onclick={() => saveMenuOpen = !saveMenuOpen} title="Save file">↓ save ▾</button>
         {#if saveMenuOpen && activeFile}
@@ -1255,6 +1275,33 @@
   .tb-btn:hover:not(:disabled) { color: var(--ink); background: var(--border); }
   .tb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .tb-btn.active { color: var(--accent); }
+  .tb-readonly {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 6px;
+  }
+  .tb-readonly svg { flex-shrink: 0; }
+  .tb-readonly.locked { color: var(--err); }
+  .tb-readonly.locked:hover:not(:disabled) {
+    color: var(--err);
+    background: color-mix(in srgb, var(--err) 12%, transparent);
+  }
+  .tb-readonly.unlocked { color: var(--ok); }
+  .tb-readonly.unlocked:hover:not(:disabled) {
+    color: var(--ok);
+    background: color-mix(in srgb, var(--ok) 12%, transparent);
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
 
   .save-menu {
     position: absolute;

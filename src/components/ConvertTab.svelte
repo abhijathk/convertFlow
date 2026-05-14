@@ -672,6 +672,19 @@
         editorRef?.setValue(content);
         handleEditorChange(content);
       }, 50);
+      return;
+    }
+    // Rehydrate editor from persisted convertState. editorRef may not be
+    // bound yet, so wait a tick.
+    const persisted = $convertState.editorDisplayOverride ?? $convertState.editorContent;
+    if (persisted) {
+      queueMicrotask(() => {
+        if (editorRef) {
+          suppressNextChange = true;
+          editorRef.setValue(persisted);
+          handleEditorChange($convertState.editorContent);
+        }
+      });
     }
   });
 

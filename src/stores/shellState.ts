@@ -1,4 +1,5 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
+import { appSettings, setSyntaxTheme } from './appSettings';
 
 export type Tab = 'convert' | 'chunk' | 'editor' | 'utilities';
 export type Theme = 'dark' | 'light';
@@ -65,6 +66,14 @@ export function toggleTheme() {
     const next: Theme = s.theme === 'dark' ? 'light' : 'dark';
     if (typeof localStorage !== 'undefined') localStorage.setItem(THEME_KEY, next);
     document.documentElement.setAttribute('data-theme', next);
+    // Keep the Monaco syntax theme in sync with the global theme so the
+    // editor panels (left source pane + right preview pane) match the page.
+    const currentSyntax = get(appSettings).syntaxTheme;
+    if (next === 'light' && currentSyntax === 'dataprep-dark') {
+      setSyntaxTheme('dataprep-light');
+    } else if (next === 'dark' && currentSyntax === 'dataprep-light') {
+      setSyntaxTheme('dataprep-dark');
+    }
     return { ...s, theme: next };
   });
 }

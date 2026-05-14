@@ -32,7 +32,7 @@ function defaultState(): EditorState {
   return {
     openFiles: [],
     activeFileId: null,
-    splitPaneOpen: false,
+    splitPaneOpen: true,
     splitPaneFormat: 'csv',
     splitPaneOrientation: 'vertical',
     bottomPanelOpen: false,

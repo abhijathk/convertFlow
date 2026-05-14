@@ -72,14 +72,20 @@ function loadFromStorage(): ChunkState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw) as Partial<ChunkState>;
-    // parseStatus/parseProgress should never survive a reload — anything that
-    // was "uploading"/"parsing" mid-flight is dead state now.
+    // In-flight statuses ('uploading' / 'parsing') are stale on reload — reset
+    // them to 'idle'. Keep 'done' / 'error' / 'idle' as-is so chunked state
+    // continues to render correctly.
+    const persistedStatus = parsed.parseStatus;
+    const safeStatus: ParseStatus =
+      persistedStatus === 'uploading' || persistedStatus === 'parsing'
+        ? 'idle'
+        : (persistedStatus ?? 'idle');
     return {
       ...defaultState,
       ...parsed,
-      parseStatus: 'idle',
+      parseStatus: safeStatus,
       parseProgress: 0,
-      parseError: null,
+      parseError: safeStatus === 'error' ? (parsed.parseError ?? null) : null,
     };
   } catch {
     return defaultState;
