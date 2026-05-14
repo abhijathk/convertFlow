@@ -62,6 +62,38 @@
   let isBinary = $derived(fmt === 'parquet');
   let presetLocked = $derived(hasContent && !$convertState.presetUnlocked);
   let confirmingUnlock = $state(false);
+  let autoLockSecondsLeft = $state(0);
+
+  const AUTO_LOCK_SECONDS = 30;
+  let autoLockInterval: ReturnType<typeof setInterval> | undefined;
+
+  function clearAutoLockTimer() {
+    if (autoLockInterval) { clearInterval(autoLockInterval); autoLockInterval = undefined; }
+    autoLockSecondsLeft = 0;
+  }
+
+  function startAutoLockTimer() {
+    clearAutoLockTimer();
+    autoLockSecondsLeft = AUTO_LOCK_SECONDS;
+    autoLockInterval = setInterval(() => {
+      autoLockSecondsLeft -= 1;
+      if (autoLockSecondsLeft <= 0) {
+        clearAutoLockTimer();
+        convertState.update(s => ({ ...s, presetUnlocked: false }));
+      }
+    }, 1000);
+  }
+
+  // Auto-lock after 30s while unlocked. Clears if the user manually locks,
+  // the dataset is cleared, or the section is already locked.
+  $effect(() => {
+    if ($convertState.presetUnlocked && hasContent) {
+      startAutoLockTimer();
+    } else {
+      clearAutoLockTimer();
+    }
+    return () => clearAutoLockTimer();
+  });
 
   function requestUnlockOrLock() {
     if (presetLocked) {
@@ -241,7 +273,7 @@
           class:locked={presetLocked}
           class:unlocked={!presetLocked}
           onclick={requestUnlockOrLock}
-          title={presetLocked ? 'Locked — click to unlock provider/model (with confirmation)' : 'Unlocked — changing provider will re-generate output. Click to re-lock.'}
+          title={presetLocked ? 'Locked — click to unlock provider/model (with confirmation)' : `Unlocked — auto-locks in ${autoLockSecondsLeft}s. Click to re-lock now.`}
           aria-label={presetLocked ? 'Unlock provider and model' : 'Re-lock provider and model'}
         >
           {#if presetLocked}
@@ -256,6 +288,9 @@
             </svg>
           {/if}
         </button>
+        {#if !presetLocked && autoLockSecondsLeft > 0}
+          <span class="lock-countdown" title="Auto-locks after 30 seconds of inactivity">{autoLockSecondsLeft}s</span>
+        {/if}
       {/if}
     </div>
     <span class="info-sep">·</span>
@@ -405,14 +440,13 @@
 {#if confirmingUnlock}
   <div class="unlock-overlay" role="dialog" aria-modal="true" aria-labelledby="unlock-dialog-title">
     <div class="unlock-box">
-      <p class="unlock-title" id="unlock-dialog-title">Unlock provider and model?</p>
+      <p class="unlock-title" id="unlock-dialog-title">Unlock LLM provider and model?</p>
       <p class="unlock-sub">
-        Switching the provider or model will <strong>regenerate the output</strong> against the new
-        preset's rules. Existing records will be re-validated and re-formatted; some may become
-        invalid in the process. This cannot be undone automatically.
+        This will let you change the provider or model. Your current output stays untouched — you'll get
+        a separate confirmation if you actually pick a different model.
       </p>
       <div class="unlock-actions">
-        <button class="unlock-btn unlock-danger" onclick={confirmUnlock}>unlock &amp; regenerate</button>
+        <button class="unlock-btn unlock-danger" onclick={confirmUnlock}>unlock</button>
         <button class="unlock-btn" onclick={cancelUnlock}>cancel</button>
       </div>
     </div>
@@ -559,6 +593,15 @@
   .lock-btn.locked:hover { background: color-mix(in srgb, var(--err) 12%, transparent); }
   .lock-btn.unlocked { color: var(--ok); }
   .lock-btn.unlocked:hover { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+
+  .lock-countdown {
+    font-size: 11px;
+    color: var(--ok);
+    font-variant-numeric: tabular-nums;
+    margin-left: 2px;
+    cursor: help;
+    min-width: 24px;
+  }
 
   /* Disabled select while locked — clearly grayed out so the user sees it
      can't be edited until the lock is released. */

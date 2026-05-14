@@ -321,15 +321,16 @@
 
   function handlePresetChange(newPresetId: string) {
     const content = $convertState.editorContent;
+    // Always confirm when there's an active dataset — switching the preset
+    // means the output must be re-generated against new rules. The user can
+    // cancel to revert the dropdown back to the previous preset.
     if (content.trim()) {
       const newPreset = getPreset(newPresetId);
       const newErrors = validateJsonl(content, newPreset);
       const currentCount = $convertState.errors.length;
-      if (newErrors.length > currentCount) {
-        pendingPreset = newPresetId;
-        pendingPresetErrorDelta = newErrors.length - currentCount;
-        return;
-      }
+      pendingPreset = newPresetId;
+      pendingPresetErrorDelta = newErrors.length - currentCount;
+      return;
     }
     applyPresetChange(newPresetId);
   }
@@ -824,12 +825,20 @@
 {/if}
 
 {#if pendingPreset}
-  <div class="format-switch-overlay" role="dialog" aria-modal="true" aria-label="Switch preset">
+  <div class="format-switch-overlay" role="dialog" aria-modal="true" aria-labelledby="preset-switch-title">
     <div class="format-switch-box">
-      <p class="switch-title">Switch to <span class="switch-fmt">{pendingPreset}</span>?</p>
-      <p class="switch-sub">This will produce <strong>{pendingPresetErrorDelta}</strong> new validation error{pendingPresetErrorDelta === 1 ? '' : 's'}.</p>
+      <p class="switch-title" id="preset-switch-title">Regenerate output with <span class="switch-fmt">{getPreset(pendingPreset).name}</span>?</p>
+      <p class="switch-sub">
+        Switching the LLM model will <strong>regenerate the output</strong> against the new preset's rules.
+        {#if pendingPresetErrorDelta > 0}
+          This new preset would produce <strong>{pendingPresetErrorDelta}</strong> additional validation error{pendingPresetErrorDelta === 1 ? '' : 's'}.
+        {:else if pendingPresetErrorDelta < 0}
+          This new preset would resolve <strong>{-pendingPresetErrorDelta}</strong> existing validation error{pendingPresetErrorDelta === -1 ? '' : 's'}.
+        {/if}
+        Choose <em>cancel</em> to revert to the previous provider and model.
+      </p>
       <div class="switch-actions">
-        <button class="switch-btn switch-clear" onclick={confirmPresetSwitch}>switch</button>
+        <button class="switch-btn switch-clear" onclick={confirmPresetSwitch}>yes, regenerate</button>
         <button class="switch-btn switch-cancel" onclick={cancelPresetSwitch}>cancel</button>
       </div>
     </div>
@@ -935,6 +944,8 @@
     border-radius: 4px;
     padding: 20px 24px;
     min-width: 280px;
+    max-width: 460px;
+    width: calc(100vw - 32px);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -944,6 +955,9 @@
     font-size: 13px;
     color: var(--ink);
     margin: 0;
+    line-height: 1.4;
+    word-break: normal;
+    overflow-wrap: anywhere;
   }
 
   .switch-fmt {
@@ -954,6 +968,10 @@
     font-size: 12px;
     color: var(--ink-dim);
     margin: 0;
+    line-height: 1.5;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .switch-actions {
