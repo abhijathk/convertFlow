@@ -115,6 +115,10 @@
       theme <kbd>{kT}</kbd>
     </button>
     <span class="sep" aria-hidden="true">·</span>
+    <a href="/download" target="_blank" rel="noopener noreferrer" aria-label="Download desktop app for Windows / macOS / Linux" class="download-link">
+      ↓ download
+    </a>
+    <span class="sep" aria-hidden="true">·</span>
     <a href="/help" target="_blank" rel="noopener noreferrer" aria-label="Help and documentation">
       help <kbd>?</kbd>
     </a>
@@ -178,6 +182,14 @@
     border-radius: 2px;
   }
   .actions button.share-ok { color: var(--ok); }
+  .actions a.download-link {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .actions a.download-link:hover {
+    color: var(--ink);
+    text-decoration: none;
+  }
   kbd {
     color: var(--accent);
     font-family: inherit;
