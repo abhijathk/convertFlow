@@ -33,7 +33,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest"
+          - platform: "macos-14"
             args: "--target universal-apple-darwin"
             label: "macos"
           - platform: "ubuntu-24.04"
@@ -57,7 +57,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           # Pre-install BOTH macOS targets when building the universal binary.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-14' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      # macOS runners ship Homebrew's `rustup-init` on PATH ahead of the
+      # rustup install dir, so `cargo` can resolve to the init shim and
+      # fail with "unexpected argument 'metadata' found". Force the real
+      # toolchain to the front of PATH and sanity-check it works.
+      - name: Ensure cargo on PATH (macOS)
+        if: matrix.platform == 'macos-14'
+        run: |
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          "$HOME/.cargo/bin/rustc" --version
+          "$HOME/.cargo/bin/cargo" --version
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
