@@ -1,11 +1,12 @@
 <script lang="ts">
   import { convertState } from '../stores/convertState';
+  import { appSettings } from '../stores/appSettings';
 
+  let advancedOn = $derived($appSettings.advancedFeaturesEnabled);
   let hasContent = $derived($convertState.lineCount > 0);
-  let prepLocked = $derived(hasContent && !$convertState.prepUnlocked);
+  let prepLocked = $derived(advancedOn && hasContent && !$convertState.prepUnlocked);
   let confirmingUnlock = $state(false);
   let autoLockSecondsLeft = $state(0);
-  const AUTO_LOCK_SECONDS = 60;
   let autoLockInterval: ReturnType<typeof setInterval> | undefined;
 
   function clearAutoLockTimer() {
@@ -15,7 +16,9 @@
 
   function startAutoLockTimer() {
     clearAutoLockTimer();
-    autoLockSecondsLeft = AUTO_LOCK_SECONDS;
+    const total = Math.max(0, $appSettings.prepAutoLockSeconds);
+    if (total === 0) return; // user set it to 0 → never auto-lock
+    autoLockSecondsLeft = total;
     autoLockInterval = setInterval(() => {
       autoLockSecondsLeft -= 1;
       if (autoLockSecondsLeft <= 0) {
@@ -26,14 +29,21 @@
   }
 
   $effect(() => {
-    if ($convertState.prepUnlocked && hasContent) startAutoLockTimer();
+    if (advancedOn && $convertState.prepUnlocked && hasContent) startAutoLockTimer();
     else clearAutoLockTimer();
     return () => clearAutoLockTimer();
   });
 
   function requestUnlockOrLock() {
-    if (prepLocked) confirmingUnlock = true;
-    else convertState.update(s => ({ ...s, prepUnlocked: false }));
+    if (prepLocked) {
+      if ($appSettings.skipLockConfirmation) {
+        convertState.update(s => ({ ...s, prepUnlocked: true }));
+      } else {
+        confirmingUnlock = true;
+      }
+    } else {
+      convertState.update(s => ({ ...s, prepUnlocked: false }));
+    }
   }
 
   function confirmUnlock() {
@@ -44,7 +54,7 @@
   function cancelUnlock() { confirmingUnlock = false; }
 </script>
 
-{#if hasContent}
+{#if advancedOn && hasContent}
   <button
     type="button"
     class="prep-lock-btn"
@@ -69,7 +79,7 @@
     {/if}
   </button>
   {#if !prepLocked && autoLockSecondsLeft > 0}
-    <span class="prep-lock-countdown" title="Auto-locks after 60 seconds of inactivity">{autoLockSecondsLeft}s</span>
+    <span class="prep-lock-countdown" title="Auto-locks after {$appSettings.prepAutoLockSeconds} seconds of inactivity">{autoLockSecondsLeft}s</span>
   {/if}
 {/if}
 
@@ -92,7 +102,7 @@
 
 <style>
   /* Lock button — matches the preset lock icon styling: icon-only, no border,
-     red when locked, green when unlocked. */
+     red when locked, green when unlocked, with a tinted background only on hover. */
   .prep-lock-btn {
     display: inline-flex;
     align-items: center;

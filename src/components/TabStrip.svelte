@@ -233,6 +233,54 @@
         </div>
 
         <div class="settings-section">
+          <span class="settings-label">chunk</span>
+          <label class="setting-row">
+            <span>Images by default</span>
+            <input type="checkbox" checked={$appSettings.chunkEnableImagesDefault} onchange={(e) => updateAppSetting('chunkEnableImagesDefault', e.currentTarget.checked)} />
+          </label>
+          <label class="setting-row">
+            <span>OCR by default</span>
+            <input type="checkbox" checked={$appSettings.chunkEnableOcrDefault} onchange={(e) => updateAppSetting('chunkEnableOcrDefault', e.currentTarget.checked)} />
+          </label>
+        </div>
+
+        <div class="settings-section">
+          <span class="settings-label">advanced</span>
+          <label class="setting-row">
+            <span>Advanced features</span>
+            <input type="checkbox" checked={$appSettings.advancedFeaturesEnabled} onchange={(e) => updateAppSetting('advancedFeaturesEnabled', e.currentTarget.checked)} />
+          </label>
+          <div class="setting-row stacked">
+            <span class="setting-row-sub">
+              Enables multi-prompt mode, lock controls (preset + prep settings), and lock confirmation modals.
+              Most users don't need this.
+            </span>
+          </div>
+
+          {#if $appSettings.advancedFeaturesEnabled}
+            <label class="setting-row">
+              <span>Skip lock confirmations</span>
+              <input type="checkbox" checked={$appSettings.skipLockConfirmation} onchange={(e) => updateAppSetting('skipLockConfirmation', e.currentTarget.checked)} />
+            </label>
+            <label class="setting-row">
+              <span>Preset auto-lock (seconds)</span>
+              <input type="number" min="0" max="600" step="5" value={$appSettings.presetAutoLockSeconds} onchange={(e) => updateAppSetting('presetAutoLockSeconds', Math.max(0, Number(e.currentTarget.value) || 0))} class="number-input" />
+            </label>
+            <label class="setting-row">
+              <span>Prep auto-lock (seconds)</span>
+              <input type="number" min="0" max="600" step="5" value={$appSettings.prepAutoLockSeconds} onchange={(e) => updateAppSetting('prepAutoLockSeconds', Math.max(0, Number(e.currentTarget.value) || 0))} class="number-input" />
+            </label>
+            <label class="setting-row">
+              <span>Multi-prompt default mode</span>
+              <select class="select-input" value={$appSettings.defaultMultiPromptMode} onchange={(e) => updateAppSetting('defaultMultiPromptMode', e.currentTarget.value as 'round-robin' | 'random')}>
+                <option value="round-robin">round-robin</option>
+                <option value="random">random</option>
+              </select>
+            </label>
+          {/if}
+        </div>
+
+        <div class="settings-section">
           <span class="settings-label">privacy</span>
           <label class="setting-row">
             <span>Anonymous telemetry</span>
@@ -498,6 +546,12 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     padding: 0 12px 4px;
+  }
+
+  .setting-row-sub {
+    font-size: 11px;
+    color: var(--ink-dim);
+    line-height: 1.4;
   }
 
   .theme-list {

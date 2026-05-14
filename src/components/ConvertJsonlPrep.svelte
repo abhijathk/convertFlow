@@ -3,9 +3,11 @@
   import { convertPrepState } from '../stores/convertPrepState';
   import type { ImportTemplate } from '../lib/convert-import';
   import PrepLockButton from './PrepLockButton.svelte';
+  import { appSettings } from '../stores/appSettings';
 
+  let advancedOn = $derived($appSettings.advancedFeaturesEnabled);
   let hasContent = $derived($convertState.lineCount > 0);
-  let prepLocked = $derived(hasContent && !$convertState.prepUnlocked);
+  let prepLocked = $derived(advancedOn && hasContent && !$convertState.prepUnlocked);
 
   // ── Per-template configuration ────────────────────────────────────────────
 
@@ -175,8 +177,11 @@
 
   function acceptAdvancedWarning() {
     confirmingAdvanced = false;
-    // Seed local dialog copies from current store state
-    dialogMode = multiPromptMode;
+    // Seed local dialog copies: prefer store state if already configured,
+    // otherwise fall back to the appSettings default mode.
+    dialogMode = multiPrompts.length === 0
+      ? $appSettings.defaultMultiPromptMode
+      : multiPromptMode;
     dialogSeed = multiPromptSeed;
     dialogPrompts = multiPrompts.length === 0
       ? [...TEMPLATE_DEFAULT_PROMPTS[template], '']
@@ -258,20 +263,22 @@
           {/if}
         </div>
 
-        <div class="advanced-cluster">
-          {#if multiPromptEnabled}
-            <span class="multi-prompt-summary" title="{multiPrompts.length} prompts · {multiPromptMode}{multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}">
-              {multiPrompts.length}·{multiPromptMode === 'round-robin' ? 'RR' : `R${multiPromptSeed}`}
-            </span>
-            <button type="button" class="advanced-btn" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) openEditDialog(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}>edit…</button>
-            <button type="button" class="advanced-btn off" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) disableMultiPrompt(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Disable multi-prompt'}>×</button>
-          {:else}
-            <button type="button" class="advanced-btn" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) openAdvancedWarning(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Use multiple system prompts (advanced)'}>
-              <span class="advanced-icon" aria-hidden="true">⚙</span>
-              advanced
-            </button>
-          {/if}
-        </div>
+        {#if advancedOn}
+          <div class="advanced-cluster">
+            {#if multiPromptEnabled}
+              <span class="multi-prompt-summary" title="{multiPrompts.length} prompts · {multiPromptMode}{multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}">
+                {multiPrompts.length}·{multiPromptMode === 'round-robin' ? 'RR' : `R${multiPromptSeed}`}
+              </span>
+              <button type="button" class="advanced-btn" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) openEditDialog(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}>edit…</button>
+              <button type="button" class="advanced-btn off" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) disableMultiPrompt(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Disable multi-prompt'}>×</button>
+            {:else}
+              <button type="button" class="advanced-btn" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) openAdvancedWarning(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Use multiple system prompts (advanced)'}>
+                <span class="advanced-icon" aria-hidden="true">⚙</span>
+                advanced
+              </button>
+            {/if}
+          </div>
+        {/if}
 
         {#if showChunkSize}
           <div class="chunk-cluster">

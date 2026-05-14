@@ -9,6 +9,30 @@ export interface AppSettings {
   convertSampleThreshold: number;
   defaultPresetId: string;
   telemetryEnabled: boolean;
+
+  // Master toggle — when false, all advanced lock/multi-prompt UI hides and
+  // the system behaves like it did before those features landed.
+  advancedFeaturesEnabled: boolean;
+
+  // Auto-lock timers (seconds). Only used when advancedFeaturesEnabled = true.
+  presetAutoLockSeconds: number;
+  prepAutoLockSeconds: number;
+
+  // Skip the unlock confirmation modals (power-user mode).
+  skipLockConfirmation: boolean;
+
+  // Per-provider defaults. Keys are provider strings ("openai", "anthropic",
+  // "mistral", etc.). Empty record means "no preference; use the global
+  // defaults". Looked up when the user changes preset.
+  defaultTemplateByProvider: Record<string, 'qa' | 'context-answer' | 'instruct'>;
+  defaultChunkSizeByProvider: Record<string, number>;
+
+  // Multi-prompt rotation mode default.
+  defaultMultiPromptMode: 'round-robin' | 'random';
+
+  // Chunk tab — toggle defaults.
+  chunkEnableImagesDefault: boolean;
+  chunkEnableOcrDefault: boolean;
 }
 
 const defaults: AppSettings = {
@@ -19,6 +43,15 @@ const defaults: AppSettings = {
   convertSampleThreshold: 500,
   defaultPresetId: 'openai-gpt-5',
   telemetryEnabled: true,
+  advancedFeaturesEnabled: false,
+  presetAutoLockSeconds: 30,
+  prepAutoLockSeconds: 60,
+  skipLockConfirmation: false,
+  defaultTemplateByProvider: {},
+  defaultChunkSizeByProvider: {},
+  defaultMultiPromptMode: 'round-robin',
+  chunkEnableImagesDefault: false,
+  chunkEnableOcrDefault: false,
 };
 
 function loadSettings(): AppSettings {

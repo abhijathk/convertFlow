@@ -27,6 +27,8 @@
     extractMessages as libExtractMessages,
     asChunks as libAsChunks,
   } from '../lib/format-convert';
+  import { convertPrepState } from '../stores/convertPrepState';
+  import { get } from 'svelte/store';
 
   let editorRef: EditorIsland | undefined = $state();
   let validateTimer: ReturnType<typeof setTimeout> | undefined;
@@ -418,9 +420,28 @@
     return { regenerated, skipped };
   }
 
+  function applyProviderDefaults(presetId: string) {
+    const settings = get(appSettings);
+    const preset = getPreset(presetId);
+    const provider = preset.provider;
+    const template = settings.defaultTemplateByProvider[provider] as ('qa' | 'context-answer' | 'instruct') | undefined;
+    const chunkSize = settings.defaultChunkSizeByProvider[provider];
+    if (!template && !chunkSize) return;
+    // Don't override when data already exists in the dataset.
+    if ($convertState.lineCount > 0) return;
+    convertPrepState.update(s => ({
+      ...s,
+      ...(template ? { template, userEditedPrompt: false } : {}),
+      ...(chunkSize ? { chunkSize } : {}),
+    }));
+  }
+
   async function applyPresetChange(newPresetId: string) {
     convertState.update((s) => ({ ...s, presetId: newPresetId, exactTokens: null }));
     analytics.presetSwitched(newPresetId);
+
+    // Apply per-provider defaults (template/chunk-size) when dataset is empty.
+    applyProviderDefaults(newPresetId);
 
     // Regenerate from the original uploaded documents if we have them.
     const hasRawSources = $convertState.datasetFiles.some(f => !!f.rawSource);

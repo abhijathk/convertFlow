@@ -45,32 +45,47 @@ export interface ChunkState {
 
 const STORAGE_KEY = 'dataprep:chunk-state-v1';
 
-const defaultState: ChunkState = {
-  strategy: 'semantic',
-  embedderId: 'openai-text-embedding-3-small',
-  chunks: [],
-  parseStatus: 'idle',
-  parseError: null,
-  parseProgress: 0,
-  sourceCharCount: 0,
-  sourceText: '',
-  sourceImageData: '',
-  sourceImageFilename: '',
-  docMetadata: null,
-  userMeta: { doc_id: '', category: '', tags: '', author: '', language: 'en' },
-  chunkSize: 640,
-  chunkOverlap: 80,
-  maxKeywords: 4,
-  enableImages: false,
-  enableOcr: false,
-  manualBoundaries: null,
-};
+function defaultState(): ChunkState {
+  // Pick up chunk-tab defaults from appSettings if they exist. localStorage
+  // may not be available during SSR/early hydration, so guard with try/catch.
+  let imagesDefault = false;
+  let ocrDefault = false;
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('dataprep:appSettings') : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as { chunkEnableImagesDefault?: boolean; chunkEnableOcrDefault?: boolean };
+      imagesDefault = !!parsed.chunkEnableImagesDefault;
+      ocrDefault = !!parsed.chunkEnableOcrDefault;
+    }
+  } catch { /* ignore */ }
+  return {
+    strategy: 'semantic',
+    embedderId: 'openai-text-embedding-3-small',
+    chunks: [],
+    parseStatus: 'idle',
+    parseError: null,
+    parseProgress: 0,
+    sourceCharCount: 0,
+    sourceText: '',
+    sourceImageData: '',
+    sourceImageFilename: '',
+    docMetadata: null,
+    userMeta: { doc_id: '', category: '', tags: '', author: '', language: 'en' },
+    chunkSize: 640,
+    chunkOverlap: 80,
+    maxKeywords: 4,
+    enableImages: imagesDefault,
+    enableOcr: ocrDefault,
+    manualBoundaries: null,
+  };
+}
 
 function loadFromStorage(): ChunkState {
-  if (typeof localStorage === 'undefined') return defaultState;
+  const ds = defaultState();
+  if (typeof localStorage === 'undefined') return ds;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
+    if (!raw) return ds;
     const parsed = JSON.parse(raw) as Partial<ChunkState>;
     // In-flight statuses ('uploading' / 'parsing') are stale on reload — reset
     // them to 'idle'. Keep 'done' / 'error' / 'idle' as-is so chunked state
@@ -81,19 +96,19 @@ function loadFromStorage(): ChunkState {
         ? 'idle'
         : (persistedStatus ?? 'idle');
     return {
-      ...defaultState,
+      ...ds,
       ...parsed,
       parseStatus: safeStatus,
       parseProgress: 0,
       parseError: safeStatus === 'error' ? (parsed.parseError ?? null) : null,
     };
   } catch {
-    return defaultState;
+    return ds;
   }
 }
 
 export const chunkState = writable<ChunkState>(
-  typeof localStorage !== 'undefined' ? loadFromStorage() : defaultState
+  typeof localStorage !== 'undefined' ? loadFromStorage() : defaultState()
 );
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined;

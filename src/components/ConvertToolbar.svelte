@@ -4,6 +4,7 @@
   import presetsJson from '../data/presets.json';
   import { setToolInput, selectedUtilityId } from '../stores/utilitiesState';
   import { setTab } from '../stores/shellState';
+  import { appSettings } from '../stores/appSettings';
 
   function openInUtilities() {
     const content = $convertState.editorContent ?? '';
@@ -60,12 +61,12 @@
   let fmt = $derived($convertState.exportFormat);
   let hasContent = $derived($convertState.lineCount > 0);
   let isBinary = $derived(fmt === 'parquet');
-  let presetLocked = $derived(hasContent && !$convertState.presetUnlocked);
-  let prepLocked = $derived(hasContent && !$convertState.prepUnlocked);
+  let advancedOn = $derived($appSettings.advancedFeaturesEnabled);
+  let presetLocked = $derived(advancedOn && hasContent && !$convertState.presetUnlocked);
+  let prepLocked = $derived(advancedOn && hasContent && !$convertState.prepUnlocked);
   let confirmingUnlock = $state(false);
   let autoLockSecondsLeft = $state(0);
 
-  const AUTO_LOCK_SECONDS = 30;
   let autoLockInterval: ReturnType<typeof setInterval> | undefined;
 
   function clearAutoLockTimer() {
@@ -75,7 +76,9 @@
 
   function startAutoLockTimer() {
     clearAutoLockTimer();
-    autoLockSecondsLeft = AUTO_LOCK_SECONDS;
+    const total = Math.max(0, $appSettings.presetAutoLockSeconds);
+    if (total === 0) return; // user set it to 0 → never auto-lock
+    autoLockSecondsLeft = total;
     autoLockInterval = setInterval(() => {
       autoLockSecondsLeft -= 1;
       if (autoLockSecondsLeft <= 0) {
@@ -93,10 +96,10 @@
     }, 1000);
   }
 
-  // Auto-lock after 30s while unlocked. Clears if the user manually locks,
-  // the dataset is cleared, or the section is already locked.
+  // Auto-lock while unlocked (advanced mode only). Clears if the user
+  // manually locks, the dataset is cleared, or advanced is turned off.
   $effect(() => {
-    if ($convertState.presetUnlocked && hasContent) {
+    if (advancedOn && $convertState.presetUnlocked && hasContent) {
       startAutoLockTimer();
     } else {
       clearAutoLockTimer();
@@ -106,7 +109,11 @@
 
   function requestUnlockOrLock() {
     if (presetLocked) {
-      confirmingUnlock = true;
+      if ($appSettings.skipLockConfirmation) {
+        convertState.update(s => ({ ...s, presetUnlocked: true }));
+      } else {
+        confirmingUnlock = true;
+      }
     } else {
       // Re-lock instantly; no confirmation needed for re-locking.
       convertState.update(s => ({ ...s, presetUnlocked: false }));
@@ -266,7 +273,7 @@
           {/each}
         </select>
       {/key}
-      {#if hasContent}
+      {#if advancedOn && hasContent}
         <button
           type="button"
           class="lock-btn"
@@ -289,7 +296,7 @@
           {/if}
         </button>
         {#if !presetLocked && autoLockSecondsLeft > 0}
-          <span class="lock-countdown" title="Auto-locks after 30 seconds of inactivity">{autoLockSecondsLeft}s</span>
+          <span class="lock-countdown" title="Auto-locks after {$appSettings.presetAutoLockSeconds} seconds of inactivity">{autoLockSecondsLeft}s</span>
         {/if}
       {/if}
     </div>
