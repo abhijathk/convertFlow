@@ -5,10 +5,13 @@
   import { computeDatasetStats, type DatasetStats } from '../lib/dataset-stats';
   import presetsJson from '../data/presets.json';
 
+  type Preset = typeof presetsJson[number];
+
   let stats = $state<DatasetStats | null>(null);
+  let activePreset = $state<Preset | null>(null);
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-  function getPreset(id: string) {
+  function getPreset(id: string): Preset {
     return presetsJson.find(p => p.id === id) ?? presetsJson[0];
   }
 
@@ -16,9 +19,10 @@
     const content = $convertState.editorContent;
     const presetId = $convertState.presetId;
     if (debounceTimer) clearTimeout(debounceTimer);
-    if (!content.trim()) { stats = null; return; }
+    if (!content.trim()) { stats = null; activePreset = null; return; }
     debounceTimer = setTimeout(() => {
       const preset = getPreset(presetId);
+      activePreset = preset;
       stats = computeDatasetStats(content, preset);
     }, 300);
     return () => { if (debounceTimer) clearTimeout(debounceTimer); };
@@ -128,6 +132,46 @@
   }
 
   const BUCKET_KEYS = ['1', '2', '3', '4-5', '6-10', '11+'];
+
+  // ---------------------------------------------------------------------------
+  // New helper functions
+  // ---------------------------------------------------------------------------
+
+  function refusalStatus(s: DatasetStats): Status {
+    if (s.refusal.pctOfAssistant > 0.20) return 'err';
+    if (s.refusal.pctOfAssistant > 0.05) return 'warn';
+    return 'ok';
+  }
+
+  function assistantLengthStatus(s: DatasetStats): Status {
+    if (s.assistantLength.count === 0) return 'ok';
+    if (s.assistantLength.median < 20) return 'warn';
+    if (s.assistantLength.median > 3000) return 'warn';
+    return 'ok';
+  }
+
+  function systemPromptStatus(s: DatasetStats): Status {
+    if (s.systemPrompt.totalWithSystem === 0) return 'ok';
+    if (s.systemPrompt.dominantPct > 0.95 && s.recordCount > 5) return 'warn';
+    return 'ok';
+  }
+
+  function qualityFlagsStatus(s: DatasetStats): Status {
+    const total = s.qualityFlags.controlChars + s.qualityFlags.promptInjection;
+    if (total > 0) return 'warn';
+    if (s.qualityFlags.htmlEscapes > 5) return 'warn';
+    return 'ok';
+  }
+
+  function costEstimate(
+    s: DatasetStats,
+    preset: Preset | null,
+  ): { cost: number; perMTokens: number } | null {
+    const perM = preset?.pricing?.trainingPerMTokens;
+    if (!perM || !s.tokenLengths || s.recordCount === 0) return null;
+    const totalTokens = s.tokenLengths.mean * s.recordCount;
+    return { cost: (totalTokens / 1_000_000) * perM, perMTokens: perM };
+  }
 </script>
 
 <div class="stats-panel" role="region" aria-label="Dataset statistics">
@@ -297,6 +341,171 @@
         <div class="card-big lang-label">{langLabel(s.languageHint)}</div>
         <div class="card-detail">
           <span class="dim">sampled 50 records · heuristic only</span>
+        </div>
+      </div>
+
+      <!-- Cost Estimate (active preset) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Training Cost</span>
+          <span class="dot dot-ok" aria-label="Status: ok"></span>
+        </div>
+        {#if costEstimate(s, activePreset)}
+          {@const ce = costEstimate(s, activePreset)}
+          {#if ce}
+            <div class="card-big">${ce.cost.toFixed(2)}<span class="big-suffix">est.</span></div>
+            <div class="card-detail">
+              <span>≈ {(s.tokenLengths.mean * s.recordCount).toLocaleString()} total tokens</span>
+              <span class="dim">@ ${ce.perMTokens}/M training tokens</span>
+            </div>
+          {/if}
+        {:else}
+          <div class="card-detail"><span class="dim">preset pricing not set</span></div>
+        {/if}
+      </div>
+
+      <!-- Assistant Length -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Assistant Length</span>
+          <span class="dot dot-{assistantLengthStatus(s)}" aria-label="Status: {assistantLengthStatus(s)}"></span>
+        </div>
+        {#if s.assistantLength.count > 0}
+          <div class="card-big">{s.assistantLength.median.toLocaleString()}<span class="big-suffix">chars p50</span></div>
+          <div class="card-detail">
+            <span>min {s.assistantLength.min} · p95 {s.assistantLength.p95} · max {s.assistantLength.max}</span>
+            <span class="dim">across {s.assistantLength.count} assistant messages</span>
+          </div>
+        {:else}
+          <div class="card-detail"><span class="dim">no assistant turns</span></div>
+        {/if}
+      </div>
+
+      <!-- System Prompt Diversity -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">System Prompts</span>
+          <span class="dot dot-{systemPromptStatus(s)}" aria-label="Status: {systemPromptStatus(s)}"></span>
+        </div>
+        {#if s.systemPrompt.totalWithSystem > 0}
+          <div class="card-big">{s.systemPrompt.uniqueCount}<span class="big-suffix">unique</span></div>
+          <div class="card-detail">
+            {#if s.systemPrompt.dominantText}
+              <span title={s.systemPrompt.dominantText}>most: {Math.round(s.systemPrompt.dominantPct * 100)}% "{s.systemPrompt.dominantText.length > 60 ? s.systemPrompt.dominantText.slice(0, 60) + '…' : s.systemPrompt.dominantText}"</span>
+            {/if}
+            {#if s.systemPrompt.dominantPct > 0.95 && s.recordCount > 5}
+              <span class="flag-warn">single shared prompt — intentional?</span>
+            {/if}
+          </div>
+        {:else}
+          <div class="card-detail"><span class="dim">no system turns</span></div>
+        {/if}
+      </div>
+
+      <!-- Refusal Phrases -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Refusals</span>
+          <span class="dot dot-{refusalStatus(s)}" aria-label="Status: {refusalStatus(s)}"></span>
+        </div>
+        <div class="card-big">{s.refusal.count}<span class="big-suffix">flagged</span></div>
+        <div class="card-detail">
+          {#if s.refusal.count === 0}
+            <span class="ok-text">no refusal phrases</span>
+          {:else}
+            <span class={refusalStatus(s) === 'err' ? 'flag-err' : 'flag-warn'}>
+              {(s.refusal.pctOfAssistant * 100).toFixed(1)}% of assistant turns
+            </span>
+            <span class="dim">e.g. "I cannot help", "I'm sorry but", "As an AI…"</span>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Quality Flags (combined row) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Quality Flags</span>
+          <span class="dot dot-{qualityFlagsStatus(s)}" aria-label="Status: {qualityFlagsStatus(s)}"></span>
+        </div>
+        <div class="card-detail">
+          {#if s.qualityFlags.controlChars + s.qualityFlags.htmlEscapes + s.qualityFlags.promptInjection === 0}
+            <span class="ok-text">no quality issues detected</span>
+          {:else}
+            {#if s.qualityFlags.controlChars > 0}
+              <span class="flag-err">{s.qualityFlags.controlChars} record{s.qualityFlags.controlChars === 1 ? '' : 's'} with control chars</span>
+            {/if}
+            {#if s.qualityFlags.htmlEscapes > 0}
+              <span class="flag-warn">{s.qualityFlags.htmlEscapes} with HTML escapes (e.g. &amp;amp;)</span>
+            {/if}
+            {#if s.qualityFlags.promptInjection > 0}
+              <span class="flag-err">{s.qualityFlags.promptInjection} prompt-injection pattern{s.qualityFlags.promptInjection === 1 ? '' : 's'}</span>
+            {/if}
+          {/if}
+        </div>
+      </div>
+
+      <!-- Sentiment (assistant only, lexicon estimate) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Tone (est.)</span>
+          <span class="dot dot-ok" aria-label="Status: ok"></span>
+        </div>
+        {#if s.assistantLength.count > 0}
+          <div class="card-big">{Math.round((s.sentiment.positive / Math.max(1, s.sentiment.positive + s.sentiment.neutral + s.sentiment.negative)) * 100)}<span class="big-suffix">% positive</span></div>
+          <div class="card-detail">
+            <span>+ {s.sentiment.positive} · ◦ {s.sentiment.neutral} · − {s.sentiment.negative}</span>
+            <span class="dim">crude lexicon estimate — assistant only</span>
+          </div>
+        {:else}
+          <div class="card-detail"><span class="dim">no assistant turns</span></div>
+        {/if}
+      </div>
+
+      <!-- Top n-grams -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Top Words (assistant)</span>
+          <span class="dot dot-ok" aria-label="Status: ok"></span>
+        </div>
+        {#if s.topNgrams.unigrams.length > 0}
+          <div class="card-detail">
+            <div>
+              {#each s.topNgrams.unigrams.slice(0, 6) as u, i}
+                <span class="role-pct">{u.word}</span><span class="role-count dim">({u.count}){i < 5 && i < s.topNgrams.unigrams.length - 1 ? ' · ' : ''}</span>
+              {/each}
+            </div>
+            {#if s.topNgrams.bigrams.length > 0}
+              <span class="dim">top bigrams: {s.topNgrams.bigrams.slice(0, 3).map(b => `"${b.phrase}" (${b.count})`).join(' · ')}</span>
+            {/if}
+          </div>
+        {:else}
+          <div class="card-detail"><span class="dim">no assistant content</span></div>
+        {/if}
+      </div>
+
+      <!-- Training Time Estimate -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Training Time (est.)</span>
+          <span class="dot dot-ok" aria-label="Status: ok"></span>
+        </div>
+        <div class="card-big">{s.trainingTimeEstimate.minutes}<span class="big-suffix">min</span></div>
+        <div class="card-detail">
+          <span class="dim">{s.trainingTimeEstimate.basis}</span>
+          <span class="dim">heavily provider-dependent — for ballpark only</span>
+        </div>
+      </div>
+
+      <!-- Vocabulary Richness -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">Vocabulary</span>
+          <span class="dot dot-ok" aria-label="Status: ok"></span>
+        </div>
+        <div class="card-big">{(s.vocabRichness.typeTokenRatio * 100).toFixed(1)}<span class="big-suffix">% unique</span></div>
+        <div class="card-detail">
+          <span>{s.vocabRichness.uniqueTokens.toLocaleString()} unique / {s.vocabRichness.totalTokens.toLocaleString()} total</span>
+          <span class="dim">higher = more topic breadth, lower = repetitive</span>
         </div>
       </div>
 
