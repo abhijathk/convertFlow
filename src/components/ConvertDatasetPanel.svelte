@@ -204,7 +204,7 @@
 
 <style>
   .dataset-panel {
-    width: 240px;
+    width: 300px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
