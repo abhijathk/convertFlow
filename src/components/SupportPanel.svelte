@@ -11,7 +11,13 @@
 {#if visible}
   <aside class="support-panel" role="complementary" aria-label="Support convertFlow">
     <div class="support-section coffee">
-      <span class="support-icon" aria-hidden="true">☕</span>
+      <span class="support-icon" aria-hidden="true">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h8v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Z"/>
+          <path d="M11 7h1.5a1.5 1.5 0 0 1 0 3H11"/>
+          <path d="M5 2v2M7 2v2M9 2v2"/>
+        </svg>
+      </span>
       <div class="support-text">
         <span class="support-title">Free, no signup, no tracking.</span>
         <span class="support-sub">If convertFlow saved you time, a coffee helps keep it that way.</span>
@@ -52,7 +58,7 @@
   .support-section.coffee { flex: 1 1 auto; }
   .support-section.ad-slot { flex: 0 1 auto; max-width: 360px; opacity: 0.7; }
 
-  .support-icon { font-size: 16px; flex-shrink: 0; }
+  .support-icon { display: inline-flex; align-items: center; flex-shrink: 0; }
   .support-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .support-title { color: var(--ink); font-weight: 500; }
   .support-sub   { color: var(--ink-dim); font-size: 11px; }

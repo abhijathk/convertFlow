@@ -157,7 +157,7 @@
           </div>
         {/if}
         <div class="chunk-preview">
-          {#if chunk.image_data}<span class="image-indicator" aria-label="Image chunk" title={chunk.image_filename}>🖼</span>{/if}{chunk.content.slice(0, 140)}{chunk.content.length > 140 ? '…' : ''}
+          {#if chunk.image_data}<span class="image-indicator" aria-label="Image chunk" title={chunk.image_filename}><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><circle cx="6" cy="7" r="1"/><path d="M2 11l3-3 3 3 2-2 3 3"/></svg></span>{/if}{chunk.content.slice(0, 140)}{chunk.content.length > 140 ? '…' : ''}
         </div>
       </div>
     {/each}

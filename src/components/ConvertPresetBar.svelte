@@ -87,7 +87,7 @@
 
   <div class="right">
     {#if isStale}
-      <span class="warn" title="Pricing may have changed — verify before relying on cost estimates">⚠ verify</span>
+      <span class="warn" title="Pricing may have changed — verify before relying on cost estimates"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:3px"><path d="M8 2L1.5 13h13L8 2Z"/><line x1="8" y1="6" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.6" fill="currentColor" stroke="none"/></svg>verify</span>
     {/if}
   </div>
 </div>

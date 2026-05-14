@@ -190,7 +190,13 @@
       <div class="summary-card summary-{summary.status}" role="region" aria-label="Dataset summary">
         <div class="summary-header">
           <span class="summary-icon" aria-hidden="true">
-            {summary.status === 'err' ? '⚠' : summary.status === 'warn' ? '◯' : '✓'}
+            {#if summary.status === 'err'}
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L1.5 13h13L8 2Z"/><line x1="8" y1="6" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.6" fill="currentColor" stroke="none"/></svg>
+            {:else if summary.status === 'warn'}
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/></svg>
+            {:else}
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3,8.5 7,12 13,5"/></svg>
+            {/if}
           </span>
           <span class="summary-tldr">{summary.tldr}</span>
         </div>
@@ -773,11 +779,12 @@
 
   .summary-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 10px;
   }
   .summary-icon {
-    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
     flex-shrink: 0;
     line-height: 1;
   }
@@ -820,9 +827,10 @@
     font-weight: 500;
   }
   .bullet-err::before {
-    content: '⚠';
+    content: '!';
     color: var(--err);
     font-size: 11px;
+    font-weight: 700;
     top: 5px;
   }
   .bullet-warn {
@@ -830,9 +838,10 @@
     background: color-mix(in srgb, var(--warn) 8%, transparent);
   }
   .bullet-warn::before {
-    content: '◯';
+    content: '?';
     color: var(--warn);
-    font-size: 10px;
+    font-size: 11px;
+    font-weight: 700;
     top: 5px;
   }
   .bullet-ok::before {

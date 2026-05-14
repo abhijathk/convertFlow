@@ -648,7 +648,7 @@
           </div>
         {:else if isPdfSource && hasContent}
           <div class="source-format-banner">
-            <span>📄 {$chunkState.docMetadata?.format?.toUpperCase()} — text extracted ({$chunkState.sourceCharCount.toLocaleString()} chars)</span>
+            <span><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><path d="M4 1h5l3 3v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1Z"/><path d="M9 1v3h3"/><line x1="5.5" y1="7.5" x2="10.5" y2="7.5"/><line x1="5.5" y1="9.5" x2="10.5" y2="9.5"/><line x1="5.5" y1="11.5" x2="8.5" y2="11.5"/></svg>{$chunkState.docMetadata?.format?.toUpperCase()} — text extracted ({$chunkState.sourceCharCount.toLocaleString()} chars)</span>
           </div>
         {/if}
         <ChunkBoundaryOverlay containerEl={editorWrapEl} onresetToAuto={generate} />

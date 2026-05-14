@@ -268,7 +268,7 @@
 
     {#if hasSecretMatches(d)}
       <div class="warn-banner secret-banner" role="alert">
-        ⚠ Secrets detected — never share or commit these. Redact before exporting.
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:5px"><path d="M8 2L1.5 13h13L8 2Z"/><line x1="8" y1="6" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.6" fill="currentColor" stroke="none"/></svg>Secrets detected — never share or commit these. Redact before exporting.
       </div>
     {/if}
 

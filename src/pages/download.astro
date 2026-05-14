@@ -91,16 +91,12 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
     </div>
     <div class="dl-body">
       <h3 class="dl-platform">macOS</h3>
-      <p class="dl-meta">macOS 11+ (Big Sur or later)</p>
+      <p class="dl-meta">macOS 11+ · universal binary (Apple Silicon + Intel)</p>
     </div>
     <div class="dl-actions">
-      <a class="dl-btn primary" href={`${RELEASES_BASE}/convertFlow_${VERSION}_aarch64.dmg`}>
-        <span class="dl-btn-label">M-series</span>
-        <span class="dl-btn-sub">Apple Silicon</span>
-      </a>
-      <a class="dl-btn secondary" href={`${RELEASES_BASE}/convertFlow_${VERSION}_x64.dmg`}>
-        <span class="dl-btn-label">Intel</span>
-        <span class="dl-btn-sub">older Macs</span>
+      <a class="dl-btn primary" href={`${RELEASES_BASE}/convertFlow_${VERSION}_universal.dmg`}>
+        <span class="dl-btn-label">.dmg</span>
+        <span class="dl-btn-sub">universal</span>
       </a>
     </div>
   </div>
@@ -128,13 +124,17 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
       <p class="dl-meta">x86_64 · most distros</p>
     </div>
     <div class="dl-actions">
-      <a class="dl-btn primary" href={`${RELEASES_BASE}/convertflow_${VERSION}_amd64.AppImage`}>
+      <a class="dl-btn primary" href={`${RELEASES_BASE}/convertFlow_${VERSION}_amd64.AppImage`}>
         <span class="dl-btn-label">AppImage</span>
         <span class="dl-btn-sub">any distro</span>
       </a>
-      <a class="dl-btn secondary" href={`${RELEASES_BASE}/convertflow_${VERSION}_amd64.deb`}>
+      <a class="dl-btn secondary" href={`${RELEASES_BASE}/convertFlow_${VERSION}_amd64.deb`}>
         <span class="dl-btn-label">.deb</span>
         <span class="dl-btn-sub">Debian/Ubuntu</span>
+      </a>
+      <a class="dl-btn secondary" href={`${RELEASES_BASE}/convertFlow-${VERSION}-1.x86_64.rpm`}>
+        <span class="dl-btn-label">.rpm</span>
+        <span class="dl-btn-sub">Fedora/RHEL</span>
       </a>
     </div>
   </div>
@@ -155,28 +155,50 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
 
 <div class="feature-grid">
   <div class="feature">
-    <span class="feature-icon" aria-hidden="true">📦</span>
+    <span class="feature-icon" aria-hidden="true">
+      <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 5l6-3 6 3v6l-6 3-6-3V5Z"/>
+        <polyline points="2,5 8,8 14,5"/>
+        <line x1="8" y1="8" x2="8" y2="14"/>
+      </svg>
+    </span>
     <div class="feature-text">
       <strong>Everything in the web app</strong>
       <span>Convert, Chunk, Editor, all 17 utilities — bit-for-bit identical to <a href="/">convertflow.live</a>.</span>
     </div>
   </div>
   <div class="feature">
-    <span class="feature-icon" aria-hidden="true">🔌</span>
+    <span class="feature-icon" aria-hidden="true">
+      <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 1v5M11 1v5"/>
+        <rect x="3.5" y="6" width="9" height="3" rx="0.5"/>
+        <path d="M8 9v3"/>
+        <circle cx="8" cy="13.5" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+    </span>
     <div class="feature-text">
       <strong>Works offline</strong>
       <span>No network required after install. HuggingFace pushes still need internet when you trigger them.</span>
     </div>
   </div>
   <div class="feature">
-    <span class="feature-icon" aria-hidden="true">📁</span>
+    <span class="feature-icon" aria-hidden="true">
+      <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 4a1 1 0 0 1 1-1h3l2 2h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4Z"/>
+      </svg>
+    </span>
     <div class="feature-text">
       <strong>Native file system access</strong>
       <span>Drag large JSONLs straight from your file explorer — no browser upload limits.</span>
     </div>
   </div>
   <div class="feature">
-    <span class="feature-icon" aria-hidden="true">🔒</span>
+    <span class="feature-icon" aria-hidden="true">
+      <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="7" width="10" height="7" rx="1"/>
+        <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+      </svg>
+    </span>
     <div class="feature-text">
       <strong>100% local</strong>
       <span>Your data stays on your machine. No telemetry, no accounts, no cloud sync.</span>
@@ -221,8 +243,8 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
   <summary>Linux: AppImage won't run</summary>
   <p>
     Make it executable first:
-    <code style="display:block;margin-top:6px;padding:6px 10px;background:var(--bg);border-radius:3px">chmod +x convertflow_{VERSION}_amd64.AppImage</code>
-    Then double-click or run <code>./convertflow_{VERSION}_amd64.AppImage</code>. On some distros you may need <code>libfuse2</code>: <code>sudo apt install libfuse2</code>.
+    <code style="display:block;margin-top:6px;padding:6px 10px;background:var(--bg);border-radius:3px">chmod +x convertFlow_{VERSION}_amd64.AppImage</code>
+    Then double-click or run <code>./convertFlow_{VERSION}_amd64.AppImage</code>. On some distros you may need <code>libfuse2</code>: <code>sudo apt install libfuse2</code>.
   </p>
 </details>
 
@@ -267,13 +289,12 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
           icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2 5.5 9.4 4.5v7.4H2zM10.5 4.4 22 3v8.5h-11.5zM2 12.6h7.4V20L2 19zM10.5 12.6H22V21L10.5 19.6z"/></svg>',
         };
       } else if (/Mac|iPhone|iPad/i.test(ua)) {
-        // Apple Silicon detection is unreliable from UA alone; default to ARM
-        // and let the user pick Intel from the grid if needed.
+        // Universal binary — runs on Apple Silicon and Intel.
         detected = {
           platform: 'macos',
           line: 'Download for macOS',
-          sub: 'v' + VERSION + ' · Apple Silicon .dmg',
-          href: RELEASES_BASE + '/convertFlow_' + VERSION + '_aarch64.dmg',
+          sub: 'v' + VERSION + ' · universal .dmg',
+          href: RELEASES_BASE + '/convertFlow_' + VERSION + '_universal.dmg',
           icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M18.7 17.9c-.4.8-.7 1.3-1.1 2-.7 1.1-1.6 2.4-2.7 2.4-1 0-1.3-.7-2.7-.7-1.4 0-1.7.7-2.7.7-1.1 0-1.9-1.2-2.6-2.3C5 17.6 4 14 5 11.5c.6-1.5 2-2.5 3.4-2.5 1.3 0 2.2.7 3.3.7 1 0 1.7-.7 3.2-.7 1.2 0 2.5.7 3.4 1.8-3 1.7-2.5 6 .4 7.1zM13.4 6c.6-.8 1.1-1.9.9-3.1-1.1.1-2.3.8-3 1.6-.6.8-1.2 1.9-1 3 1.2.1 2.4-.7 3.1-1.5z"/></svg>',
         };
       } else if (/Linux/i.test(ua)) {
@@ -281,7 +302,7 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
           platform: 'linux',
           line: 'Download for Linux',
           sub: 'v' + VERSION + ' · AppImage',
-          href: RELEASES_BASE + '/convertflow_' + VERSION + '_amd64.AppImage',
+          href: RELEASES_BASE + '/convertFlow_' + VERSION + '_amd64.AppImage',
           icon: '<svg viewBox="0 0 256 256" width="22" height="22"><circle cx="128" cy="128" r="128" fill="#E95420"/><g stroke="white" stroke-width="22" stroke-linecap="round" fill="none"><line x1="128" y1="128" x2="200" y2="88"/><line x1="128" y1="128" x2="200" y2="168"/><line x1="128" y1="128" x2="48" y2="128"/></g><g fill="white"><circle cx="128" cy="128" r="28"/><circle cx="200" cy="88" r="22"/><circle cx="200" cy="168" r="22"/><circle cx="48" cy="128" r="22"/></g></svg>',
         };
       }
@@ -356,7 +377,10 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
     gap: 8px;
     flex-shrink: 0;
   }
-  .hero-cta {
+  /* DocLayout sets .doc-main :global(a) { color: var(--accent) } which
+     beats .hero-cta on specificity. Using a.hero-cta to win the cascade
+     so the button text is readable on the accent fill. */
+  a.hero-cta {
     display: inline-flex;
     align-items: center;
     gap: 12px;
@@ -369,10 +393,15 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
     transition: transform 0.08s, box-shadow 0.12s;
     min-width: 240px;
   }
-  .hero-cta:hover {
+  a.hero-cta:hover {
     text-decoration: none;
+    color: var(--bg);
     transform: translateY(-1px);
     box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  a.hero-cta .hero-cta-line,
+  a.hero-cta .hero-cta-sub {
+    color: var(--bg);
   }
   .hero-cta-icon {
     line-height: 0;
@@ -481,14 +510,19 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
   }
   .dl-btn-label { font-size: 12px; font-weight: 600; }
   .dl-btn-sub { font-size: 10px; opacity: 0.7; font-weight: 400; margin-top: 1px; }
-  .dl-btn.primary {
+  a.dl-btn.primary {
     background: var(--accent);
     color: var(--bg);
     border-color: var(--accent);
   }
-  .dl-btn.primary:hover {
+  a.dl-btn.primary:hover {
     background: color-mix(in srgb, var(--accent) 88%, white);
+    color: var(--bg);
     text-decoration: none;
+  }
+  a.dl-btn.primary .dl-btn-label,
+  a.dl-btn.primary .dl-btn-sub {
+    color: var(--bg);
   }
   .dl-btn.secondary {
     background: transparent;

@@ -273,7 +273,12 @@
               <button type="button" class="advanced-btn off" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) disableMultiPrompt(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Disable multi-prompt'}>×</button>
             {:else}
               <button type="button" class="advanced-btn" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) openAdvancedWarning(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Use multiple system prompts (advanced)'}>
-                <span class="advanced-icon" aria-hidden="true">⚙</span>
+                <span class="advanced-icon" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="8" cy="8" r="2"/>
+                    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4"/>
+                  </svg>
+                </span>
                 advanced
               </button>
             {/if}
@@ -645,6 +650,9 @@
     padding: 2px 8px;
   }
   :global(.jsonl-prep-panel .advanced-btn) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     background: none;
     border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
     color: var(--accent);
@@ -652,7 +660,9 @@
     padding: 3px 9px;
     font-family: inherit;
     font-size: 11px;
+    line-height: 1;
     cursor: pointer;
+    white-space: nowrap;
   }
   :global(.jsonl-prep-panel .advanced-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
   :global(.jsonl-prep-panel .advanced-btn.off) { color: var(--ink-dim); border-color: var(--border); }
@@ -662,7 +672,11 @@
     opacity: 0.45;
     cursor: not-allowed;
   }
-  :global(.jsonl-prep-panel .advanced-icon) { margin-right: 4px; }
+  :global(.jsonl-prep-panel .advanced-icon) {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
 
   /* ── Shared dialog styles (also used by ConvertImportPanel) ─────────────── */
   :global(.advanced-overlay) {

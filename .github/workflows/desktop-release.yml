@@ -107,6 +107,6 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "convertFlow ${{ github.ref_name }}"
           releaseBody: "See the release notes on https://convertflow.live."
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
