@@ -325,7 +325,6 @@
   .summary-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left-width: 3px;
     border-radius: 4px;
     padding: 12px 16px;
     margin-bottom: 12px;
@@ -333,9 +332,6 @@
     flex-direction: column;
     gap: 8px;
   }
-  .summary-ok   { border-left-color: var(--ok); }
-  .summary-warn { border-left-color: var(--warn); }
-  .summary-err  { border-left-color: var(--err); }
 
   .summary-header {
     display: flex;
