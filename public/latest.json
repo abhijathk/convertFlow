@@ -1,23 +1,19 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "releaseDate": "2026-05-14",
   "downloadUrl": "https://convertflow.live/download",
-  "notes": "Initial public release of convertFlow desktop app — wraps the in-browser dataset prep tool as a native installer for Windows, macOS, and Linux.",
+  "notes": "Desktop UX polish + bug fixes: hides the Download/Help nav items inside the app, fixes the Support button (now opens via the system browser), adds a Support section to Settings, fixes the Convert/Chunk editors being empty (CSP fix), and pins the default theme to dark on platforms where prefers-color-scheme is unreliable.",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://convertflow.live/download/convertFlow_0.1.0_x64-setup.exe",
+      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.1_x64-setup.exe",
       "signature": ""
     },
-    "darwin-aarch64": {
-      "url": "https://convertflow.live/download/convertFlow_0.1.0_aarch64.dmg",
-      "signature": ""
-    },
-    "darwin-x86_64": {
-      "url": "https://convertflow.live/download/convertFlow_0.1.0_x64.dmg",
+    "darwin-universal": {
+      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.1_universal.dmg",
       "signature": ""
     },
     "linux-x86_64": {
-      "url": "https://convertflow.live/download/convertflow_0.1.0_amd64.AppImage",
+      "url": "https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.1_amd64.AppImage",
       "signature": ""
     }
   }

@@ -1,6 +1,6 @@
 [package]
 name = "convertflow"
-version = "0.1.0"
+version = "0.1.1"
 description = "convertFlow — LLM dataset prep + RAG document chunker"
 authors = ["convertFlow"]
 edition = "2021"
