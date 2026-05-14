@@ -223,7 +223,7 @@
   }
 
   function confirmClearDataset() {
-    convertState.update(s => ({ ...s, datasetFiles: [], editorDisplayOverride: null }));
+    convertState.update(s => ({ ...s, datasetFiles: [], editorDisplayOverride: null, presetUnlocked: false }));
     selectedDatasetFileId = undefined;
     suppressNextChange = true;
     editorRef?.setValue('');

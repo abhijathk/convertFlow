@@ -46,6 +46,10 @@ export interface ConvertState {
   exportFormat: ExportFormat;
   formatSettings: FormatSettings;
   datasetFiles: DatasetFile[];
+  // True once the user has explicitly confirmed they want to override the
+  // provider/model lock that engages after data is generated. Reset to false
+  // whenever the dataset is cleared.
+  presetUnlocked: boolean;
 }
 
 const STORAGE_KEY = 'dataprep:convert-state-v1';
@@ -62,6 +66,7 @@ function defaultState(): ConvertState {
     errors: [],
     lineCount: 0,
     exportFormat: 'jsonl',
+    presetUnlocked: false,
     formatSettings: {
       jsonl:    { systemPrompt: '', roleUser: 'user', roleAssistant: 'assistant', filterIncomplete: false },
       json:     { indent: 2 },

@@ -60,6 +60,26 @@
   let fmt = $derived($convertState.exportFormat);
   let hasContent = $derived($convertState.lineCount > 0);
   let isBinary = $derived(fmt === 'parquet');
+  let presetLocked = $derived(hasContent && !$convertState.presetUnlocked);
+  let confirmingUnlock = $state(false);
+
+  function requestUnlockOrLock() {
+    if (presetLocked) {
+      confirmingUnlock = true;
+    } else {
+      // Re-lock instantly; no confirmation needed for re-locking.
+      convertState.update(s => ({ ...s, presetUnlocked: false }));
+    }
+  }
+
+  function confirmUnlock() {
+    convertState.update(s => ({ ...s, presetUnlocked: true }));
+    confirmingUnlock = false;
+  }
+
+  function cancelUnlock() {
+    confirmingUnlock = false;
+  }
 
   function pick(id: ExportFormat, e: MouseEvent) {
     (e.currentTarget as HTMLElement).blur();
@@ -190,11 +210,12 @@
       <span class="dot" aria-hidden="true">●</span>
       <select
         class="setting-select preset-provider"
+        class:locked={presetLocked}
         value={selectedProvider}
         onchange={(e) => onProviderChange(e.currentTarget.value)}
         aria-label="Select provider"
-        disabled={hasContent}
-        title={hasContent ? 'Locked — clear the dataset to switch provider' : 'Select provider'}
+        disabled={presetLocked}
+        title={presetLocked ? 'Locked — click the lock icon to unlock' : 'Select provider'}
       >
         {#each providers as provider (provider)}
           <option value={provider}>{provider}</option>
@@ -202,24 +223,39 @@
       </select>
       <select
         class="setting-select preset-model"
+        class:locked={presetLocked}
         value={$convertState.presetId}
         onchange={(e) => selectPreset(e.currentTarget.value)}
         aria-label="Select model"
-        disabled={hasContent}
-        title={hasContent ? 'Locked — clear the dataset to switch model' : 'Select model'}
+        disabled={presetLocked}
+        title={presetLocked ? 'Locked — click the lock icon to unlock' : 'Select model'}
       >
         {#each modelsForSelected as p (p.id)}
           <option value={p.id}>{p.name} — ${p.pricing.trainingPerMTokens}/M train</option>
         {/each}
       </select>
       {#if hasContent}
-        <span class="lock-hint" title="Provider + model are locked once data is generated to prevent invalidating the dataset. Clear the dataset to switch." aria-label="Provider and model locked">
-          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="7" width="10" height="7" rx="1"/>
-            <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
-          </svg>
-          <span>locked</span>
-        </span>
+        <button
+          type="button"
+          class="lock-btn"
+          class:locked={presetLocked}
+          class:unlocked={!presetLocked}
+          onclick={requestUnlockOrLock}
+          title={presetLocked ? 'Locked — click to unlock provider/model (with confirmation)' : 'Unlocked — changing provider will re-generate output. Click to re-lock.'}
+          aria-label={presetLocked ? 'Unlock provider and model' : 'Re-lock provider and model'}
+        >
+          {#if presetLocked}
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="7" width="10" height="7" rx="1"/>
+              <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+            </svg>
+          {:else}
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="7" width="10" height="7" rx="1"/>
+              <path d="M5 7V5a3 3 0 0 1 5.4-1.8"/>
+            </svg>
+          {/if}
+        </button>
       {/if}
     </div>
     <span class="info-sep">·</span>
@@ -366,6 +402,22 @@
 </div>
 {/if}
 
+{#if confirmingUnlock}
+  <div class="unlock-overlay" role="dialog" aria-modal="true" aria-labelledby="unlock-dialog-title">
+    <div class="unlock-box">
+      <p class="unlock-title" id="unlock-dialog-title">Unlock provider and model?</p>
+      <p class="unlock-sub">
+        Switching the provider or model after data is generated will re-run validation against the new
+        rules — some records may become invalid and the output may need regeneration. Continue?
+      </p>
+      <div class="unlock-actions">
+        <button class="unlock-btn unlock-danger" onclick={confirmUnlock}>unlock</button>
+        <button class="unlock-btn" onclick={cancelUnlock}>cancel</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   /* ── Row shared ─────────────────────────────────────────────────────────── */
   .toolbar-row {
@@ -486,20 +538,71 @@
     cursor: help;
   }
 
-  .lock-hint {
+  /* Lock toggle button — same SVG icon set as the Editor tab read-only btn.
+     Red when locked, green when unlocked. Icon-only, no text. */
+  .lock-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    color: var(--err);
-    margin-left: 4px;
-    padding: 1px 6px;
-    border: 1px solid color-mix(in srgb, var(--err) 30%, transparent);
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--border);
     border-radius: 3px;
-    cursor: help;
-    white-space: nowrap;
+    padding: 2px 5px;
+    cursor: pointer;
+    margin-left: 4px;
+    transition: background 0.1s, border-color 0.1s;
   }
-  .lock-hint svg { flex-shrink: 0; }
+  .lock-btn svg { flex-shrink: 0; }
+  .lock-btn.locked { color: var(--err); border-color: color-mix(in srgb, var(--err) 35%, transparent); }
+  .lock-btn.locked:hover { background: color-mix(in srgb, var(--err) 12%, transparent); border-color: var(--err); }
+  .lock-btn.unlocked { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+  .lock-btn.unlocked:hover { background: color-mix(in srgb, var(--ok) 12%, transparent); border-color: var(--ok); }
+
+  /* Disabled select while locked — clearly grayed out so the user sees it
+     can't be edited until the lock is released. */
+  .setting-select.locked,
+  .setting-select:disabled {
+    opacity: 0.45;
+    color: var(--ink-dim) !important;
+    background-color: color-mix(in srgb, var(--ink-dim) 8%, transparent) !important;
+    cursor: not-allowed;
+    border-color: var(--border);
+  }
+
+  /* Unlock confirmation modal */
+  .unlock-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .unlock-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    max-width: 460px;
+    width: calc(100vw - 32px);
+  }
+  .unlock-title { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 8px; }
+  .unlock-sub   { font-size: 12px; color: var(--ink-dim); margin: 0 0 16px; line-height: 1.5; }
+  .unlock-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .unlock-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+  .unlock-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+  .unlock-btn.unlock-danger { color: var(--err); border-color: var(--err); }
+  .unlock-btn.unlock-danger:hover { background: color-mix(in srgb, var(--err) 14%, transparent); }
 
   /* ── Inline preset picker ───────────────────────────────────────────────── */
   .info-left {
