@@ -20,7 +20,12 @@ export default defineConfig({
       tailwindcss(),
     ],
     optimizeDeps: {
-      exclude: ['pdfjs-dist', 'parquet-wasm'],
+      // monaco-editor is excluded because Vite's pre-bundling chokes on
+      // its dynamic worker/language imports. We let it load uncompiled in
+      // dev (EditorTab.svelte's `await import('monaco-editor')` + the
+      // `?worker` imports handle this), and Rollup's prod build chunks
+      // it via the manualChunks() function below.
+      exclude: ['pdfjs-dist', 'parquet-wasm', 'monaco-editor'],
     },
     worker: {
       format: 'es',
