@@ -44,9 +44,19 @@
     <div class="support-divider" aria-hidden="true"></div>
     <div class="support-section ad-slot" aria-label="Sponsored">
       <span class="ad-label" aria-hidden="true">sponsored</span>
-      <span class="ad-placeholder">
-        Your tool here — <button class="ad-link-btn" onclick={() => openExternal(adsUrl)}>place an ad</button>
-      </span>
+      <!--
+        Sponsored banner slot — replace the .ad-frame block below with:
+          <a class="ad-frame ad-frame-live" href="https://sponsor.example/?ref=convertflow" target="_blank" rel="noopener noreferrer sponsored">
+            <img src="/sponsors/example.png" width="600" height="60" alt="Sponsor name — tagline" />
+          </a>
+        Banner spec: 600 × 60 px, PNG or SVG, < 50 KB, dark-friendly.
+      -->
+      <div class="ad-frame" aria-label="Empty banner — 600 by 60 pixels">
+        <span class="ad-frame-title">Your 600 × 60 banner here</span>
+      </div>
+      <button class="ad-advertise" onclick={() => openExternal(adsUrl)} aria-label="Advertise here — opens advertising info">
+        Advertise →
+      </button>
     </div>
     <button class="support-dismiss" onclick={dismiss} title="Hide this panel (re-enable in Settings)" aria-label="Dismiss support panel">×</button>
   </aside>
@@ -70,8 +80,8 @@
     gap: 10px;
     min-width: 0;
   }
-  .support-section.coffee { flex: 1 1 auto; }
-  .support-section.ad-slot { flex: 0 1 auto; max-width: 360px; opacity: 0.7; }
+  .support-section.coffee { flex: 1 1 auto; min-width: 220px; }
+  .support-section.ad-slot { flex: 1 1 auto; justify-content: flex-end; min-width: 0; gap: 10px; }
 
   .support-icon { display: inline-flex; align-items: center; flex-shrink: 0; }
   .support-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -104,32 +114,64 @@
   .ad-label {
     font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    padding: 1px 5px;
-    border-radius: 2px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
     flex-shrink: 0;
   }
-  .ad-placeholder {
-    color: var(--ink-dim);
+
+  /* 600 × 60 banner frame — placeholder visible until a real <a class="ad-frame ad-frame-live"> replaces it */
+  .ad-frame {
+    flex: 0 1 600px;
+    width: 600px;
+    max-width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--border) 30%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 4px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .ad-placeholder a { color: var(--accent); text-decoration: none; }
-  .ad-placeholder a:hover { text-decoration: underline; }
-  .ad-link-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: var(--accent);
-    font-family: inherit;
-    font-size: inherit;
     text-decoration: none;
   }
-  .ad-link-btn:hover { text-decoration: underline; }
+  .ad-frame :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .ad-frame-live {
+    border-style: solid;
+    background: transparent;
+    cursor: pointer;
+  }
+  .ad-frame-title {
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.02em;
+    padding: 0 10px;
+    text-align: center;
+  }
+
+  .ad-advertise {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    color: var(--accent);
+    padding: 5px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    transition: background 0.1s;
+  }
+  .ad-advertise:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
   .support-dismiss {
     background: none;
@@ -144,6 +186,11 @@
   }
   .support-dismiss:hover { color: var(--ink); background: var(--bg); }
 
+  /* On narrow desktops, drop the 600px banner frame but keep the
+     "sponsored" badge + Advertise CTA so the slot is still functional. */
+  @media (max-width: 1000px) {
+    .ad-frame { display: none; }
+  }
   @media (max-width: 700px) {
     .support-panel { flex-wrap: wrap; }
     .support-divider { display: none; }
