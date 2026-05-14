@@ -28,10 +28,12 @@ function getEvent(): TauriEvent | null {
 }
 
 /**
- * Wires the confirm-on-exit handler. When the user closes the window and has
- * `desktopConfirmExit` enabled in appSettings, Rust prevents the close and
- * emits `desktop://request-exit`. We catch it here, ask the user, and either
- * call `destroy` to actually close or do nothing to keep the window.
+ * Wires the close-request handler. Rust always prevents the OS close and
+ * emits `desktop://request-exit`. We then:
+ *   1. Read `desktopConfirmExit` from localStorage
+ *   2. If true → confirm() prompt; if user says no, do nothing (window stays open)
+ *   3. If false (default) → close immediately
+ * Either way, the actual close is done by `plugin:window|destroy`.
  */
 export async function wireDesktopExitConfirm(): Promise<void> {
   if (!isDesktop()) return;
@@ -40,11 +42,19 @@ export async function wireDesktopExitConfirm(): Promise<void> {
   if (!invoke || !event) return;
 
   await event.listen('desktop://request-exit', async () => {
-    const ok = window.confirm('Close convertFlow?');
-    if (ok) {
-      // Force-close the window. core:window:allow-destroy is implicit in
-      // core:window:default so this works with our capability set.
-      await invoke('plugin:window|destroy').catch(() => { /* ignore */ });
+    let confirmExit = false;
+    try {
+      const raw = localStorage.getItem('dataprep:appSettings');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { desktopConfirmExit?: boolean };
+        confirmExit = !!parsed.desktopConfirmExit;
+      }
+    } catch { /* ignore */ }
+
+    if (confirmExit) {
+      const ok = window.confirm('Close convertFlow?');
+      if (!ok) return; // user cancelled — keep the window open
     }
+    await invoke('plugin:window|destroy').catch(() => { /* ignore */ });
   });
 }
