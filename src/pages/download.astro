@@ -103,20 +103,10 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
 
   <!-- LINUX -->
   <div class="download-card" id="linux">
-    <div class="dl-icon ubuntu" aria-hidden="true">
-      <svg viewBox="0 0 256 256" width="40" height="40" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linux">
-        <circle cx="128" cy="128" r="128" fill="#E95420"/>
-        <g stroke="white" stroke-width="22" stroke-linecap="round" fill="none">
-          <line x1="128" y1="128" x2="200" y2="88"/>
-          <line x1="128" y1="128" x2="200" y2="168"/>
-          <line x1="128" y1="128" x2="48"  y2="128"/>
-        </g>
-        <g fill="white">
-          <circle cx="128" cy="128" r="28"/>
-          <circle cx="200" cy="88"  r="22"/>
-          <circle cx="200" cy="168" r="22"/>
-          <circle cx="48"  cy="128" r="22"/>
-        </g>
+    <div class="dl-icon linux" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linux">
+        <!-- Stylized Tux silhouette in accent color, matching Windows + macOS card style -->
+        <path d="M12 2c-2.5 0-4 1.8-4 4 0 0.8 0.2 1.5 0.5 2C7 9 6 11 6 12.5c0 1.2 0.5 2.5 1.5 3.5L6.5 20c-0.2 0.5 0.2 1 0.7 1h1.5c0.3 0 0.6-0.2 0.7-0.5L10 19h4l0.6 1.5c0.1 0.3 0.4 0.5 0.7 0.5h1.5c0.5 0 0.9-0.5 0.7-1L16.5 16c1-1 1.5-2.3 1.5-3.5 0-1.5-1-3.5-2.5-4.5 0.3-0.5 0.5-1.2 0.5-2 0-2.2-1.5-4-4-4z"/>
       </svg>
     </div>
     <div class="dl-body">
@@ -303,7 +293,7 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
           line: 'Download for Linux',
           sub: 'v' + VERSION + ' · AppImage',
           href: RELEASES_BASE + '/convertFlow_' + VERSION + '_amd64.AppImage',
-          icon: '<svg viewBox="0 0 256 256" width="22" height="22"><circle cx="128" cy="128" r="128" fill="#E95420"/><g stroke="white" stroke-width="22" stroke-linecap="round" fill="none"><line x1="128" y1="128" x2="200" y2="88"/><line x1="128" y1="128" x2="200" y2="168"/><line x1="128" y1="128" x2="48" y2="128"/></g><g fill="white"><circle cx="128" cy="128" r="28"/><circle cx="200" cy="88" r="22"/><circle cx="200" cy="168" r="22"/><circle cx="48" cy="128" r="22"/></g></svg>',
+          icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2c-2.5 0-4 1.8-4 4 0 0.8 0.2 1.5 0.5 2C7 9 6 11 6 12.5c0 1.2 0.5 2.5 1.5 3.5L6.5 20c-0.2 0.5 0.2 1 0.7 1h1.5c0.3 0 0.6-0.2 0.7-0.5L10 19h4l0.6 1.5c0.1 0.3 0.4 0.5 0.7 0.5h1.5c0.5 0 0.9-0.5 0.7-1L16.5 16c1-1 1.5-2.3 1.5-3.5 0-1.5-1-3.5-2.5-4.5 0.3-0.5 0.5-1.2 0.5-2 0-2.2-1.5-4-4-4z"/></svg>',
         };
       }
 
@@ -461,11 +451,6 @@ const RELEASES_BASE = 'https://github.com/abhijathk/convertFlow/releases/latest/
     flex-shrink: 0;
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 8%, transparent);
-  }
-  .dl-icon.ubuntu {
-    color: inherit;
-    background: transparent;
-    padding: 2px;
   }
   .dl-body {
     display: flex;
