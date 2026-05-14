@@ -2,6 +2,10 @@
   import { convertState } from '../stores/convertState';
   import { convertPrepState } from '../stores/convertPrepState';
   import type { ImportTemplate } from '../lib/convert-import';
+  import PrepLockButton from './PrepLockButton.svelte';
+
+  let hasContent = $derived($convertState.lineCount > 0);
+  let prepLocked = $derived(hasContent && !$convertState.prepUnlocked);
 
   // ── Per-template configuration ────────────────────────────────────────────
 
@@ -217,12 +221,15 @@
             <button
               class="template-btn"
               class:active={template === id}
-              onclick={() => pickTemplate(id)}
-              title={templateDefs[id].description}
+              class:locked={prepLocked}
+              onclick={() => { if (!prepLocked) pickTemplate(id); }}
+              disabled={prepLocked}
+              title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : templateDefs[id].description}
             >{templateDefs[id].label}</button>
           {/each}
         </div>
         <span class="template-desc">{currentDef.description}</span>
+        <PrepLockButton />
       </div>
 
       <!-- Output preview -->
@@ -239,13 +246,14 @@
           <input
             type="text"
             class="prompt-input"
+            class:input-locked={prepLocked}
             value={systemPrompt}
             oninput={(e) => setSystemPrompt((e.target as HTMLInputElement).value)}
             placeholder={currentDef.defaultPrompt}
-            disabled={multiPromptEnabled}
-            title={multiPromptEnabled ? 'Disabled while multi-prompt is on' : undefined}
+            disabled={multiPromptEnabled || prepLocked}
+            title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : multiPromptEnabled ? 'Disabled while multi-prompt is on' : undefined}
           />
-          {#if userEditedPrompt && !multiPromptEnabled}
+          {#if userEditedPrompt && !multiPromptEnabled && !prepLocked}
             <button class="reset-btn" onclick={resetSystemPrompt} title="Reset to default">↺</button>
           {/if}
         </div>
@@ -255,10 +263,10 @@
             <span class="multi-prompt-summary" title="{multiPrompts.length} prompts · {multiPromptMode}{multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}">
               {multiPrompts.length}·{multiPromptMode === 'round-robin' ? 'RR' : `R${multiPromptSeed}`}
             </span>
-            <button type="button" class="advanced-btn" onclick={openEditDialog}>edit…</button>
-            <button type="button" class="advanced-btn off" onclick={disableMultiPrompt} title="Disable multi-prompt">×</button>
+            <button type="button" class="advanced-btn" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) openEditDialog(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}>edit…</button>
+            <button type="button" class="advanced-btn off" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) disableMultiPrompt(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Disable multi-prompt'}>×</button>
           {:else}
-            <button type="button" class="advanced-btn" onclick={openAdvancedWarning} title="Use multiple system prompts (advanced)">
+            <button type="button" class="advanced-btn" class:locked={prepLocked} disabled={prepLocked} onclick={() => { if (!prepLocked) openAdvancedWarning(); }} title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : 'Use multiple system prompts (advanced)'}>
               <span class="advanced-icon" aria-hidden="true">⚙</span>
               advanced
             </button>
@@ -274,9 +282,12 @@
               max="2048"
               step="64"
               value={chunkSize}
-              oninput={(e) => setChunkSize(Number((e.target as HTMLInputElement).value))}
+              oninput={(e) => { if (!prepLocked) setChunkSize(Number((e.target as HTMLInputElement).value)); }}
               class="slider"
+              class:input-locked={prepLocked}
+              disabled={prepLocked}
               aria-label="Chunk size in tokens"
+              title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}
             />
             <span class="chunk-val">{chunkSize}t</span>
           </div>
@@ -292,11 +303,15 @@
           max="2048"
           step="64"
           value={chunkSize}
-          oninput={(e) => setChunkSize(Number((e.target as HTMLInputElement).value))}
+          oninput={(e) => { if (!prepLocked) setChunkSize(Number((e.target as HTMLInputElement).value)); }}
           class="slider"
+          class:input-locked={prepLocked}
+          disabled={prepLocked}
           aria-label="Chunk size in tokens"
+          title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}
         />
         <span class="chunk-val">{chunkSize}t</span>
+        <PrepLockButton />
       </div>
     {/if}
 
@@ -492,8 +507,16 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  :global(.jsonl-prep-panel .template-btn:hover) { color: var(--ink); border-color: var(--ink-dim); }
+  :global(.jsonl-prep-panel .template-btn:hover:not(:disabled)) { color: var(--ink); border-color: var(--ink-dim); }
   :global(.jsonl-prep-panel .template-btn.active) { color: var(--accent); border-color: var(--accent); background: rgba(224, 168, 78, 0.07); }
+  :global(.jsonl-prep-panel .template-btn:disabled),
+  :global(.jsonl-prep-panel .template-btn.locked) {
+    opacity: 0.45;
+    color: var(--ink-dim);
+    background-color: color-mix(in srgb, var(--ink-dim) 8%, transparent);
+    cursor: not-allowed;
+    border-color: var(--border);
+  }
   :global(.jsonl-prep-panel .template-desc) { color: var(--ink-dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 
   /* Output preview */
@@ -527,6 +550,12 @@
   :global(.jsonl-prep-panel .prompt-input:focus) { border-color: var(--accent); }
   :global(.jsonl-prep-panel .prompt-input::placeholder) { color: var(--muted); font-style: italic; }
   :global(.jsonl-prep-panel .prompt-input:disabled) { opacity: 0.4; cursor: not-allowed; }
+  :global(.jsonl-prep-panel .prompt-input.input-locked:disabled) {
+    opacity: 0.45;
+    color: var(--ink-dim);
+    background-color: color-mix(in srgb, var(--ink-dim) 8%, transparent);
+    cursor: not-allowed;
+  }
 
   :global(.jsonl-prep-panel .reset-btn) {
     background: none;
@@ -582,6 +611,11 @@
     cursor: pointer;
   }
   :global(.jsonl-prep-panel .chunk-val) { color: var(--accent); font-weight: 500; min-width: 36px; flex-shrink: 0; }
+  :global(.jsonl-prep-panel .slider:disabled),
+  :global(.jsonl-prep-panel .slider.input-locked) {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
   /* Multi-prompt row */
   :global(.jsonl-prep-panel .advanced-row) {
@@ -613,9 +647,14 @@
     font-size: 11px;
     cursor: pointer;
   }
-  :global(.jsonl-prep-panel .advanced-btn:hover) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  :global(.jsonl-prep-panel .advanced-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
   :global(.jsonl-prep-panel .advanced-btn.off) { color: var(--ink-dim); border-color: var(--border); }
-  :global(.jsonl-prep-panel .advanced-btn.off:hover) { color: var(--ink); }
+  :global(.jsonl-prep-panel .advanced-btn.off:hover:not(:disabled)) { color: var(--ink); }
+  :global(.jsonl-prep-panel .advanced-btn:disabled),
+  :global(.jsonl-prep-panel .advanced-btn.locked) {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
   :global(.jsonl-prep-panel .advanced-icon) { margin-right: 4px; }
 
   /* ── Shared dialog styles (also used by ConvertImportPanel) ─────────────── */

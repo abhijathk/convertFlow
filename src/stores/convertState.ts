@@ -67,6 +67,10 @@ export interface ConvertState {
   // so wrapping the selects in {#key $convertState.presetSelectVersion}
   // forces a re-mount.
   presetSelectVersion: number;
+  // True once the user has explicitly confirmed they want to override the
+  // JSONL prep-settings lock (template, system prompt, chunk size, role
+  // mapping). Reset to false whenever the dataset is cleared.
+  prepUnlocked: boolean;
 }
 
 const STORAGE_KEY = 'dataprep:convert-state-v1';
@@ -85,6 +89,7 @@ function defaultState(): ConvertState {
     exportFormat: 'jsonl',
     presetUnlocked: false,
     presetSelectVersion: 0,
+    prepUnlocked: false,
     formatSettings: {
       jsonl:    { systemPrompt: '', roleUser: 'user', roleAssistant: 'assistant', filterIncomplete: false },
       json:     { indent: 2 },

@@ -61,6 +61,7 @@
   let hasContent = $derived($convertState.lineCount > 0);
   let isBinary = $derived(fmt === 'parquet');
   let presetLocked = $derived(hasContent && !$convertState.presetUnlocked);
+  let prepLocked = $derived(hasContent && !$convertState.prepUnlocked);
   let confirmingUnlock = $state(false);
   let autoLockSecondsLeft = $state(0);
 
@@ -400,35 +401,44 @@
   <span class="info-text dim">user →</span>
   <input
     class="role-input"
+    class:input-locked={prepLocked}
     type="text"
     value={settings.jsonl.roleUser}
     placeholder="user"
     aria-label="User role name"
+    disabled={prepLocked}
+    title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}
     oninput={e => updateSetting('jsonl', 'roleUser', e.currentTarget.value || 'user')}
   />
   <span class="info-sep">·</span>
   <span class="info-text dim">assistant →</span>
   <input
     class="role-input"
+    class:input-locked={prepLocked}
     type="text"
     value={settings.jsonl.roleAssistant}
     placeholder="assistant"
     aria-label="Assistant role name"
+    disabled={prepLocked}
+    title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}
     oninput={e => updateSetting('jsonl', 'roleAssistant', e.currentTarget.value || 'assistant')}
   />
   <span class="info-sep">·</span>
-  <label class="inline-toggle">
-    <input type="checkbox" checked={settings.jsonl.filterIncomplete} onchange={e => updateSetting('jsonl', 'filterIncomplete', e.currentTarget.checked)} />
+  <label class="inline-toggle" class:toggle-locked={prepLocked}>
+    <input type="checkbox" checked={settings.jsonl.filterIncomplete} disabled={prepLocked} onchange={e => updateSetting('jsonl', 'filterIncomplete', e.currentTarget.checked)} />
     <span>filter incomplete</span>
   </label>
   <span class="info-sep">·</span>
   <span class="info-text dim">sys:</span>
   <input
     class="sys-input"
+    class:input-locked={prepLocked}
     type="text"
     value={settings.jsonl.systemPrompt}
     placeholder="inject into examples without a system message"
     aria-label="Default system prompt"
+    disabled={prepLocked}
+    title={prepLocked ? 'Locked — click the lock icon to unlock prep settings' : undefined}
     oninput={e => updateSetting('jsonl', 'systemPrompt', e.currentTarget.value)}
   />
 </div>
@@ -825,6 +835,26 @@
   .role-input:focus { border-color: var(--accent); }
   .role-input::placeholder { color: var(--muted); }
 
+  /* Grayed-out locked state for text inputs — mirrors .setting-select.locked */
+  .role-input.input-locked,
+  .role-input:disabled,
+  .sys-input.input-locked,
+  .sys-input:disabled {
+    opacity: 0.45;
+    color: var(--ink-dim) !important;
+    background-color: color-mix(in srgb, var(--ink-dim) 8%, transparent) !important;
+    cursor: not-allowed;
+    border-color: var(--border);
+  }
+
+  .toggle-locked {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .toggle-locked input[type='checkbox'] {
+    cursor: not-allowed;
+  }
+
   .sys-input {
     flex: 1;
     min-width: 0;
@@ -838,6 +868,6 @@
     outline: none;
   }
 
-  .sys-input:focus { border-color: var(--accent); }
+  .sys-input:focus:not(:disabled) { border-color: var(--accent); }
   .sys-input::placeholder { color: var(--muted); font-style: italic; }
 </style>

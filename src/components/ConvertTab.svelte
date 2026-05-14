@@ -220,7 +220,7 @@
       showFile(next);
     } else {
       selectedDatasetFileId = undefined;
-      convertState.update(s => ({ ...s, editorDisplayOverride: null }));
+      convertState.update(s => ({ ...s, editorDisplayOverride: null, presetUnlocked: false, prepUnlocked: false }));
       suppressNextChange = true;
       editorRef?.setValue('');
       handleEditorChange('');
@@ -240,7 +240,7 @@
   }
 
   function confirmClearDataset() {
-    convertState.update(s => ({ ...s, datasetFiles: [], editorDisplayOverride: null, presetUnlocked: false }));
+    convertState.update(s => ({ ...s, datasetFiles: [], editorDisplayOverride: null, presetUnlocked: false, prepUnlocked: false }));
     selectedDatasetFileId = undefined;
     suppressNextChange = true;
     editorRef?.setValue('');
@@ -288,7 +288,7 @@
       showFile(next);
     } else {
       selectedDatasetFileId = undefined;
-      convertState.update(s => ({ ...s, editorDisplayOverride: null }));
+      convertState.update(s => ({ ...s, editorDisplayOverride: null, presetUnlocked: false, prepUnlocked: false }));
       suppressNextChange = true;
       editorRef?.setValue('');
       handleEditorChange('');
