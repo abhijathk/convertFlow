@@ -1,0 +1,132 @@
+---
+import DocLayout from '../layouts/DocLayout.astro';
+---
+
+<DocLayout
+  title="Support convertFlow"
+  description="convertFlow is free, runs in-browser, and never sells your data. If it's been useful, here are a few ways to keep it that way."
+  publishDate="2026-05-14"
+  readMinutes={2}
+  breadcrumb={[
+    { label: 'convertFlow', href: '/' },
+    { label: 'support' },
+  ]}
+  toc={[
+    { id: 'why',          label: 'Why support?' },
+    { id: 'buy-coffee',   label: 'Buy a coffee' },
+    { id: 'sponsor',      label: 'Sponsor a feature' },
+    { id: 'ads',          label: 'Advertise here' },
+    { id: 'free-options', label: 'Free ways to help' },
+  ]}
+>
+
+<h2 id="why">Why support?</h2>
+
+<p>
+  convertFlow is a one-person project. It runs entirely in your browser — no servers,
+  no accounts, no telemetry by default. That also means there's no upsell path,
+  no premium tier, no enterprise SaaS waiting in the wings to subsidize it.
+</p>
+
+<p>
+  Hosting is cheap (Cloudflare Pages) and the code is open. The expensive part is
+  the time it takes to keep the format presets, embedding prices, and provider
+  schemas current. Every dollar makes it easier to spend more of that time on the
+  tool and less on a day job.
+</p>
+
+<h2 id="buy-coffee">Buy a coffee</h2>
+
+<p>
+  Smallest, easiest way. One-off contribution, no recurring charge, no account
+  needed beyond a card.
+</p>
+
+<div class="cta-row">
+  <a class="cta-primary" href="https://buymeacoffee.com/convertflow" target="_blank" rel="noopener noreferrer">
+    ☕ Buy me a coffee →
+  </a>
+  <span class="cta-aside">$5 / $10 / custom</span>
+</div>
+
+<p>
+  If you used convertFlow to ship a fine-tune or build a RAG pipeline that's earning you
+  or your team money, this is the easiest "thanks" button on the internet.
+</p>
+
+<h2 id="sponsor">Sponsor a feature</h2>
+
+<p>
+  Need something specific? File-format support, a particular preset, a custom
+  validator, a private deployment? Sponsor a feature and it ships within 1–2 weeks
+  with your name in the release notes.
+</p>
+
+<p>
+  Email <a href="mailto:hello@convertflow.live">hello@convertflow.live</a> with what you need.
+  Typical sponsor rates: $200 small feature · $500 medium · $1,000+ provider integration / major UI.
+</p>
+
+<h2 id="ads">Advertise here</h2>
+
+<p>
+  The small sponsor slot at the bottom of the app is available for relevant
+  developer-tool / LLM-tooling / data-engineering products.
+</p>
+
+<ul>
+  <li><strong>Audience:</strong> developers preparing fine-tuning datasets and RAG pipelines (mostly North America + EU, mid-to-senior engineers).</li>
+  <li><strong>Placement:</strong> non-intrusive footer slot, visible across all tabs, dismissible by the user.</li>
+  <li><strong>Rate:</strong> $300 / month for the single slot (one sponsor at a time, no auctions, no tracking pixels).</li>
+</ul>
+
+<p>
+  Get in touch: <a href="mailto:hello@convertflow.live?subject=Sponsorship">hello@convertflow.live</a>
+</p>
+
+<h2 id="free-options">Free ways to help</h2>
+
+<ul>
+  <li>★ <strong>Star <a href="https://github.com/abhijathk/convertFlow" target="_blank" rel="noopener noreferrer">the GitHub repo</a></strong> — visibility is the cheapest thing you can give.</li>
+  <li>📝 <strong>Write about it</strong> — a blog post / tweet / r/LocalLLaMA mention all help discovery.</li>
+  <li>🐛 <strong>Report a bug</strong> — <a href="mailto:hello@convertflow.live?subject=Bug report">email a bug report</a> (or open a GitHub issue) with a sample dataset and we'll fix it fast.</li>
+  <li>💡 <strong>Suggest a preset or format</strong> — if your provider/model isn't in the list, tell us and we'll add it.</li>
+  <li>🔗 <strong>Link to it</strong> — from your team wiki, docs, or tutorial. Backlinks help search rank.</li>
+</ul>
+
+<p>
+  Thanks for reading. Hope convertFlow keeps being useful.
+</p>
+
+</DocLayout>
+
+<style>
+  .cta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0 24px;
+    flex-wrap: wrap;
+  }
+  .cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 22px;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 4px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 14px;
+    transition: opacity 0.1s;
+  }
+  .cta-primary:hover {
+    opacity: 0.9;
+    text-decoration: none;
+  }
+  .cta-aside {
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+</style>

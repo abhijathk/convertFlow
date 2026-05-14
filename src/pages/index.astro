@@ -172,6 +172,10 @@ import '../styles/globals.css';
     import { shellState, toggleTheme, openPalette, closePalette, setTab } from '../stores/shellState';
     import { decodeShareFragment } from '../lib/share-url';
     import { openFile } from '../stores/editorState';
+    import { wireDesktopExitConfirm } from '../lib/tauri-runtime';
+
+    // Wire Tauri-only behaviour (no-op in browser).
+    wireDesktopExitConfirm();
 
     // Sync tab panel visibility with active tab
     shellState.subscribe((state) => {

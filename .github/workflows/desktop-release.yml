@@ -1,0 +1,95 @@
+name: Desktop release
+
+# Builds signed installers for Windows, macOS, and Linux on every tag push.
+# Triggered by pushing a tag like v0.1.0:
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   For unsigned builds — none. Workflow will still produce installers,
+#   but users will see SmartScreen / Gatekeeper warnings.
+#
+#   For signed builds — set these once and the workflow signs automatically:
+#     TAURI_SIGNING_PRIVATE_KEY        — base64 of the Tauri updater key (run
+#                                        `npx tauri signer generate` once, then
+#                                        commit the public half to tauri.conf.json)
+#     TAURI_SIGNING_PRIVATE_KEY_PASSWORD — password for that key
+#     APPLE_ID                          — Apple ID email
+#     APPLE_PASSWORD                    — app-specific password
+#     APPLE_TEAM_ID                     — Apple Developer team ID
+#     APPLE_CERTIFICATE                 — base64 of the .p12 macOS cert
+#     APPLE_CERTIFICATE_PASSWORD        — password for the .p12
+#     WINDOWS_CERTIFICATE               — base64 of the .pfx Windows cert
+#     WINDOWS_CERTIFICATE_PASSWORD      — password for the .pfx
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "macos-latest"
+            args: "--target universal-apple-darwin"
+            label: "macos"
+          - platform: "ubuntu-22.04"
+            args: ""
+            label: "linux"
+          - platform: "windows-latest"
+            args: ""
+            label: "windows"
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "convertFlow ${{ github.ref_name }}"
+          releaseBody: "See the release notes on https://convertflow.live."
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

@@ -16,15 +16,15 @@
         <span class="support-title">Free, no signup, no tracking.</span>
         <span class="support-sub">If convertFlow saved you time, a coffee helps keep it that way.</span>
       </div>
-      <a class="support-cta" href="https://buymeacoffee.com/convertflow" target="_blank" rel="noopener noreferrer">
-        Buy me a coffee →
+      <a class="support-cta" href="/support" target="_blank" rel="noopener noreferrer">
+        Support →
       </a>
     </div>
     <div class="support-divider" aria-hidden="true"></div>
     <div class="support-section ad-slot" aria-label="Sponsored">
       <span class="ad-label" aria-hidden="true">sponsored</span>
       <span class="ad-placeholder">
-        Your ad here — write to <a href="mailto:hello@convertflow.live">hello@convertflow.live</a>
+        Your tool here — <a href="/support#ads">place an ad</a>
       </span>
     </div>
     <button class="support-dismiss" onclick={dismiss} title="Hide this panel (re-enable in Settings)" aria-label="Dismiss support panel">×</button>

@@ -1,0 +1,24 @@
+{
+  "version": "0.1.0",
+  "releaseDate": "2026-05-14",
+  "downloadUrl": "https://convertflow.live/download",
+  "notes": "Initial public release of convertFlow desktop app — wraps the in-browser dataset prep tool as a native installer for Windows, macOS, and Linux.",
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://convertflow.live/download/convertFlow_0.1.0_x64-setup.exe",
+      "signature": ""
+    },
+    "darwin-aarch64": {
+      "url": "https://convertflow.live/download/convertFlow_0.1.0_aarch64.dmg",
+      "signature": ""
+    },
+    "darwin-x86_64": {
+      "url": "https://convertflow.live/download/convertFlow_0.1.0_x64.dmg",
+      "signature": ""
+    },
+    "linux-x86_64": {
+      "url": "https://convertflow.live/download/convertflow_0.1.0_amd64.AppImage",
+      "signature": ""
+    }
+  }
+}
