@@ -193,17 +193,6 @@
     }));
   }
 
-  // ── Row 2 info content per format ─────────────────────────────────────────
-
-  // For JSONL: show preset note derived from preset data
-  let presetFormatNote = $derived(() => {
-    if (!preset) return '';
-    const fmt = preset.format;
-    if (fmt === 'chatml') return 'ChatML messages[]';
-    if (fmt === 'harmony') return 'Harmony messages[]';
-    if (fmt === 'alpaca') return 'Alpaca instruction/output';
-    return fmt;
-  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
@@ -303,8 +292,6 @@
         {/if}
       {/if}
     </div>
-    <span class="info-sep">·</span>
-    <span class="info-text">{presetFormatNote()}</span>
     {#if isStale}
       <span class="info-sep">·</span>
       <span class="warn" title="Pricing may have changed — verify before relying on cost estimates">⚠ verify</span>
