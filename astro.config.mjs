@@ -2,9 +2,14 @@
 import { defineConfig } from 'astro/config';
 import svelte from '@astrojs/svelte';
 import tailwindcss from '@tailwindcss/vite';
-import monacoEditorPluginRaw from 'vite-plugin-monaco-editor';
 
-const monacoEditorPlugin = /** @type {any} */ (monacoEditorPluginRaw).default ?? monacoEditorPluginRaw;
+// NOTE: vite-plugin-monaco-editor was removed. EditorTab.svelte already
+// loads Monaco's workers via Vite's native `?worker` import syntax
+// (search for "monaco-editor/esm/vs/.../worker?worker" in EditorTab),
+// which produces worker chunks at build time without needing the plugin.
+// The plugin also had a Windows path-joining bug that broke `tauri build`
+// on windows-latest (it would mkdir a path like
+// "D:\a\repo\repo\D:\a\repo\repo\dist\monacoeditorwork" and crash).
 
 export default defineConfig({
   site: 'https://convertflow.live',
@@ -13,9 +18,6 @@ export default defineConfig({
   vite: {
     plugins: [
       tailwindcss(),
-      monacoEditorPlugin({
-        languageWorkers: ['editorWorkerService', 'json'],
-      }),
     ],
     optimizeDeps: {
       exclude: ['pdfjs-dist', 'parquet-wasm'],
