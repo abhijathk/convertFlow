@@ -81,6 +81,51 @@
     ],
   };
 
+  // Template-aware warning copy for the multi-prompt advisory dialog.
+  // Each entry maps to its own headline + bullets so the alert reflects
+  // the user's actual task, not a generic one-size-fits-all.
+  interface AdvancedWarning {
+    title: string;
+    intro: string;
+    bullets: Array<{ kind: 'use' | 'avoid' | 'note'; text: string }>;
+  }
+  const TEMPLATE_WARNINGS: Record<ImportTemplate, AdvancedWarning> = {
+    'qa': {
+      title: 'Q&A skeleton — multi-prompt is usually not what you want',
+      intro:
+        'For a Q&A chatbot, the system prompt defines the assistant\'s persona and voice. ' +
+        'Rotating prompts here trains the model to be inconsistent across turns.',
+      bullets: [
+        { kind: 'avoid', text: 'Skip this for a single-persona chatbot or a focused Q&A model — vary the prompt and the model will learn to switch tone.' },
+        { kind: 'use',   text: 'Use it only if you intentionally want a model that follows several distinct personas or response styles.' },
+        { kind: 'note',  text: 'Common pattern: keep one prompt for one chatbot. Fine-tune separately if you need multiple personas.' },
+      ],
+    },
+    'context-answer': {
+      title: 'Context-answer — multi-prompt varies the wrapper, not the context',
+      intro:
+        'In RAG-style context-answer datasets, variety mostly comes from the retrieved chunk itself. ' +
+        'Multiple system prompts only vary the wrapper phrasing (e.g. "Answer based on:" vs "Use the context to answer:").',
+      bullets: [
+        { kind: 'use',   text: 'Helps if you want the model to be robust to different wrapper phrasings at inference time.' },
+        { kind: 'avoid', text: 'Skip it if you control the wrapper at inference — single-prompt matches the at-runtime template better.' },
+        { kind: 'note',  text: 'Context-answer datasets already have strong per-record variety via the context — extra prompt variety is optional polish.' },
+      ],
+    },
+    'instruct': {
+      title: 'Instruction — multi-prompt is a strong fit here',
+      intro:
+        'Instruction-tuning genuinely benefits from prompt variety. The system prompt acts as the instruction; ' +
+        'rotating it teaches the model to follow many phrasings of the same task.',
+      bullets: [
+        { kind: 'use',   text: 'Recommended for instruction-following / multi-task fine-tunes and for training prompt-phrasing robustness.' },
+        { kind: 'avoid', text: 'Avoid mixing fundamentally different tasks (e.g. "summarize" and "translate") in one run — the model will learn confusion.' },
+        { kind: 'note',  text: 'Best practice: keep all prompts on the same task, just phrased differently. Use separate datasets for different tasks.' },
+      ],
+    },
+  };
+  let activeWarning = $derived(TEMPLATE_WARNINGS[template]);
+
   // ── State ─────────────────────────────────────────────────────────────────
 
   let template: ImportTemplate = $state('qa');
@@ -486,15 +531,18 @@
 {#if confirmingAdvanced}
   <div class="advanced-overlay" role="dialog" aria-modal="true" aria-labelledby="adv-warn-title">
     <div class="advanced-box">
-      <p class="advanced-title" id="adv-warn-title">Advanced: multiple system prompts</p>
-      <p class="advanced-sub">
-        Multi-prompt mode rotates several system prompts across the generated records. It's useful for
-        a few specific situations — and the wrong choice for most fine-tunes.
-      </p>
+      <p class="advanced-title" id="adv-warn-title">{activeWarning.title}</p>
+      <p class="advanced-sub">{activeWarning.intro}</p>
       <ul class="advanced-sub-list">
-        <li><strong>Use it for:</strong> instruction-following / multi-task fine-tunes, prompt-phrasing robustness training, or RAG datasets where you want varied wrapping phrases.</li>
-        <li><strong>Don't use it for:</strong> single-task fine-tunes (chatbot persona, summariser, classifier). Vary the prompt and the model will learn to be inconsistent.</li>
-        <li>You can disable it again at any time without losing your single prompt.</li>
+        {#each activeWarning.bullets as b}
+          <li class="warn-bullet warn-{b.kind}">
+            {#if b.kind === 'use'}<strong>Use it:</strong>{/if}
+            {#if b.kind === 'avoid'}<strong>Avoid:</strong>{/if}
+            {#if b.kind === 'note'}<strong>Note:</strong>{/if}
+            {b.text}
+          </li>
+        {/each}
+        <li class="warn-bullet warn-meta">You can disable multi-prompt at any time without losing your single prompt.</li>
       </ul>
       <div class="advanced-actions">
         <button class="advanced-confirm-btn danger" onclick={acceptAdvancedWarning}>I understand — continue</button>
