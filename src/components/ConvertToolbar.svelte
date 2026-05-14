@@ -79,7 +79,15 @@
       autoLockSecondsLeft -= 1;
       if (autoLockSecondsLeft <= 0) {
         clearAutoLockTimer();
-        convertState.update(s => ({ ...s, presetUnlocked: false }));
+        // Auto-lock back to the model that generated the current output.
+        // Bumping presetSelectVersion forces the dropdown to repaint with
+        // convertState.presetId (the source of truth), discarding any
+        // in-flight selection the user made but didn't confirm.
+        convertState.update(s => ({
+          ...s,
+          presetUnlocked: false,
+          presetSelectVersion: s.presetSelectVersion + 1,
+        }));
       }
     }, 1000);
   }
@@ -240,32 +248,34 @@
   {#if fmt === 'jsonl'}
     <div class="info-left">
       <span class="dot" aria-hidden="true">●</span>
-      <select
-        class="setting-select preset-provider"
-        class:locked={presetLocked}
-        value={selectedProvider}
-        onchange={(e) => onProviderChange(e.currentTarget.value)}
-        aria-label="Select provider"
-        disabled={presetLocked}
-        title={presetLocked ? 'Locked — click the lock icon to unlock' : 'Select provider'}
-      >
-        {#each providers as provider (provider)}
-          <option value={provider}>{provider}</option>
-        {/each}
-      </select>
-      <select
-        class="setting-select preset-model"
-        class:locked={presetLocked}
-        value={$convertState.presetId}
-        onchange={(e) => selectPreset(e.currentTarget.value)}
-        aria-label="Select model"
-        disabled={presetLocked}
-        title={presetLocked ? 'Locked — click the lock icon to unlock' : 'Select model'}
-      >
-        {#each modelsForSelected as p (p.id)}
-          <option value={p.id}>{p.name} — ${p.pricing.trainingPerMTokens}/M train</option>
-        {/each}
-      </select>
+      {#key $convertState.presetSelectVersion}
+        <select
+          class="setting-select preset-provider"
+          class:locked={presetLocked}
+          value={selectedProvider}
+          onchange={(e) => onProviderChange(e.currentTarget.value)}
+          aria-label="Select provider"
+          disabled={presetLocked}
+          title={presetLocked ? 'Locked — click the lock icon to unlock' : 'Select provider'}
+        >
+          {#each providers as provider (provider)}
+            <option value={provider}>{provider}</option>
+          {/each}
+        </select>
+        <select
+          class="setting-select preset-model"
+          class:locked={presetLocked}
+          value={$convertState.presetId}
+          onchange={(e) => selectPreset(e.currentTarget.value)}
+          aria-label="Select model"
+          disabled={presetLocked}
+          title={presetLocked ? 'Locked — click the lock icon to unlock' : 'Select model'}
+        >
+          {#each modelsForSelected as p (p.id)}
+            <option value={p.id}>{p.name} — ${p.pricing.trainingPerMTokens}/M train</option>
+          {/each}
+        </select>
+      {/key}
       {#if hasContent}
         <button
           type="button"

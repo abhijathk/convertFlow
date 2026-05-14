@@ -353,6 +353,9 @@
   function cancelPresetSwitch() {
     pendingPreset = null;
     pendingPresetErrorDelta = 0;
+    // Force the toolbar select to re-paint with the (unchanged) store value
+    // so the dropdown visually reverts to the previous preset.
+    convertState.update(s => ({ ...s, presetSelectVersion: s.presetSelectVersion + 1 }));
   }
 
   function handleExactTokens() {

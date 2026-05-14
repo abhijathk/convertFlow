@@ -50,6 +50,12 @@ export interface ConvertState {
   // provider/model lock that engages after data is generated. Reset to false
   // whenever the dataset is cleared.
   presetUnlocked: boolean;
+  // Counter bumped whenever we need to force the toolbar select to re-paint
+  // with the store value (after cancel, auto-lock, etc). Svelte doesnt
+  // re-apply value={...} on a select when the prop didnt actually change,
+  // so wrapping the selects in {#key $convertState.presetSelectVersion}
+  // forces a re-mount.
+  presetSelectVersion: number;
 }
 
 const STORAGE_KEY = 'dataprep:convert-state-v1';
@@ -67,6 +73,7 @@ function defaultState(): ConvertState {
     lineCount: 0,
     exportFormat: 'jsonl',
     presetUnlocked: false,
+    presetSelectVersion: 0,
     formatSettings: {
       jsonl:    { systemPrompt: '', roleUser: 'user', roleAssistant: 'assistant', filterIncomplete: false },
       json:     { indent: 2 },
