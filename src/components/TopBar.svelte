@@ -1,17 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { toggleTheme, openPalette, closePalette, shellState, paletteQuery } from '../stores/shellState';
+  import { openPalette, closePalette, shellState, paletteQuery } from '../stores/shellState';
   import { shortcut } from '../lib/platform';
   import { getActiveFile } from '../stores/editorState';
   import { convertState } from '../stores/convertState';
   import { chunkState } from '../stores/chunkState';
   import { encodeConvertShare, encodeEditorShare, encodeChunkShare } from '../lib/share-url';
+  import { isDesktop } from '../lib/tauri-runtime';
 
   const TOUR_KEY = 'dataprep:tour-seen';
 
-  let kT = $state('⌘T');
+  const desktop = isDesktop();
+
   let kK = $state('⌘K');
-  $effect(() => { kT = shortcut('T'); kK = shortcut('K'); });
+  $effect(() => { kK = shortcut('K'); });
 
   let shareFeedback = $state('');
   let shareTimer: ReturnType<typeof setTimeout> | undefined;
@@ -25,6 +27,7 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key !== '?') return;
+    if (desktop) return; // no help page in desktop build
     const tag = (e.target as HTMLElement).tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
     e.preventDefault();
@@ -110,18 +113,16 @@
     >{shareFeedback ? shareFeedback : 'share'}</button>
     <span class="sep" aria-hidden="true">·</span>
     <button onclick={startTour} aria-label="Start guided tour">tour ?</button>
-    <span class="sep" aria-hidden="true">·</span>
-    <button onclick={() => toggleTheme()} aria-label="Toggle theme ({kT})">
-      theme <kbd>{kT}</kbd>
-    </button>
-    <span class="sep" aria-hidden="true">·</span>
-    <a href="/download" target="_blank" rel="noopener noreferrer" aria-label="Download desktop app for Windows / macOS / Linux" class="download-link">
-      ↓ download
-    </a>
-    <span class="sep" aria-hidden="true">·</span>
-    <a href="/help" target="_blank" rel="noopener noreferrer" aria-label="Help and documentation">
-      help <kbd>?</kbd>
-    </a>
+    {#if !desktop}
+      <span class="sep" aria-hidden="true">·</span>
+      <a href="/download" target="_blank" rel="noopener noreferrer" aria-label="Download desktop app for Windows / macOS / Linux" class="download-link">
+        ↓ download
+      </a>
+      <span class="sep" aria-hidden="true">·</span>
+      <a href="/help" target="_blank" rel="noopener noreferrer" aria-label="Help and documentation">
+        help <kbd>?</kbd>
+      </a>
+    {/if}
   </nav>
 </header>
 

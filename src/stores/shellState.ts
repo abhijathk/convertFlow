@@ -71,6 +71,10 @@ function applyTheme(theme: Theme) {
 
 function readSystemTheme(): Theme {
   if (typeof window === 'undefined' || !window.matchMedia) return 'dark';
+  // In the Tauri webview, prefers-color-scheme is unreliable across platforms
+  // (webkit2gtk on Linux always returns false; macOS WKWebView is inconsistent).
+  // Default to dark (the app's design base) when running as a desktop app.
+  if ('__TAURI_INTERNALS__' in window) return 'dark';
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 

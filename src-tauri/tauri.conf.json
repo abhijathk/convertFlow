@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data: https://huggingface.co https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob:"
+      "csp": "default-src 'self' tauri://localhost ipc://localhost; script-src 'self' tauri://localhost ipc://localhost 'unsafe-inline' 'unsafe-eval' blob: https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' tauri://localhost ipc://localhost blob: data: https://huggingface.co https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com https://convertflow.live; worker-src 'self' tauri://localhost blob:"
     }
   },
   "bundle": {

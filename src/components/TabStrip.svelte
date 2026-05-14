@@ -23,6 +23,16 @@
   // ── Desktop detection ─────────────────────────────────────────────────────
   let isDesktop = $derived(typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window);
 
+  // ── External link helper (works in Tauri webview) ─────────────────────────
+  async function openExternal(url: string) {
+    if (isDesktop) {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      await openUrl(url);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   // ── About / update check ──────────────────────────────────────────────────
   const APP_VERSION = '0.1.0'; // keep in sync with src-tauri/tauri.conf.json and package.json
   let updateStatus = $state<'idle' | 'checking' | 'uptodate' | 'available' | 'error'>('idle');
@@ -389,6 +399,19 @@
             <a class="about-link" href="https://convertflow.live/about" target="_blank" rel="noopener noreferrer">about</a>
           </div>
         </div>
+
+        <div class="settings-section">
+          <span class="settings-label">support</span>
+          <div class="setting-row">
+            <span>Buy me a coffee</span>
+            <button class="settings-action" onclick={() => openExternal('https://buymeacoffee.com/abhijathkat')}>Buy Me a Coffee ↗</button>
+          </div>
+          <div class="setting-row stacked">
+            <a class="about-link" href="mailto:support@quakkainfo.com?subject=Sponsor a feature">Sponsor a feature →</a>
+            <a class="about-link" href="mailto:support@quakkainfo.com?subject=Bug report">Report a bug →</a>
+            <button class="about-link-btn" onclick={() => openExternal('https://convertflow.live/support')}>Visit support page →</button>
+          </div>
+        </div>
       </div>
     {/if}
 
@@ -727,5 +750,17 @@
     padding: 2px 0;
   }
   .about-link:hover { color: var(--accent); }
+  .about-link-btn {
+    background: none;
+    border: none;
+    padding: 2px 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-align: left;
+    text-decoration: none;
+  }
+  .about-link-btn:hover { color: var(--accent); }
   .settings-action:disabled { opacity: 0.5; cursor: wait; }
 </style>

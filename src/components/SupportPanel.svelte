@@ -1,11 +1,26 @@
 <script lang="ts">
   import { appSettings } from '../stores/appSettings';
+  import { isDesktop } from '../lib/tauri-runtime';
 
   let visible = $derived($appSettings.showSupportPanel);
 
   function dismiss() {
     appSettings.update(s => ({ ...s, showSupportPanel: false }));
   }
+
+  const desktop = isDesktop();
+
+  async function openExternal(url: string) {
+    if (desktop) {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      await openUrl(url);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  const supportUrl = desktop ? 'https://convertflow.live/support' : '/support';
+  const adsUrl = desktop ? 'https://convertflow.live/support#ads' : '/support#ads';
 </script>
 
 {#if visible}
@@ -22,15 +37,15 @@
         <span class="support-title">Free, no signup, no tracking.</span>
         <span class="support-sub">If convertFlow saved you time, a coffee helps keep it that way.</span>
       </div>
-      <a class="support-cta" href="/support" target="_blank" rel="noopener noreferrer">
+      <button class="support-cta" onclick={() => openExternal(supportUrl)}>
         Support →
-      </a>
+      </button>
     </div>
     <div class="support-divider" aria-hidden="true"></div>
     <div class="support-section ad-slot" aria-label="Sponsored">
       <span class="ad-label" aria-hidden="true">sponsored</span>
       <span class="ad-placeholder">
-        Your tool here — <a href="/support#ads">place an ad</a>
+        Your tool here — <button class="ad-link-btn" onclick={() => openExternal(adsUrl)}>place an ad</button>
       </span>
     </div>
     <button class="support-dismiss" onclick={dismiss} title="Hide this panel (re-enable in Settings)" aria-label="Dismiss support panel">×</button>
@@ -67,10 +82,14 @@
     flex-shrink: 0;
     color: var(--accent);
     text-decoration: none;
+    background: none;
     border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
     border-radius: 3px;
     padding: 4px 10px;
     font-weight: 500;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
     transition: background 0.1s;
   }
   .support-cta:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
@@ -100,6 +119,17 @@
   }
   .ad-placeholder a { color: var(--accent); text-decoration: none; }
   .ad-placeholder a:hover { text-decoration: underline; }
+  .ad-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: inherit;
+    text-decoration: none;
+  }
+  .ad-link-btn:hover { text-decoration: underline; }
 
   .support-dismiss {
     background: none;
