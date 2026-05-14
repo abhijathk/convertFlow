@@ -47,6 +47,50 @@ shellState.subscribe(s => {
   try { localStorage.setItem(TAB_KEY, s.activeTab); } catch { /* ignore */ }
 });
 
+// ── System theme detection ────────────────────────────────────────────────
+// When appSettings.themeMode === 'auto', the global theme follows the OS
+// preference via (prefers-color-scheme: dark). We listen once at module
+// load and update <html data-theme> + shellState.theme whenever the OS
+// flips and the user is on 'auto'.
+
+function applyTheme(theme: Theme) {
+  shellState.update(s => (s.theme === theme ? s : { ...s, theme }));
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+  // Keep Monaco syntax theme in sync
+  if (typeof window !== 'undefined') {
+    const currentSyntax = get(appSettings).syntaxTheme;
+    if (theme === 'light' && currentSyntax === 'dataprep-dark') {
+      setSyntaxTheme('dataprep-light');
+    } else if (theme === 'dark' && currentSyntax === 'dataprep-light') {
+      setSyntaxTheme('dataprep-dark');
+    }
+  }
+}
+
+function readSystemTheme(): Theme {
+  if (typeof window === 'undefined' || !window.matchMedia) return 'dark';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+if (typeof window !== 'undefined' && window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = (e: MediaQueryListEvent) => {
+    if (get(appSettings).themeMode === 'auto') {
+      applyTheme(e.matches ? 'dark' : 'light');
+    }
+  };
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else if (mq.addListener) mq.addListener(onChange);
+}
+
+// Apply the right theme on every appSettings.themeMode change.
+appSettings.subscribe(s => {
+  if (s.themeMode === 'auto') applyTheme(readSystemTheme());
+  else applyTheme(s.themeMode);
+});
+
 export function sendToChunk(content: string) {
   shellState.update(s => ({ ...s, pendingChunkSource: content, activeTab: 'chunk' }));
 }
@@ -78,20 +122,20 @@ export function setTab(tab: Tab) {
 }
 
 export function toggleTheme() {
-  shellState.update(s => {
-    const next: Theme = s.theme === 'dark' ? 'light' : 'dark';
-    if (typeof localStorage !== 'undefined') localStorage.setItem(THEME_KEY, next);
-    document.documentElement.setAttribute('data-theme', next);
-    // Keep the Monaco syntax theme in sync with the global theme so the
-    // editor panels (left source pane + right preview pane) match the page.
-    const currentSyntax = get(appSettings).syntaxTheme;
-    if (next === 'light' && currentSyntax === 'dataprep-dark') {
-      setSyntaxTheme('dataprep-light');
-    } else if (next === 'dark' && currentSyntax === 'dataprep-light') {
-      setSyntaxTheme('dataprep-dark');
-    }
-    return { ...s, theme: next };
-  });
+  // Toggle now flips the user's preference — moves between light/dark.
+  // If they were on 'auto', switch to the OPPOSITE of the currently
+  // applied OS theme so the click feels responsive.
+  const settings = get(appSettings);
+  const current = settings.themeMode === 'auto' ? readSystemTheme() : settings.themeMode;
+  const next: Theme = current === 'dark' ? 'light' : 'dark';
+  appSettings.update(s => ({ ...s, themeMode: next }));
+  if (typeof localStorage !== 'undefined') localStorage.setItem(THEME_KEY, next);
+  // applyTheme is called by the appSettings subscriber, so no direct call here.
+}
+
+// Re-apply the user's preference after rehydration in TopBar etc.
+export function setThemeMode(mode: 'auto' | 'light' | 'dark') {
+  appSettings.update(s => ({ ...s, themeMode: mode }));
 }
 
 import { writable as _writable } from 'svelte/store';

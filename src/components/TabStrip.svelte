@@ -20,6 +20,28 @@
   let settingsOpen = $state(false);
   let confirmingClear = $state(false);
 
+  // ── Desktop detection ─────────────────────────────────────────────────────
+  let isDesktop = $derived(typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window);
+
+  // ── About / update check ──────────────────────────────────────────────────
+  const APP_VERSION = '0.1.0'; // keep in sync with src-tauri/tauri.conf.json and package.json
+  let updateStatus = $state<'idle' | 'checking' | 'uptodate' | 'available' | 'error'>('idle');
+  let latestVersion = $state<string | null>(null);
+
+  async function checkForUpdates() {
+    updateStatus = 'checking';
+    latestVersion = null;
+    try {
+      const res = await fetch('https://convertflow.live/latest.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json() as { version: string };
+      latestVersion = data.version;
+      updateStatus = data.version === APP_VERSION ? 'uptodate' : 'available';
+    } catch {
+      updateStatus = 'error';
+    }
+  }
+
   function confirmClearAll() {
     clearAllStoredData();
     confirmingClear = false;
@@ -149,6 +171,27 @@
     {#if settingsOpen}
       <div class="settings-popover" role="dialog" aria-label="Settings">
         <div class="settings-section">
+          <span class="settings-label">appearance</span>
+          <div class="setting-row">
+            <span>Theme</span>
+            <div class="theme-mode-group">
+              {#each (['auto','light','dark'] as const) as mode}
+                <button
+                  class="theme-mode-btn"
+                  class:active={$appSettings.themeMode === mode}
+                  onclick={() => updateAppSetting('themeMode', mode)}
+                  title={mode === 'auto' ? 'Follow OS preference' : `Force ${mode} mode`}
+                >{mode}</button>
+              {/each}
+            </div>
+          </div>
+          <label class="setting-row">
+            <span>Show support panel</span>
+            <input type="checkbox" checked={$appSettings.showSupportPanel} onchange={(e) => updateAppSetting('showSupportPanel', e.currentTarget.checked)} />
+          </label>
+        </div>
+
+        <div class="settings-section">
           <span class="settings-label">syntax theme</span>
           <div class="theme-list">
             {#each visibleThemes as t (t.id)}
@@ -244,6 +287,32 @@
           </label>
         </div>
 
+        {#if isDesktop}
+          <div class="settings-section">
+            <span class="settings-label">desktop</span>
+            <label class="setting-row">
+              <span>Start minimized</span>
+              <input type="checkbox" checked={$appSettings.desktopStartMinimized} onchange={(e) => updateAppSetting('desktopStartMinimized', e.currentTarget.checked)} />
+            </label>
+            <label class="setting-row">
+              <span>Minimize to system tray</span>
+              <input type="checkbox" checked={$appSettings.desktopMinimizeToTray} onchange={(e) => updateAppSetting('desktopMinimizeToTray', e.currentTarget.checked)} />
+            </label>
+            <label class="setting-row">
+              <span>Remember window size</span>
+              <input type="checkbox" checked={$appSettings.desktopRememberWindowSize} onchange={(e) => updateAppSetting('desktopRememberWindowSize', e.currentTarget.checked)} />
+            </label>
+            <label class="setting-row">
+              <span>Auto-check for updates</span>
+              <input type="checkbox" checked={$appSettings.desktopAutoUpdate} onchange={(e) => updateAppSetting('desktopAutoUpdate', e.currentTarget.checked)} />
+            </label>
+            <label class="setting-row">
+              <span>Confirm before exit</span>
+              <input type="checkbox" checked={$appSettings.desktopConfirmExit} onchange={(e) => updateAppSetting('desktopConfirmExit', e.currentTarget.checked)} />
+            </label>
+          </div>
+        {/if}
+
         <div class="settings-section">
           <span class="settings-label">advanced</span>
           <label class="setting-row">
@@ -288,6 +357,37 @@
           </label>
           <button class="settings-action" onclick={() => { clearHfHubToken(); settingsOpen = false; }}>Clear HF Hub token</button>
           <button class="settings-action danger" onclick={() => (confirmingClear = true)}>Clear all stored data…</button>
+        </div>
+
+        <div class="settings-section">
+          <span class="settings-label">about</span>
+          <div class="setting-row">
+            <span>Version</span>
+            <span class="version-label">v{APP_VERSION}</span>
+          </div>
+          <div class="setting-row">
+            <span>Check for updates</span>
+            <button class="settings-action" onclick={checkForUpdates} disabled={updateStatus === 'checking'}>
+              {#if updateStatus === 'checking'}checking…
+              {:else if updateStatus === 'uptodate'}✓ up to date
+              {:else if updateStatus === 'available'}↑ v{latestVersion} available
+              {:else if updateStatus === 'error'}× check failed
+              {:else}check now
+              {/if}
+            </button>
+          </div>
+          {#if updateStatus === 'available' && latestVersion}
+            <div class="setting-row stacked">
+              <a class="update-link" href="https://convertflow.live#download" target="_blank" rel="noopener noreferrer">
+                Download v{latestVersion} →
+              </a>
+            </div>
+          {/if}
+          <div class="setting-row stacked">
+            <a class="about-link" href="https://convertflow.live" target="_blank" rel="noopener noreferrer">convertflow.live</a>
+            <a class="about-link" href="https://convertflow.live/help" target="_blank" rel="noopener noreferrer">documentation</a>
+            <a class="about-link" href="https://convertflow.live/about" target="_blank" rel="noopener noreferrer">about</a>
+          </div>
         </div>
       </div>
     {/if}
@@ -584,4 +684,48 @@
     border-radius: 50%;
     flex-shrink: 0;
   }
+
+  /* ── Appearance: theme mode button group ──────────────────────────────── */
+  .theme-mode-group {
+    display: inline-flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .theme-mode-btn {
+    background: none;
+    border: none;
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-dim);
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+    text-transform: lowercase;
+  }
+  .theme-mode-btn:last-child { border-right: none; }
+  .theme-mode-btn:hover { color: var(--ink); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .theme-mode-btn.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 500; }
+
+  /* ── About section ────────────────────────────────────────────────────── */
+  .version-label {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    color: var(--ink-dim);
+    font-size: 11px;
+  }
+  .update-link {
+    font-size: 12px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .update-link:hover { text-decoration: underline; }
+  .about-link {
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 2px 0;
+  }
+  .about-link:hover { color: var(--accent); }
+  .settings-action:disabled { opacity: 0.5; cursor: wait; }
 </style>

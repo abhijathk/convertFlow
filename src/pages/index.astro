@@ -2,6 +2,7 @@
 import TopBar from '../components/TopBar.svelte';
 import TabStrip from '../components/TabStrip.svelte';
 import StatusBar from '../components/StatusBar.svelte';
+import SupportPanel from '../components/SupportPanel.svelte';
 import CommandPalette from '../components/CommandPalette.svelte';
 import ConvertTab from '../components/ConvertTab.svelte';
 import ChunkTab from '../components/ChunkTab.svelte';
@@ -162,6 +163,7 @@ import '../styles/globals.css';
       <UtilitiesTab client:load />
     </div>
 
+    <SupportPanel client:load />
     <StatusBar client:load />
     <CommandPalette client:load />
   </div>

@@ -33,6 +33,24 @@ export interface AppSettings {
   // Chunk tab — toggle defaults.
   chunkEnableImagesDefault: boolean;
   chunkEnableOcrDefault: boolean;
+
+  // Theme mode: 'auto' follows OS dark/light preference via the
+  // (prefers-color-scheme: dark) media query. 'light' and 'dark' force the
+  // global theme regardless of OS setting.
+  themeMode: 'auto' | 'light' | 'dark';
+
+  // Desktop-only settings (read by Tauri build only — no-op in browser).
+  // Persisted here so the same Settings popover renders them in both
+  // contexts; the desktop build can short-circuit unused ones to defaults.
+  desktopStartMinimized: boolean;
+  desktopMinimizeToTray: boolean;
+  desktopRememberWindowSize: boolean;
+  desktopAutoUpdate: boolean;
+  desktopConfirmExit: boolean;
+
+  // Support / ad slot — users can dismiss the in-app support card. When
+  // false, the card is hidden across sessions.
+  showSupportPanel: boolean;
 }
 
 const defaults: AppSettings = {
@@ -52,6 +70,13 @@ const defaults: AppSettings = {
   defaultMultiPromptMode: 'round-robin',
   chunkEnableImagesDefault: false,
   chunkEnableOcrDefault: false,
+  themeMode: 'auto',
+  desktopStartMinimized: false,
+  desktopMinimizeToTray: false,
+  desktopRememberWindowSize: true,
+  desktopAutoUpdate: true,
+  desktopConfirmExit: false,
+  showSupportPanel: true,
 };
 
 function loadSettings(): AppSettings {
