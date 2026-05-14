@@ -246,12 +246,10 @@
       </div>
 
       <!-- Role Frequency -->
-      {@const roleSt = roleStatus(s)}
-      {@const roleReason = roleStatusReason(s)}
       <div class="card">
         <div class="card-header">
           <span class="card-label">Role Frequency</span>
-          <span class="dot dot-{roleSt}" aria-label="Status: {roleSt}"></span>
+          <span class="dot dot-{roleStatus(s)}" aria-label="Status: {roleStatus(s)}"></span>
         </div>
         {#if s.roles.total > 0}
           <div class="card-big">{Object.keys(s.roles.counts).length}<span class="big-suffix">roles</span></div>
@@ -263,8 +261,8 @@
                 <span class="role-count dim">({count})</span>
               </div>
             {/each}
-            {#if roleReason}
-              <span class="flag-{roleSt}">{roleReason}</span>
+            {#if roleStatusReason(s)}
+              <span class="flag-{roleStatus(s)}">{roleStatusReason(s)}</span>
             {/if}
           </div>
         {:else}
