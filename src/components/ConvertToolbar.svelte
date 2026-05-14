@@ -407,11 +407,12 @@
     <div class="unlock-box">
       <p class="unlock-title" id="unlock-dialog-title">Unlock provider and model?</p>
       <p class="unlock-sub">
-        Switching the provider or model after data is generated will re-run validation against the new
-        rules — some records may become invalid and the output may need regeneration. Continue?
+        Switching the provider or model will <strong>regenerate the output</strong> against the new
+        preset's rules. Existing records will be re-validated and re-formatted; some may become
+        invalid in the process. This cannot be undone automatically.
       </p>
       <div class="unlock-actions">
-        <button class="unlock-btn unlock-danger" onclick={confirmUnlock}>unlock</button>
+        <button class="unlock-btn unlock-danger" onclick={confirmUnlock}>unlock &amp; regenerate</button>
         <button class="unlock-btn" onclick={cancelUnlock}>cancel</button>
       </div>
     </div>
@@ -538,25 +539,26 @@
     cursor: help;
   }
 
-  /* Lock toggle button — same SVG icon set as the Editor tab read-only btn.
-     Red when locked, green when unlocked. Icon-only, no text. */
+  /* Lock toggle button — identical styling to the Editor tab read-only btn.
+     Icon-only, no border, no background. Red when locked, green when
+     unlocked, with a tinted background only on hover. */
   .lock-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: none;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 2px 5px;
+    border: none;
+    border-radius: 2px;
+    padding: 3px 6px;
     cursor: pointer;
     margin-left: 4px;
-    transition: background 0.1s, border-color 0.1s;
+    transition: background 0.1s;
   }
   .lock-btn svg { flex-shrink: 0; }
-  .lock-btn.locked { color: var(--err); border-color: color-mix(in srgb, var(--err) 35%, transparent); }
-  .lock-btn.locked:hover { background: color-mix(in srgb, var(--err) 12%, transparent); border-color: var(--err); }
-  .lock-btn.unlocked { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
-  .lock-btn.unlocked:hover { background: color-mix(in srgb, var(--ok) 12%, transparent); border-color: var(--ok); }
+  .lock-btn.locked { color: var(--err); }
+  .lock-btn.locked:hover { background: color-mix(in srgb, var(--err) 12%, transparent); }
+  .lock-btn.unlocked { color: var(--ok); }
+  .lock-btn.unlocked:hover { background: color-mix(in srgb, var(--ok) 12%, transparent); }
 
   /* Disabled select while locked — clearly grayed out so the user sees it
      can't be edited until the lock is released. */
