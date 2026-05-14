@@ -4,7 +4,7 @@
 
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { editorState, hydrateEditorState, openFile, closeFile, selectFile, updateFileContent, toggleSplitPane, setSplitPaneFormat, toggleSplitPaneOrientation, toggleBottomPanel, setBottomPanelTab, splitPaneInitialPreview, pendingJump, setFileReadOnly, editorSelection } from '../stores/editorState';
+  import { editorState, hydrateEditorState, openFile, closeFile, selectFile, updateFileContent, toggleSplitPane, setSplitPaneFormat, toggleBottomPanel, setBottomPanelTab, splitPaneInitialPreview, pendingJump, setFileReadOnly, editorSelection } from '../stores/editorState';
   import { get } from 'svelte/store';
   import { registerThemes } from '../lib/monaco-theme';
   import { appSettings } from '../stores/appSettings';
@@ -947,9 +947,6 @@
         {#if $editorState.splitPaneFormat !== 'csv'}
           <button class="tb-btn" class:active={diffMode} onclick={() => (diffMode = !diffMode)} title="Toggle diff view">diff {diffMode ? '✓' : ''}</button>
         {/if}
-        <button class="tb-btn" onclick={toggleSplitPaneOrientation} title="Toggle orientation">
-          {$editorState.splitPaneOrientation === 'vertical' ? '⫼' : '⬓'}
-        </button>
       {/if}
       <!-- Token gutter toggle (Task 4) -->
       {#if activeFileExt === 'jsonl'}
