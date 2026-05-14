@@ -1,17 +1,20 @@
 <script lang="ts">
   import { chunkState } from '../stores/chunkState';
   import { computeChunkStats, type ChunkStats } from '../lib/chunk-stats';
+  import { generateChunkSummary, type ChunkSummary } from '../lib/chunk-summary';
 
   let stats = $state<ChunkStats | null>(null);
+  let summary = $state<ChunkSummary | null>(null);
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
     const chunks = $chunkState.chunks;
     const sourceText = $chunkState.sourceText;
     if (debounceTimer) clearTimeout(debounceTimer);
-    if (chunks.length === 0) { stats = null; return; }
+    if (chunks.length === 0) { stats = null; summary = null; return; }
     debounceTimer = setTimeout(() => {
       stats = computeChunkStats(chunks, sourceText);
+      summary = generateChunkSummary(stats);
     }, 200);
     return () => { if (debounceTimer) clearTimeout(debounceTimer); };
   });
@@ -63,6 +66,23 @@
     </div>
   {:else}
     {@const s = stats}
+    {#if summary}
+      <div class="summary-card summary-{summary.status}" role="region" aria-label="Chunk summary">
+        <div class="summary-header">
+          <span class="summary-icon" aria-hidden="true">
+            {summary.status === 'err' ? '⚠' : summary.status === 'warn' ? '◯' : '✓'}
+          </span>
+          <span class="summary-tldr">{summary.tldr}</span>
+        </div>
+        {#if summary.bullets.length > 0}
+          <ul class="summary-bullets">
+            {#each summary.bullets as b}
+              <li class="summary-bullet bullet-{b.status}">{b.text}</li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    {/if}
     <div class="stats-grid">
 
       <!-- Overview -->
@@ -300,6 +320,66 @@
   .flag-warn { color: var(--warn); }
   .ok-text   { color: var(--ok); }
   .dim       { color: var(--muted); }
+
+  /* Summary card */
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .summary-ok   { border-left-color: var(--ok); }
+  .summary-warn { border-left-color: var(--warn); }
+  .summary-err  { border-left-color: var(--err); }
+
+  .summary-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .summary-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .summary-ok  .summary-icon { color: var(--ok); }
+  .summary-warn .summary-icon { color: var(--warn); }
+  .summary-err  .summary-icon { color: var(--err); }
+  .summary-tldr {
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .summary-bullets {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .summary-bullet {
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+    padding-left: 14px;
+    position: relative;
+  }
+  .summary-bullet::before {
+    content: '•';
+    position: absolute;
+    left: 4px;
+    color: var(--muted);
+  }
+  .bullet-err::before  { color: var(--err); }
+  .bullet-warn::before { color: var(--warn); }
+  .bullet-ok::before   { color: var(--ok); }
 
   /* Responsive: 2-col on medium, 1-col on mobile */
   @media (max-width: 960px) {
