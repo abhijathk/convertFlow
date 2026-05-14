@@ -74,11 +74,37 @@
 
   function roleStatus(s: DatasetStats): Status {
     if (s.roles.total === 0) return 'ok';
-    if (!s.roles.hasSystem) return 'warn';
     const userCount = s.roles.counts['user'] ?? 0;
     const assistantCount = s.roles.counts['assistant'] ?? 0;
-    if (assistantCount > userCount * 1.5) return 'warn';
+    // Red: dataset is clearly broken — no system turns at all, OR assistant
+    // count is more than 3× user count (model has way more to say than the
+    // human prompts it).
+    if (!s.roles.hasSystem) return 'err';
+    if (userCount > 0 && assistantCount > userCount * 3) return 'err';
+    // Amber: any role takes more than 70% of all turns, or any role drops
+    // below 5% — distribution is skewed enough to flag.
+    for (const count of Object.values(s.roles.counts)) {
+      const pct = count / s.roles.total;
+      if (pct > 0.70 || pct < 0.05) return 'warn';
+    }
+    // Amber: mild assistant-heavy imbalance (1.5×-3× user).
+    if (userCount > 0 && assistantCount > userCount * 1.5) return 'warn';
     return 'ok';
+  }
+
+  function roleStatusReason(s: DatasetStats): string {
+    if (s.roles.total === 0) return '';
+    const userCount = s.roles.counts['user'] ?? 0;
+    const assistantCount = s.roles.counts['assistant'] ?? 0;
+    if (!s.roles.hasSystem) return 'no system turns';
+    if (userCount > 0 && assistantCount > userCount * 3) return `assistant ${(assistantCount / userCount).toFixed(1)}× user`;
+    for (const [role, count] of Object.entries(s.roles.counts)) {
+      const pct = count / s.roles.total;
+      if (pct > 0.70) return `${role} ${(pct * 100).toFixed(0)}% (skewed)`;
+      if (pct < 0.05) return `${role} only ${(pct * 100).toFixed(1)}%`;
+    }
+    if (userCount > 0 && assistantCount > userCount * 1.5) return `assistant ${(assistantCount / userCount).toFixed(1)}× user`;
+    return 'balanced';
   }
 
   function contentStatus(s: DatasetStats): Status {
@@ -220,10 +246,12 @@
       </div>
 
       <!-- Role Frequency -->
+      {@const roleSt = roleStatus(s)}
+      {@const roleReason = roleStatusReason(s)}
       <div class="card">
         <div class="card-header">
           <span class="card-label">Role Frequency</span>
-          <span class="dot dot-{roleStatus(s)}" aria-label="Status: {roleStatus(s)}"></span>
+          <span class="dot dot-{roleSt}" aria-label="Status: {roleSt}"></span>
         </div>
         {#if s.roles.total > 0}
           <div class="card-big">{Object.keys(s.roles.counts).length}<span class="big-suffix">roles</span></div>
@@ -235,8 +263,8 @@
                 <span class="role-count dim">({count})</span>
               </div>
             {/each}
-            {#if !s.roles.hasSystem}
-              <span class="flag-warn">no system turns</span>
+            {#if roleReason}
+              <span class="flag-{roleSt}">{roleReason}</span>
             {/if}
           </div>
         {:else}
@@ -383,6 +411,7 @@
 
   .flag-err  { color: var(--err); }
   .flag-warn { color: var(--warn); }
+  .flag-ok   { color: var(--ok); }
   .ok-text   { color: var(--ok); }
   .dim       { color: var(--muted); }
 
