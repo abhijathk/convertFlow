@@ -9,6 +9,7 @@
   import ConvertToolbar from './ConvertToolbar.svelte';
   import ConvertProblemsPanel from './ConvertProblemsPanel.svelte';
   import ConvertImportPanel from './ConvertImportPanel.svelte';
+  import ConvertJsonlPrep from './ConvertJsonlPrep.svelte';
   import ConvertDatasetPanel from './ConvertDatasetPanel.svelte';
   import ChunkTrustStrip from './ChunkTrustStrip.svelte';
   import HfHubPushDialog from './HfHubPushDialog.svelte';
@@ -818,6 +819,8 @@
   onstatstoggle={() => convertStatsOpen.update(v => !v)}
   statsOpen={statsOpen}
 />
+
+<ConvertJsonlPrep />
 
 {#if showImportPanel}
   <ConvertImportPanel

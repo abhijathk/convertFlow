@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { fileToConversationalJsonl, fileToConversationalJsonlMulti } from '../lib/convert-import';
   import { chunkText } from '../lib/chunk';
   import type { ImportTemplate } from '../lib/convert-import';
   import type { ExportFormat } from '../stores/convertState';
   import { extractPdfText, extractPdfTextWithOcr } from '../lib/pdf-loader';
+  import { convertPrepState } from '../stores/convertPrepState';
   import ChunkLoader from './ChunkLoader.svelte';
 
   interface Props {
@@ -27,206 +29,56 @@
 
   // ── Per-format configuration ──────────────────────────────────────────────
 
-  const formatInfo: Record<ExportFormat, { title: string; description: string; showTemplates: boolean; showChunkSize: boolean; datasetFormat: boolean }> = {
-    jsonl:    { title: 'Generate conversational JSONL',  description: 'Chunk document → wrap each chunk as a conversation example ready for fine-tuning.',  showTemplates: true,  showChunkSize: true,  datasetFormat: true  },
-    json:     { title: 'Convert document to JSON',       description: 'Full document → JSON array of paragraphs.',                                           showTemplates: false, showChunkSize: false, datasetFormat: false },
-    csv:      { title: 'Convert document to CSV',        description: 'Full document → CSV rows with paragraph and content columns.',                        showTemplates: false, showChunkSize: false, datasetFormat: false },
-    parquet:  { title: 'Convert document to Parquet',    description: 'Full document → Parquet rows. Downloads as .parquet.',                               showTemplates: false, showChunkSize: false, datasetFormat: false },
-    md:       { title: 'Convert document to Markdown',   description: 'Full document → Markdown with paragraph headings.',                                   showTemplates: false, showChunkSize: false, datasetFormat: false },
-    txt:      { title: 'Convert document to plain text', description: 'Full document → plain text with paragraph separators.',                              showTemplates: false, showChunkSize: false, datasetFormat: false },
-    alpaca:   { title: 'Generate Alpaca JSONL',          description: 'Chunk document → each chunk becomes the input field. Fill instruction and output.',   showTemplates: false, showChunkSize: true,  datasetFormat: true  },
-    sharegpt: { title: 'Generate ShareGPT JSONL',        description: 'Chunk document → each chunk becomes a human turn. Assistant responses left blank.',   showTemplates: false, showChunkSize: true,  datasetFormat: true  },
+  const formatInfo: Record<ExportFormat, { title: string; description: string; showChunkSize: boolean; datasetFormat: boolean }> = {
+    jsonl:    { title: 'Generate conversational JSONL',  description: 'Chunk document → wrap each chunk as a conversation example ready for fine-tuning.',  showChunkSize: true,  datasetFormat: true  },
+    json:     { title: 'Convert document to JSON',       description: 'Full document → JSON array of paragraphs.',                                           showChunkSize: false, datasetFormat: false },
+    csv:      { title: 'Convert document to CSV',        description: 'Full document → CSV rows with paragraph and content columns.',                        showChunkSize: false, datasetFormat: false },
+    parquet:  { title: 'Convert document to Parquet',    description: 'Full document → Parquet rows. Downloads as .parquet.',                               showChunkSize: false, datasetFormat: false },
+    md:       { title: 'Convert document to Markdown',   description: 'Full document → Markdown with paragraph headings.',                                   showChunkSize: false, datasetFormat: false },
+    txt:      { title: 'Convert document to plain text', description: 'Full document → plain text with paragraph separators.',                              showChunkSize: false, datasetFormat: false },
+    alpaca:   { title: 'Generate Alpaca JSONL',          description: 'Chunk document → each chunk becomes the input field. Fill instruction and output.',   showChunkSize: true,  datasetFormat: true  },
+    sharegpt: { title: 'Generate ShareGPT JSONL',        description: 'Chunk document → each chunk becomes a human turn. Assistant responses left blank.',   showChunkSize: true,  datasetFormat: true  },
+    tsv:      { title: 'Convert document to TSV',        description: 'Full document → tab-separated rows.',                                                showChunkSize: false, datasetFormat: false },
   };
-
-  // ── Per-template configuration (JSONL only) ───────────────────────────────
-
-  const templateDefs: Record<ImportTemplate, { label: string; defaultPrompt: string; description: string; preview: string }> = {
-    'qa': {
-      label: 'Q&A skeleton',
-      defaultPrompt: 'You are a helpful assistant.',
-      description: 'Each chunk → user message. Leave assistant blank to fill in your answers.',
-      preview: '{"messages":[{"role":"system","content":"…"},{"role":"user","content":"<chunk>"},{"role":"assistant","content":""}]}',
-    },
-    'context-answer': {
-      label: 'Context-answer',
-      defaultPrompt: 'Answer the question based only on the provided context.',
-      description: 'Each chunk → system context. Leave user message blank — fill in questions later.',
-      preview: '{"messages":[{"role":"system","content":"Context:\\n<chunk>"},{"role":"user","content":""},{"role":"assistant","content":""}]}',
-    },
-    'instruct': {
-      label: 'Instruction',
-      defaultPrompt: 'Summarize the following passage.',
-      description: 'Alpaca-style. System prompt = instruction field, chunk = input field.',
-      preview: '{"instruction":"<system prompt>","input":"<chunk>","output":""}',
-    },
-  };
-
-  const templateIds: ImportTemplate[] = ['qa', 'context-answer', 'instruct'];
-
-  const TEMPLATE_DEFAULT_PROMPTS: Record<ImportTemplate, string[]> = {
-    'qa': [
-      'You are a helpful assistant.',
-      'Answer the user\'s question clearly and concisely.',
-      'Provide accurate, helpful responses to questions.',
-    ],
-    'context-answer': [
-      'Answer based only on the provided context.',
-      'Use the passage below to answer the question accurately.',
-      'Reference the context to give your response — do not use outside knowledge.',
-    ],
-    'instruct': [
-      'Summarize the following passage.',
-      'Generate a concise summary of the text below.',
-      'Provide a TL;DR for this content.',
-    ],
-  };
-
-  // Template-aware warning copy for the multi-prompt advisory dialog.
-  // Each entry maps to its own headline + bullets so the alert reflects
-  // the user's actual task, not a generic one-size-fits-all.
-  interface AdvancedWarning {
-    title: string;
-    intro: string;
-    bullets: Array<{ kind: 'use' | 'avoid' | 'note'; text: string }>;
-  }
-  const TEMPLATE_WARNINGS: Record<ImportTemplate, AdvancedWarning> = {
-    'qa': {
-      title: 'Q&A skeleton — multi-prompt is usually not what you want',
-      intro:
-        'For a Q&A chatbot, the system prompt defines the assistant\'s persona and voice. ' +
-        'Rotating prompts here trains the model to be inconsistent across turns.',
-      bullets: [
-        { kind: 'avoid', text: 'Skip this for a single-persona chatbot or a focused Q&A model — vary the prompt and the model will learn to switch tone.' },
-        { kind: 'use',   text: 'Use it only if you intentionally want a model that follows several distinct personas or response styles.' },
-        { kind: 'note',  text: 'Common pattern: keep one prompt for one chatbot. Fine-tune separately if you need multiple personas.' },
-      ],
-    },
-    'context-answer': {
-      title: 'Context-answer — multi-prompt varies the wrapper, not the context',
-      intro:
-        'In RAG-style context-answer datasets, variety mostly comes from the retrieved chunk itself. ' +
-        'Multiple system prompts only vary the wrapper phrasing (e.g. "Answer based on:" vs "Use the context to answer:").',
-      bullets: [
-        { kind: 'use',   text: 'Helps if you want the model to be robust to different wrapper phrasings at inference time.' },
-        { kind: 'avoid', text: 'Skip it if you control the wrapper at inference — single-prompt matches the at-runtime template better.' },
-        { kind: 'note',  text: 'Context-answer datasets already have strong per-record variety via the context — extra prompt variety is optional polish.' },
-      ],
-    },
-    'instruct': {
-      title: 'Instruction — multi-prompt is a strong fit here',
-      intro:
-        'Instruction-tuning genuinely benefits from prompt variety. The system prompt acts as the instruction; ' +
-        'rotating it teaches the model to follow many phrasings of the same task.',
-      bullets: [
-        { kind: 'use',   text: 'Recommended for instruction-following / multi-task fine-tunes and for training prompt-phrasing robustness.' },
-        { kind: 'avoid', text: 'Avoid mixing fundamentally different tasks (e.g. "summarize" and "translate") in one run — the model will learn confusion.' },
-        { kind: 'note',  text: 'Best practice: keep all prompts on the same task, just phrased differently. Use separate datasets for different tasks.' },
-      ],
-    },
-  };
-  let activeWarning = $derived(TEMPLATE_WARNINGS[template]);
 
   // ── State ─────────────────────────────────────────────────────────────────
 
-  let template: ImportTemplate = $state('qa');
-  let systemPrompt = $state(templateDefs['qa'].defaultPrompt);
-  let chunkSize = $state(512);
   let isDragging = $state(false);
   let isProcessing = $state(false);
   let processingMsg = $state('');
   let errorMsg = $state('');
   let loadedFiles: { name: string; text: string }[] = $state([]);
-  let userEditedPrompt = $state(false);
   let fileInput: HTMLInputElement | undefined = $state();
   let folderInput: HTMLInputElement | undefined = $state();
-
-  // ── Multi-prompt state ────────────────────────────────────────────────────
-
-  let confirmingAdvanced = $state(false);
-  let advancedDialogOpen = $state(false);
-  let multiPromptEnabled = $state(false);
-  let multiPromptMode = $state<'round-robin' | 'random'>('round-robin');
-  let multiPromptSeed = $state(42);
-  let multiPrompts = $state<string[]>([]);
-
-  // Template-switch offer
-  let confirmingTemplateSwitch = $state(false);
-  let lastSeenTemplate = $state<ImportTemplate | null>(null);
-
-  $effect(() => {
-    // Skip the first run (initial mount); only react to subsequent changes.
-    if (lastSeenTemplate === null) { lastSeenTemplate = template; return; }
-    if (lastSeenTemplate === template) return;
-    lastSeenTemplate = template;
-    if (multiPromptEnabled && multiPrompts.length > 0) {
-      confirmingTemplateSwitch = true;
-    }
-  });
-
-  function loadNewTemplateDefaults() {
-    multiPrompts = [...TEMPLATE_DEFAULT_PROMPTS[template], ''];
-    confirmingTemplateSwitch = false;
-  }
-  function keepCurrentPrompts() {
-    confirmingTemplateSwitch = false;
-  }
-
-  function openAdvancedWarning() { confirmingAdvanced = true; }
-  function dismissAdvancedWarning() { confirmingAdvanced = false; }
-  function acceptAdvancedWarning() {
-    confirmingAdvanced = false;
-    if (multiPrompts.length === 0) {
-      multiPrompts = [...TEMPLATE_DEFAULT_PROMPTS[template], ''];
-    }
-    advancedDialogOpen = true;
-  }
-  function closeAdvancedDialog() { advancedDialogOpen = false; }
-
-  function saveAdvanced() {
-    // Trim + drop empty rows
-    multiPrompts = multiPrompts.map(p => p.trim()).filter(p => p.length > 0);
-    multiPromptEnabled = multiPrompts.length >= 2;
-    advancedDialogOpen = false;
-  }
-
-  function disableMultiPrompt() { multiPromptEnabled = false; }
-  function addPromptRow() { multiPrompts = [...multiPrompts, '']; }
-  function removePromptRow(i: number) { multiPrompts = multiPrompts.filter((_, j) => j !== i); }
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
   let info = $derived(formatInfo[exportFormat]);
-  let currentDef = $derived(templateDefs[template]);
   const ACCEPT_ALL = '.txt,.md,.markdown,.docx,.pdf,.csv,.xlsx,.xls,.json,.jsonl,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,text/plain,text/markdown,text/csv,application/json,application/jsonl,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/*';
   let acceptString = $derived(ACCEPT_ALL);
-
-  function pickTemplate(id: ImportTemplate) {
-    template = id;
-    if (!userEditedPrompt) {
-      systemPrompt = templateDefs[id].defaultPrompt;
-    }
-  }
 
   // ── Format-specific output builders ──────────────────────────────────────
 
   function buildOutput(text: string): string {
+    const prep = get(convertPrepState);
+
     if (exportFormat === 'jsonl' || exportFormat === 'alpaca' || exportFormat === 'sharegpt') {
       const tmpl: ImportTemplate = exportFormat === 'alpaca' ? 'instruct'
         : exportFormat === 'sharegpt' ? 'qa'
-        : template;
+        : prep.template;
 
-      if (multiPromptEnabled && exportFormat === 'jsonl') {
+      if (prep.multiPromptEnabled && exportFormat === 'jsonl') {
         return fileToConversationalJsonlMulti(text, tmpl, {
-          mode: multiPromptMode,
-          seed: multiPromptSeed,
-          prompts: multiPrompts,
-        }, chunkSize);
+          mode: prep.multiPromptMode,
+          seed: prep.multiPromptSeed,
+          prompts: prep.multiPrompts,
+        }, prep.chunkSize);
       }
-      return fileToConversationalJsonl(text, tmpl, systemPrompt, chunkSize);
+      return fileToConversationalJsonl(text, tmpl, prep.systemPrompt, prep.chunkSize);
     }
 
-    // Document formats (json/csv/md/txt/parquet)
-    const chunks = chunkText(text, 'fixed', { maxTokens: chunkSize, overlap: 0 })
+    // Document formats (json/csv/md/txt/parquet/tsv)
+    const chunks = chunkText(text, 'fixed', { maxTokens: prep.chunkSize, overlap: 0 })
       .filter(c => c.text.trim().length > 0);
     return chunks.map((c, i) => JSON.stringify({ chunk_index: i, content: c.text })).join('\n');
   }
@@ -347,6 +199,11 @@
   function generate() {
     if (!loadedFiles.length) { errorMsg = 'Drop or select files above first.'; return; }
     errorMsg = '';
+
+    // Snapshot the prep state at generation time so the DatasetFile record
+    // carries the exact settings that produced the output.
+    const prep = get(convertPrepState);
+
     const results: Array<{
       jsonl: string;
       filename: string;
@@ -366,13 +223,13 @@
           jsonl: output,
           filename: f.name,
           rawSource: f.text,
-          template,
-          systemPrompt,
-          chunkSize,
-          ...(multiPromptEnabled ? {
-            prompts: multiPrompts,
-            promptMode: multiPromptMode,
-            promptSeed: multiPromptSeed,
+          template: prep.template,
+          systemPrompt: prep.systemPrompt,
+          chunkSize: prep.chunkSize,
+          ...(prep.multiPromptEnabled ? {
+            prompts: prep.multiPrompts,
+            promptMode: prep.multiPromptMode,
+            promptSeed: prep.multiPromptSeed,
           } : {}),
         });
       } catch (err) {
@@ -451,69 +308,8 @@
     <ChunkLoader status="parsing" progress={0} sourceCharCount={0} />
   {/if}
 
-  <!-- JSONL-only: template picker + preview + system prompt -->
-  {#if info.showTemplates}
-    <div class="options-row">
-      <span class="row-label">Template:</span>
-      <div class="template-buttons">
-        {#each templateIds as id}
-          <button
-            class="template-btn"
-            class:active={template === id}
-            onclick={() => pickTemplate(id)}
-            title={templateDefs[id].description}
-          >{templateDefs[id].label}</button>
-        {/each}
-      </div>
-      <span class="template-desc">{currentDef.description}</span>
-    </div>
-
-    <div class="preview-row">
-      <span class="row-label">Output:</span>
-      <code class="preview-code">{currentDef.preview}</code>
-    </div>
-
-    <div class="prompt-row">
-      <span class="row-label">System prompt:</span>
-      <input
-        type="text"
-        class="prompt-input"
-        bind:value={systemPrompt}
-        oninput={() => { userEditedPrompt = true; }}
-        placeholder={currentDef.defaultPrompt}
-        disabled={multiPromptEnabled}
-        title={multiPromptEnabled ? 'Disabled while multi-prompt is on' : undefined}
-      />
-      {#if userEditedPrompt && !multiPromptEnabled}
-        <button class="reset-btn" onclick={() => { systemPrompt = currentDef.defaultPrompt; userEditedPrompt = false; }} title="Reset to default">↺</button>
-      {/if}
-    </div>
-
-    <!-- Multi-prompt trigger row -->
-    <div class="advanced-row">
-      {#if multiPromptEnabled}
-        <span class="advanced-label">multi-prompt:</span>
-        <span class="multi-prompt-summary">
-          {multiPrompts.length} prompts · {multiPromptMode}{multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}
-        </span>
-        <button type="button" class="advanced-btn" onclick={() => (advancedDialogOpen = true)}>edit…</button>
-        <button type="button" class="advanced-btn off" onclick={disableMultiPrompt}>disable</button>
-      {:else}
-        <button type="button" class="advanced-btn" onclick={openAdvancedWarning}>
-          <span class="advanced-icon" aria-hidden="true">⚙</span>
-          advanced: use multiple system prompts
-        </button>
-      {/if}
-    </div>
-  {/if}
-
-  <!-- Chunk size + generate -->
+  <!-- Generate button -->
   <div class="controls-row">
-    {#if info.showChunkSize}
-      <span class="row-label">Chunk size:</span>
-      <input type="range" min="128" max="2048" step="64" bind:value={chunkSize} class="slider" aria-label="Chunk size in tokens" />
-      <span class="chunk-val">{chunkSize}t</span>
-    {/if}
     <button
       class="generate-btn"
       onclick={generate}
@@ -526,118 +322,6 @@
     <div class="error-row">× {errorMsg}</div>
   {/if}
 </div>
-
-<!-- Warning dialog — rendered outside .import-panel so it escapes the stacking context -->
-{#if confirmingAdvanced}
-  <div class="advanced-overlay" role="dialog" aria-modal="true" aria-labelledby="adv-warn-title">
-    <div class="advanced-box">
-      <p class="advanced-title" id="adv-warn-title">{activeWarning.title}</p>
-      <p class="advanced-sub">{activeWarning.intro}</p>
-      <ul class="advanced-sub-list">
-        {#each activeWarning.bullets as b}
-          <li class="warn-bullet warn-{b.kind}">
-            {#if b.kind === 'use'}<strong>Use it:</strong>{/if}
-            {#if b.kind === 'avoid'}<strong>Avoid:</strong>{/if}
-            {#if b.kind === 'note'}<strong>Note:</strong>{/if}
-            {b.text}
-          </li>
-        {/each}
-        <li class="warn-bullet warn-meta">You can disable multi-prompt at any time without losing your single prompt.</li>
-      </ul>
-      <div class="advanced-actions">
-        <button class="advanced-confirm-btn danger" onclick={acceptAdvancedWarning}>I understand — continue</button>
-        <button class="advanced-confirm-btn" onclick={dismissAdvancedWarning}>cancel</button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-<!-- Settings dialog -->
-{#if advancedDialogOpen}
-  <div class="advanced-overlay" role="dialog" aria-modal="true" aria-labelledby="adv-dlg-title">
-    <div class="advanced-box advanced-box-wide">
-      <p class="advanced-title" id="adv-dlg-title">Multi-prompt settings</p>
-      <p class="advanced-sub">Each generated record will get one system prompt selected by the mode you choose. Add at least 2 prompts. Empty rows are dropped on save.</p>
-
-      <div class="advanced-field-row">
-        <span class="advanced-field-label">Mode:</span>
-        <label class="advanced-radio">
-          <input type="radio" bind:group={multiPromptMode} value="round-robin" />
-          round-robin — cycle 1 → 2 → 3 → 1…
-        </label>
-        <label class="advanced-radio">
-          <input type="radio" bind:group={multiPromptMode} value="random" />
-          random (seeded, reproducible)
-        </label>
-      </div>
-
-      {#if multiPromptMode === 'random'}
-        <div class="advanced-field-row">
-          <span class="advanced-field-label">Seed:</span>
-          <input
-            type="number"
-            class="advanced-seed-input"
-            bind:value={multiPromptSeed}
-            min="0"
-            max="2147483647"
-            aria-label="Random seed"
-          />
-          <span class="advanced-hint">Same seed + same prompts → same assignments.</span>
-        </div>
-      {/if}
-
-      <div class="advanced-prompts">
-        <span class="advanced-field-label">Prompts:</span>
-        {#each multiPrompts as _, i (i)}
-          <div class="advanced-prompt-row">
-            <span class="advanced-prompt-index">{i + 1}</span>
-            <textarea
-              class="advanced-prompt-input"
-              bind:value={multiPrompts[i]}
-              placeholder={TEMPLATE_DEFAULT_PROMPTS[template][i % TEMPLATE_DEFAULT_PROMPTS[template].length]}
-              rows="2"
-            ></textarea>
-            <button
-              type="button"
-              class="advanced-prompt-remove"
-              onclick={() => removePromptRow(i)}
-              disabled={multiPrompts.length <= 1}
-              aria-label="Remove prompt {i + 1}"
-            >×</button>
-          </div>
-        {/each}
-        <button
-          type="button"
-          class="advanced-prompt-add"
-          onclick={() => { multiPrompts = [...TEMPLATE_DEFAULT_PROMPTS[template], '']; }}
-          title="Replace current prompts with the recommended defaults for the {template} template"
-        >↺ load defaults for {currentDef.label}</button>
-        <button type="button" class="advanced-prompt-add" onclick={addPromptRow}>+ add prompt</button>
-      </div>
-
-      <div class="advanced-actions">
-        <button class="advanced-confirm-btn danger" onclick={saveAdvanced}>save</button>
-        <button class="advanced-confirm-btn" onclick={closeAdvancedDialog}>cancel</button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-{#if confirmingTemplateSwitch}
-  <div class="advanced-overlay" role="dialog" aria-modal="true" aria-labelledby="tpl-switch-title">
-    <div class="advanced-box">
-      <p class="advanced-title" id="tpl-switch-title">Template changed to {currentDef.label}</p>
-      <p class="advanced-sub">
-        Your multi-prompt list was tailored for the previous template. Load the recommended prompts
-        for <strong>{currentDef.label}</strong> instead, or keep your current list?
-      </p>
-      <div class="advanced-actions">
-        <button class="advanced-confirm-btn danger" onclick={loadNewTemplateDefaults}>load defaults</button>
-        <button class="advanced-confirm-btn" onclick={keepCurrentPrompts}>keep current</button>
-      </div>
-    </div>
-  </div>
-{/if}
 
 <style>
   /* All selectors wrapped in :global() — Svelte 5 build was tree-shaking
@@ -724,118 +408,12 @@
   }
   :global(.import-panel .folder-btn:hover) { color: var(--ink); }
 
-  :global(.import-panel .options-row),
-  :global(.import-panel .preview-row),
-  :global(.import-panel .prompt-row),
   :global(.import-panel .controls-row) {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-  :global(.import-panel .row-label) {
-    color: var(--ink-dim);
-    white-space: nowrap;
-    min-width: 90px;
-  }
 
-  :global(.import-panel .template-buttons) { display: flex; gap: 4px; flex-shrink: 0; }
-  :global(.import-panel .template-btn) {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    color: var(--ink-dim);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 2px 8px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  :global(.import-panel .template-btn:hover) { color: var(--ink); border-color: var(--ink-dim); }
-  :global(.import-panel .template-btn.active) { color: var(--accent); border-color: var(--accent); background: rgba(224, 168, 78, 0.07); }
-  :global(.import-panel .template-desc) { color: var(--ink-dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-
-  :global(.import-panel .preview-code) {
-    font-family: inherit;
-    font-size: 11px;
-    color: var(--syntax-str);
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    padding: 2px 8px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    min-width: 0;
-  }
-
-  :global(.import-panel .prompt-input) {
-    flex: 1;
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    color: var(--ink);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 3px 7px;
-    outline: none;
-  }
-  :global(.import-panel .prompt-input:focus) { border-color: var(--accent); }
-  :global(.import-panel .prompt-input::placeholder) { color: var(--muted); font-style: italic; }
-  :global(.import-panel .prompt-input:disabled) { opacity: 0.4; cursor: not-allowed; }
-  :global(.import-panel .reset-btn) {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--ink-dim);
-    font-size: 14px;
-    padding: 0 3px;
-    line-height: 1;
-  }
-  :global(.import-panel .reset-btn:hover) { color: var(--ink); }
-
-  :global(.import-panel .slider) {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 130px;
-    height: 12px;
-    background: transparent;
-    outline: none;
-    cursor: pointer;
-    flex-shrink: 0;
-    padding: 0;
-    margin: 0;
-  }
-  :global(.import-panel .slider::-webkit-slider-runnable-track) {
-    height: 1px;
-    background: var(--accent);
-    border: none;
-  }
-  :global(.import-panel .slider::-webkit-slider-thumb) {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    margin-top: -5.5px;
-    background: transparent url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='6' y='10' text-anchor='middle' font-size='14' font-family='monospace' fill='%23e0a84e'>*</text></svg>") no-repeat center;
-    background-size: 12px 12px;
-    border: none;
-    cursor: pointer;
-  }
-  :global(.import-panel .slider::-moz-range-track) {
-    height: 1px;
-    background: var(--accent);
-    border: none;
-  }
-  :global(.import-panel .slider::-moz-range-thumb) {
-    width: 12px;
-    height: 12px;
-    background: transparent url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='6' y='10' text-anchor='middle' font-size='14' font-family='monospace' fill='%23e0a84e'>*</text></svg>") no-repeat center;
-    background-size: 12px 12px;
-    border: none;
-    border-radius: 0;
-    cursor: pointer;
-  }
-  :global(.import-panel .chunk-val) { color: var(--accent); font-weight: 500; min-width: 36px; flex-shrink: 0; }
   :global(.import-panel .generate-btn) {
     margin-left: auto;
     background: none;
@@ -852,162 +430,4 @@
   :global(.import-panel .generate-btn:disabled) { opacity: 0.35; cursor: default; border-color: var(--border); color: var(--ink-dim); }
 
   :global(.import-panel .error-row) { color: var(--err); font-size: 12px; }
-
-  /* ── Advanced / multi-prompt UI ─────────────────────────────────────────── */
-
-  :global(.import-panel .advanced-row) {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding-top: 2px;
-  }
-  :global(.import-panel .advanced-label) {
-    font-size: 11px;
-    color: var(--ink-dim);
-    letter-spacing: 0.04em;
-  }
-  :global(.import-panel .multi-prompt-summary) {
-    font-size: 11px;
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    border-radius: 3px;
-    padding: 2px 8px;
-  }
-  :global(.import-panel .advanced-btn) {
-    background: none;
-    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-    color: var(--accent);
-    border-radius: 3px;
-    padding: 3px 9px;
-    font-family: inherit;
-    font-size: 11px;
-    cursor: pointer;
-  }
-  :global(.import-panel .advanced-btn:hover) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-  :global(.import-panel .advanced-btn.off) { color: var(--ink-dim); border-color: var(--border); }
-  :global(.import-panel .advanced-btn.off:hover) { color: var(--ink); }
-  :global(.import-panel .advanced-icon) { margin-right: 4px; }
-
-  /* Dialogs — fixed overlay, NOT scoped under .import-panel */
-  :global(.advanced-overlay) {
-    position: fixed;
-    inset: 0;
-    z-index: 600;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  :global(.advanced-box) {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 22px 26px;
-    width: calc(100vw - 32px);
-    max-width: 480px;
-    max-height: 85vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  :global(.advanced-box-wide) { max-width: 640px; }
-  :global(.advanced-title) { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0; }
-  :global(.advanced-sub) { font-size: 12px; color: var(--ink-dim); line-height: 1.5; margin: 0; }
-  :global(.advanced-sub-list) { font-size: 12px; color: var(--ink-dim); line-height: 1.5; margin: 0; padding-left: 18px; }
-  :global(.advanced-hint) { font-size: 11px; color: var(--muted); }
-
-  :global(.advanced-actions) { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
-  :global(.advanced-confirm-btn) {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 5px 14px;
-    font-family: inherit;
-    font-size: 12px;
-    color: var(--ink-dim);
-    cursor: pointer;
-  }
-  :global(.advanced-confirm-btn:hover) { color: var(--ink); border-color: var(--ink-dim); }
-  :global(.advanced-confirm-btn.danger) { color: var(--err); border-color: var(--err); }
-  :global(.advanced-confirm-btn.danger:hover) { background: color-mix(in srgb, var(--err) 12%, transparent); }
-
-  :global(.advanced-field-row) { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  :global(.advanced-field-label) {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    min-width: 70px;
-  }
-  :global(.advanced-radio) {
-    font-size: 12px;
-    color: var(--ink);
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-  }
-  :global(.advanced-seed-input) {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 3px 8px;
-    color: var(--ink);
-    font-family: inherit;
-    font-size: 12px;
-    width: 130px;
-  }
-
-  :global(.advanced-prompts),
-  :global(.advanced-pool-group) {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-top: 4px;
-    border-top: 1px solid var(--border);
-  }
-  :global(.advanced-pool-group:first-of-type) { border-top: none; padding-top: 0; }
-  :global(.advanced-prompt-row) { display: flex; align-items: flex-start; gap: 6px; }
-  :global(.advanced-prompt-index) { font-size: 11px; color: var(--ink-dim); width: 16px; text-align: right; padding-top: 6px; }
-  :global(.advanced-prompt-input) {
-    flex: 1;
-    min-height: 38px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 5px 8px;
-    font-family: inherit;
-    font-size: 12px;
-    color: var(--ink);
-    resize: vertical;
-  }
-  :global(.advanced-prompt-input:focus) { border-color: var(--accent); outline: none; }
-  :global(.advanced-prompt-remove) {
-    background: none;
-    border: none;
-    color: var(--ink-dim);
-    font-size: 16px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px 8px;
-    border-radius: 3px;
-  }
-  :global(.advanced-prompt-remove:hover:not(:disabled)) { color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); }
-  :global(.advanced-prompt-remove:disabled) { opacity: 0.3; cursor: not-allowed; }
-  :global(.advanced-prompt-add) {
-    align-self: flex-start;
-    margin-top: 4px;
-    background: none;
-    border: 1px dashed var(--border);
-    border-radius: 3px;
-    padding: 4px 12px;
-    font-family: inherit;
-    font-size: 11px;
-    color: var(--ink-dim);
-    cursor: pointer;
-  }
-  :global(.advanced-prompt-add:hover) { color: var(--accent); border-color: var(--accent); }
 </style>
