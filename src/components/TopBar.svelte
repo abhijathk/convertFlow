@@ -12,6 +12,16 @@
 
   const desktop = isDesktop();
 
+  async function openSupport() {
+    const url = desktop ? 'https://convertflow.live/support' : '/support';
+    if (desktop) {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      await openUrl(url);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   let kK = $state('⌘K');
   $effect(() => { kK = shortcut('K'); });
 
@@ -123,6 +133,15 @@
         help <kbd>?</kbd>
       </a>
     {/if}
+    <span class="sep" aria-hidden="true">·</span>
+    <button class="support-link" onclick={openSupport} aria-label="Support convertFlow — opens the support page" title="Support convertFlow">
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 6h8v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Z"/>
+        <path d="M11 7h1.5a1.5 1.5 0 0 1 0 3H11"/>
+        <path d="M5 2v2M7 2v2M9 2v2"/>
+      </svg>
+      <span>support</span>
+    </button>
   </nav>
 </header>
 
@@ -190,6 +209,21 @@
   .actions a.download-link:hover {
     color: var(--ink);
     text-decoration: none;
+  }
+  .actions button.support-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--accent);
+    font-weight: 500;
+    padding: 3px 9px;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 3px;
+    transition: background 0.1s, color 0.1s;
+  }
+  .actions button.support-link:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
   }
   kbd {
     color: var(--accent);
