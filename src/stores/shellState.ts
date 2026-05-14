@@ -20,15 +20,31 @@ export interface ShellState {
 }
 
 const THEME_KEY = 'dataprep-theme';
+const TAB_KEY = 'dataprep-active-tab';
+
+function loadActiveTab(): Tab {
+  if (typeof localStorage === 'undefined') return 'convert';
+  try {
+    const v = localStorage.getItem(TAB_KEY);
+    if (v === 'convert' || v === 'chunk' || v === 'editor' || v === 'utilities') return v;
+  } catch { /* ignore */ }
+  return 'convert';
+}
 
 export const shellState = writable<ShellState>({
-  activeTab: 'convert',
+  activeTab: loadActiveTab(),
   theme: 'dark', // rehydrated on mount
   paletteOpen: false,
   emailCaptured: false,
   pendingAction: null,
   pendingChunkSource: null,
   pendingConvertSource: null,
+});
+
+// Persist active tab so refresh stays on the current page.
+shellState.subscribe(s => {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(TAB_KEY, s.activeTab); } catch { /* ignore */ }
 });
 
 export function sendToChunk(content: string) {
