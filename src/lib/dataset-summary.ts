@@ -12,21 +12,58 @@ export interface DatasetSummary {
 }
 
 interface PresetLike {
+  name?: string;
   rules?: { maxTokensPerExample?: number };
   pricing?: { trainingPerMTokens?: number };
+}
+
+interface ValidationErrorLike {
+  line: number;
+  code: string;
+  message: string;
+  suggestion?: string;
 }
 
 function pctStr(n: number): string {
   return (n * 100).toFixed(n < 0.01 ? 2 : n < 0.1 ? 1 : 0) + '%';
 }
 
-export function generateDatasetSummary(s: DatasetStats, preset: PresetLike | null): DatasetSummary {
+export function generateDatasetSummary(
+  s: DatasetStats,
+  preset: PresetLike | null,
+  validationErrors: ValidationErrorLike[] = [],
+): DatasetSummary {
   const bullets: SummaryBullet[] = [];
   const total = s.recordCount;
 
   // Edge: empty dataset
   if (total === 0) {
     return { tldr: 'No records to analyse yet — paste JSONL into the editor.', status: 'ok', bullets: [] };
+  }
+
+  // 0. Preset/validator violations — these block training even if data parses,
+  // so they take priority. Surface up to 3, then a count for the rest.
+  if (validationErrors.length > 0) {
+    // Dataset-level errors (line === 0) describe the whole dataset (record
+    // count too low, etc.) — they always block training so show them as err.
+    const datasetLevel = validationErrors.filter(e => e.line === 0);
+    const perLine = validationErrors.filter(e => e.line > 0);
+
+    for (const e of datasetLevel.slice(0, 2)) {
+      bullets.push({ status: 'err', text: e.message + (e.suggestion ? ` — ${e.suggestion}` : '') });
+    }
+    if (datasetLevel.length > 2) {
+      bullets.push({ status: 'err', text: `${datasetLevel.length - 2} more dataset-level error${datasetLevel.length - 2 === 1 ? '' : 's'} blocking training.` });
+    }
+
+    if (perLine.length > 0) {
+      const firstFew = perLine.slice(0, 3).map(e => `line ${e.line}`).join(', ');
+      const more = perLine.length > 3 ? ` + ${perLine.length - 3} more` : '';
+      bullets.push({
+        status: 'err',
+        text: `${perLine.length} preset-validation error${perLine.length === 1 ? '' : 's'} (${firstFew}${more}) — open the Problems panel for details.`,
+      });
+    }
   }
 
   // 1. Invalid lines

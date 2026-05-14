@@ -20,13 +20,14 @@
   $effect(() => {
     const content = $convertState.editorContent;
     const presetId = $convertState.presetId;
+    const validationErrors = $convertState.errors;
     if (debounceTimer) clearTimeout(debounceTimer);
     if (!content.trim()) { stats = null; summary = null; activePreset = null; return; }
     debounceTimer = setTimeout(() => {
       const preset = getPreset(presetId);
       activePreset = preset;
       stats = computeDatasetStats(content, preset);
-      summary = generateDatasetSummary(stats, preset);
+      summary = generateDatasetSummary(stats, preset, validationErrors);
     }, 300);
     return () => { if (debounceTimer) clearTimeout(debounceTimer); };
   });
@@ -801,18 +802,42 @@
     font-size: 12px;
     color: var(--ink-dim);
     line-height: 1.5;
-    padding-left: 14px;
+    padding: 4px 8px 4px 22px;
     position: relative;
+    border-radius: 3px;
   }
   .summary-bullet::before {
     content: '•';
     position: absolute;
-    left: 4px;
+    left: 8px;
+    top: 4px;
     color: var(--muted);
+    font-weight: 700;
   }
-  .bullet-err::before  { color: var(--err); }
-  .bullet-warn::before { color: var(--warn); }
-  .bullet-ok::before   { color: var(--ok); }
+  .bullet-err {
+    color: var(--err);
+    background: color-mix(in srgb, var(--err) 10%, transparent);
+    font-weight: 500;
+  }
+  .bullet-err::before {
+    content: '⚠';
+    color: var(--err);
+    font-size: 11px;
+    top: 5px;
+  }
+  .bullet-warn {
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 8%, transparent);
+  }
+  .bullet-warn::before {
+    content: '◯';
+    color: var(--warn);
+    font-size: 10px;
+    top: 5px;
+  }
+  .bullet-ok::before {
+    color: var(--ok);
+  }
 
   /* Responsive: 2-col on medium, 1-col on mobile */
   @media (max-width: 960px) {
