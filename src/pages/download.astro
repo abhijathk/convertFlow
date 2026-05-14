@@ -31,41 +31,54 @@ import DocLayout from '../layouts/DocLayout.astro';
 
 <div class="download-grid">
 
-  <a class="download-card" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.0_x64-setup.exe" id="windows">
-    <div class="dl-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="44" height="44" fill="currentColor"><path d="M2 5.5 9.4 4.5v7.4H2zM10.5 4.4 22 3v8.5h-11.5zM2 12.6h7.4V20L2 19zM10.5 12.6H22V21L10.5 19.6z"/></svg>
+  <div class="download-card" id="windows">
+    <div class="dl-icon win" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="56" height="56" fill="currentColor"><path d="M2 5.5 9.4 4.5v7.4H2zM10.5 4.4 22 3v8.5h-11.5zM2 12.6h7.4V20L2 19zM10.5 12.6H22V21L10.5 19.6z"/></svg>
     </div>
-    <div class="dl-text">
-      <span class="dl-platform">Windows</span>
-      <span class="dl-meta">.exe installer · 64-bit · Windows 10+</span>
+    <div class="dl-body">
+      <h3 class="dl-platform">Windows</h3>
+      <p class="dl-meta">Windows 10 or later · 64-bit · ~15 MB</p>
+      <div class="dl-actions">
+        <a class="dl-btn primary" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.0_x64-setup.exe">
+          <span class="dl-btn-label">Download .exe</span>
+          <span class="dl-btn-sub">recommended</span>
+        </a>
+        <a class="dl-btn secondary" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.0_x64_en-US.msi">
+          .msi installer
+        </a>
+      </div>
     </div>
-    <span class="dl-cta">Download →</span>
-  </a>
+  </div>
 
-  <a class="download-card" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.0_aarch64.dmg" id="macos">
-    <div class="dl-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="44" height="44" fill="currentColor"><path d="M18.7 17.9c-.4.8-.7 1.3-1.1 2-.7 1.1-1.6 2.4-2.7 2.4-1 0-1.3-.7-2.7-.7-1.4 0-1.7.7-2.7.7-1.1 0-1.9-1.2-2.6-2.3C5 17.6 4 14 5 11.5c.6-1.5 2-2.5 3.4-2.5 1.3 0 2.2.7 3.3.7 1 0 1.7-.7 3.2-.7 1.2 0 2.5.7 3.4 1.8-3 1.7-2.5 6 .4 7.1zM13.4 6c.6-.8 1.1-1.9.9-3.1-1.1.1-2.3.8-3 1.6-.6.8-1.2 1.9-1 3 1.2.1 2.4-.7 3.1-1.5z"/></svg>
+  <div class="download-card" id="macos">
+    <div class="dl-icon mac" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="56" height="56" fill="currentColor"><path d="M18.7 17.9c-.4.8-.7 1.3-1.1 2-.7 1.1-1.6 2.4-2.7 2.4-1 0-1.3-.7-2.7-.7-1.4 0-1.7.7-2.7.7-1.1 0-1.9-1.2-2.6-2.3C5 17.6 4 14 5 11.5c.6-1.5 2-2.5 3.4-2.5 1.3 0 2.2.7 3.3.7 1 0 1.7-.7 3.2-.7 1.2 0 2.5.7 3.4 1.8-3 1.7-2.5 6 .4 7.1zM13.4 6c.6-.8 1.1-1.9.9-3.1-1.1.1-2.3.8-3 1.6-.6.8-1.2 1.9-1 3 1.2.1 2.4-.7 3.1-1.5z"/></svg>
     </div>
-    <div class="dl-text">
-      <span class="dl-platform">macOS</span>
-      <span class="dl-meta">.dmg · Apple Silicon (M-series) · macOS 11+</span>
-      <span class="dl-meta-sub">Intel Mac? <a href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.0_x64.dmg">x64 download</a></span>
+    <div class="dl-body">
+      <h3 class="dl-platform">macOS</h3>
+      <p class="dl-meta">macOS 11 (Big Sur) or later · ~15 MB</p>
+      <div class="dl-actions">
+        <a class="dl-btn primary" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.0_aarch64.dmg">
+          <span class="dl-btn-label">Apple Silicon</span>
+          <span class="dl-btn-sub">M1 / M2 / M3 / M4</span>
+        </a>
+        <a class="dl-btn secondary" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertFlow_0.1.0_x64.dmg">
+          <span class="dl-btn-label">Intel x64</span>
+          <span class="dl-btn-sub">older Macs</span>
+        </a>
+      </div>
     </div>
-    <span class="dl-cta">Download →</span>
-  </a>
+  </div>
 
-  <a class="download-card" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertflow_0.1.0_amd64.AppImage" id="linux">
+  <div class="download-card" id="linux">
     <div class="dl-icon ubuntu" aria-hidden="true">
-      <svg viewBox="0 0 256 256" width="44" height="44" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ubuntu / Linux">
-        <!-- Ubuntu Circle of Friends — official orange + white propeller pattern -->
+      <svg viewBox="0 0 256 256" width="56" height="56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linux">
         <circle cx="128" cy="128" r="128" fill="#E95420"/>
-        <!-- Three connecting "arms" from center outward -->
         <g stroke="white" stroke-width="22" stroke-linecap="round" fill="none">
           <line x1="128" y1="128" x2="200" y2="88"/>
           <line x1="128" y1="128" x2="200" y2="168"/>
           <line x1="128" y1="128" x2="48"  y2="128"/>
         </g>
-        <!-- Center disc + three outer "friend" dots -->
         <g fill="white">
           <circle cx="128" cy="128" r="28"/>
           <circle cx="200" cy="88"  r="22"/>
@@ -74,18 +87,26 @@ import DocLayout from '../layouts/DocLayout.astro';
         </g>
       </svg>
     </div>
-    <div class="dl-text">
-      <span class="dl-platform">Linux</span>
-      <span class="dl-meta">.AppImage · 64-bit · runs anywhere</span>
-      <span class="dl-meta-sub">Debian/Ubuntu? <a href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertflow_0.1.0_amd64.deb">.deb package</a></span>
+    <div class="dl-body">
+      <h3 class="dl-platform">Linux</h3>
+      <p class="dl-meta">x86_64 · works on most distros · ~15 MB</p>
+      <div class="dl-actions">
+        <a class="dl-btn primary" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertflow_0.1.0_amd64.AppImage">
+          <span class="dl-btn-label">AppImage</span>
+          <span class="dl-btn-sub">runs anywhere</span>
+        </a>
+        <a class="dl-btn secondary" href="https://github.com/abhijathk/convertFlow/releases/latest/download/convertflow_0.1.0_amd64.deb">
+          <span class="dl-btn-label">Debian / Ubuntu</span>
+          <span class="dl-btn-sub">.deb package</span>
+        </a>
+      </div>
     </div>
-    <span class="dl-cta">Download →</span>
-  </a>
+  </div>
 
 </div>
 
 <p class="dl-foot">
-  Latest version: <strong>v0.1.0</strong> · <a href="https://github.com/abhijathk/convertFlow/releases" target="_blank" rel="noopener noreferrer">all releases on GitHub</a>
+  Latest version: <strong>v0.1.0</strong> · <a href="https://github.com/abhijathk/convertFlow/releases" target="_blank" rel="noopener noreferrer">all releases on GitHub</a> · <a href="/latest.json" target="_blank" rel="noopener noreferrer">release manifest</a>
 </p>
 
 <h2 id="why-desktop">Why the desktop app?</h2>
@@ -122,72 +143,132 @@ import DocLayout from '../layouts/DocLayout.astro';
 </DocLayout>
 
 <style>
+  /* ── Download grid ─────────────────────────────────────────────────────── */
   .download-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-    margin: 20px 0 12px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 20px 0 16px;
   }
+  @media (min-width: 760px) {
+    .download-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1100px) {
+    .download-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ── Card shell ────────────────────────────────────────────────────────── */
   .download-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px 16px;
+    align-items: start;
     padding: 18px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    text-decoration: none;
-    color: var(--ink);
-    transition: border-color 0.1s, background 0.1s;
+    border-radius: 8px;
+    transition: border-color 0.12s, box-shadow 0.12s;
   }
   .download-card:hover {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 6%, var(--surface));
-    text-decoration: none;
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+    box-shadow: 0 4px 16px -8px color-mix(in srgb, var(--accent) 30%, transparent);
   }
+
+  /* ── Icon column ───────────────────────────────────────────────────────── */
   .dl-icon {
-    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
     flex-shrink: 0;
-    line-height: 0;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
   }
-  /* Ubuntu icon ships its own colours — keep them intact regardless of theme. */
-  .dl-icon.ubuntu { color: inherit; }
-  .dl-icon.ubuntu svg { border-radius: 50%; }
-  .dl-text {
+  .dl-icon.ubuntu {
+    color: inherit;
+    background: transparent;
+    padding: 4px;
+  }
+
+  /* ── Body column ───────────────────────────────────────────────────────── */
+  .dl-body {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    flex: 1;
+    gap: 4px;
     min-width: 0;
   }
   .dl-platform {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--ink);
+    margin: 0;
+    line-height: 1.25;
   }
   .dl-meta {
-    font-size: 11px;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin: 0 0 8px;
+    line-height: 1.4;
+  }
+
+  /* ── Action buttons (primary + secondary side by side) ──────────────── */
+  .dl-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .dl-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 7px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 12px;
+    line-height: 1.2;
+    flex: 1 1 auto;
+    min-width: 0;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+    border: 1px solid transparent;
+  }
+  .dl-btn-label {
+    font-weight: 600;
+  }
+  .dl-btn-sub {
+    font-size: 10px;
+    opacity: 0.75;
+    font-weight: 400;
+  }
+  .dl-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .dl-btn.primary:hover {
+    background: color-mix(in srgb, var(--accent) 88%, white);
+    text-decoration: none;
+  }
+  .dl-btn.secondary {
+    background: transparent;
+    border-color: var(--border);
     color: var(--ink-dim);
   }
-  .dl-meta-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-  .dl-meta-sub a {
+  .dl-btn.secondary:hover {
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
     color: var(--accent);
     text-decoration: none;
   }
-  .dl-meta-sub a:hover { text-decoration: underline; }
-  .dl-cta {
-    font-size: 12px;
-    color: var(--accent);
-    font-weight: 500;
-    flex-shrink: 0;
-  }
+
+  /* ── Footer ────────────────────────────────────────────────────────────── */
   .dl-foot {
     font-size: 12px;
     color: var(--ink-dim);
-    margin-top: 0;
+    margin-top: 4px;
   }
+  .dl-foot a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .dl-foot a:hover { text-decoration: underline; }
 </style>
