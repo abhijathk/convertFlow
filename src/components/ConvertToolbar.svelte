@@ -193,6 +193,8 @@
         value={selectedProvider}
         onchange={(e) => onProviderChange(e.currentTarget.value)}
         aria-label="Select provider"
+        disabled={hasContent}
+        title={hasContent ? 'Locked — clear the dataset to switch provider' : 'Select provider'}
       >
         {#each providers as provider (provider)}
           <option value={provider}>{provider}</option>
@@ -203,11 +205,22 @@
         value={$convertState.presetId}
         onchange={(e) => selectPreset(e.currentTarget.value)}
         aria-label="Select model"
+        disabled={hasContent}
+        title={hasContent ? 'Locked — clear the dataset to switch model' : 'Select model'}
       >
         {#each modelsForSelected as p (p.id)}
           <option value={p.id}>{p.name} — ${p.pricing.trainingPerMTokens}/M train</option>
         {/each}
       </select>
+      {#if hasContent}
+        <span class="lock-hint" title="Provider + model are locked once data is generated to prevent invalidating the dataset. Clear the dataset to switch." aria-label="Provider and model locked">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="7" width="10" height="7" rx="1"/>
+            <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+          </svg>
+          <span>locked</span>
+        </span>
+      {/if}
     </div>
     <span class="info-sep">·</span>
     <span class="info-text">{presetFormatNote()}</span>
@@ -472,6 +485,21 @@
     color: var(--warn);
     cursor: help;
   }
+
+  .lock-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--err);
+    margin-left: 4px;
+    padding: 1px 6px;
+    border: 1px solid color-mix(in srgb, var(--err) 30%, transparent);
+    border-radius: 3px;
+    cursor: help;
+    white-space: nowrap;
+  }
+  .lock-hint svg { flex-shrink: 0; }
 
   /* ── Inline preset picker ───────────────────────────────────────────────── */
   .info-left {
