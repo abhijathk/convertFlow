@@ -53,22 +53,25 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          # Pre-install BOTH macOS targets when building the universal binary.
-          targets: ${{ matrix.platform == 'macos-14' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      # macOS runners ship Homebrew's `rustup-init` on PATH ahead of the
-      # rustup install dir, so `cargo` can resolve to the init shim and
-      # fail with "unexpected argument 'metadata' found". Force the real
-      # toolchain to the front of PATH and sanity-check it works.
-      - name: Ensure cargo on PATH (macOS)
+      # macOS: bypass dtolnay/rust-toolchain — the runner image leaves
+      # `cargo` resolving to rustup-init, causing "unexpected argument
+      # 'metadata' found". Install Rust via the official rustup script,
+      # which wires up cargo/rustc symlinks correctly.
+      - name: Install Rust stable (macOS)
         if: matrix.platform == 'macos-14'
         run: |
+          rm -rf "$HOME/.cargo" "$HOME/.rustup"
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain stable --profile minimal \
+              --target aarch64-apple-darwin --target x86_64-apple-darwin
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-          "$HOME/.cargo/bin/rustc" --version
+          "$HOME/.cargo/bin/rustup" show
           "$HOME/.cargo/bin/cargo" --version
+          "$HOME/.cargo/bin/rustc" --version
+
+      - name: Install Rust stable (non-macOS)
+        if: matrix.platform != 'macos-14'
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
