@@ -1,6 +1,6 @@
 name: Desktop release
 
-# Builds signed installers for Windows, macOS, and Linux on every tag push.
+# Builds installers for Windows, macOS, and Linux on every tag push.
 # Triggered by pushing a tag like v0.1.0:
 #   git tag v0.1.0 && git push origin v0.1.0
 #
@@ -9,9 +9,7 @@ name: Desktop release
 #   but users will see SmartScreen / Gatekeeper warnings.
 #
 #   For signed builds — set these once and the workflow signs automatically:
-#     TAURI_SIGNING_PRIVATE_KEY        — base64 of the Tauri updater key (run
-#                                        `npx tauri signer generate` once, then
-#                                        commit the public half to tauri.conf.json)
+#     TAURI_SIGNING_PRIVATE_KEY        — base64 of the Tauri updater key
 #     TAURI_SIGNING_PRIVATE_KEY_PASSWORD — password for that key
 #     APPLE_ID                          — Apple ID email
 #     APPLE_PASSWORD                    — app-specific password
@@ -38,7 +36,7 @@ jobs:
           - platform: "macos-latest"
             args: "--target universal-apple-darwin"
             label: "macos"
-          - platform: "ubuntu-22.04"
+          - platform: "ubuntu-24.04"
             args: ""
             label: "linux"
           - platform: "windows-latest"
@@ -49,9 +47,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
+          # Pre-install BOTH macOS targets when building the universal binary.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
@@ -60,15 +65,18 @@ jobs:
           workspaces: "./src-tauri -> target"
 
       - name: Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-24.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
 
       - name: Install npm deps
         run: npm ci

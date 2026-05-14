@@ -1,17 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability granted to the main window. Minimal surface: core window controls (minimize, set_size) + open URLs in the user's default browser.",
+  "description": "Capability granted to the main window. Minimal surface: core window controls + opener.",
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "core:window:default",
     "core:window:allow-minimize",
     "core:window:allow-set-size",
     "core:window:allow-inner-size",
     "core:window:allow-outer-size",
     "core:window:allow-destroy",
-    "core:event:default",
     "opener:default"
   ]
 }
