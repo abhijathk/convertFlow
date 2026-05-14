@@ -48,7 +48,9 @@
 
       <!-- Live sponsor: RETRO-BOX (retroarcadegames.games) — swaps dark/light per theme -->
       <a
-        class="retro-banner retro-banner-{$shellState.theme}"
+        class="retro-banner"
+        class:retro-banner-dark={$shellState.theme === 'dark'}
+        class:retro-banner-light={$shellState.theme === 'light'}
         href="https://retroarcadegames.games/"
         target="_blank"
         rel="noopener noreferrer sponsored"
