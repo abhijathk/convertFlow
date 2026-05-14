@@ -176,6 +176,10 @@
     importTemplate?: import('../lib/convert-import').ImportTemplate,
     importSystemPrompt?: string,
     importChunkSize?: number,
+    importPrompts?: string[],
+    importPromptPools?: Partial<Record<import('../lib/convert-import').ImportTemplate, string[]>>,
+    importPromptMode?: 'round-robin' | 'random' | 'pool-by-template',
+    importPromptSeed?: number,
   ) {
     const lines = content.split('\n').filter(l => l.trim());
     if (lines.length === 0) return;
@@ -189,6 +193,10 @@
       importTemplate,
       importSystemPrompt,
       importChunkSize,
+      importPrompts,
+      importPromptPools,
+      importPromptMode,
+      importPromptSeed,
     };
     convertState.update(s => ({ ...s, datasetFiles: [...s.datasetFiles, file] }));
     showFile(file);
@@ -357,7 +365,7 @@
   });
 
   async function regenerateAllFromOriginals(_newPresetId: string): Promise<{ regenerated: number; skipped: number }> {
-    const { fileToConversationalJsonl } = await import('../lib/convert-import');
+    const { fileToConversationalJsonl, fileToConversationalJsonlMulti } = await import('../lib/convert-import');
     const files = $convertState.datasetFiles;
 
     let regenerated = 0;
@@ -370,9 +378,31 @@
       }
       try {
         const tmpl = f.importTemplate ?? 'qa';
-        const prompt = f.importSystemPrompt ?? 'You are a helpful assistant.';
         const size = f.importChunkSize ?? 512;
-        const newJsonl = fileToConversationalJsonl(f.rawSource, tmpl, prompt, size);
+        let newJsonl: string;
+
+        const useMulti = f.importPromptMode && (
+          (f.importPromptMode === 'pool-by-template' && f.importPromptPools) ||
+          ((f.importPromptMode === 'round-robin' || f.importPromptMode === 'random') && f.importPrompts && f.importPrompts.length >= 2)
+        );
+
+        if (useMulti) {
+          newJsonl = fileToConversationalJsonlMulti(
+            f.rawSource,
+            tmpl,
+            {
+              mode: f.importPromptMode!,
+              seed: f.importPromptSeed,
+              prompts: f.importPrompts,
+              promptPools: f.importPromptPools,
+            },
+            size,
+          );
+        } else {
+          const prompt = f.importSystemPrompt ?? 'You are a helpful assistant.';
+          newJsonl = fileToConversationalJsonl(f.rawSource, tmpl, prompt, size);
+        }
+
         regenerated++;
         return {
           ...f,
@@ -801,7 +831,7 @@
   <ConvertImportPanel
     exportFormat={$convertState.exportFormat}
     existingNames={$convertState.datasetFiles.map(f => f.name)}
-    ongenerate={(results) => { for (const r of results) addToDataset(r.filename, r.jsonl, r.rawSource, r.template, r.systemPrompt, r.chunkSize); showImportPanel = false; }}
+    ongenerate={(results) => { for (const r of results) addToDataset(r.filename, r.jsonl, r.rawSource, r.template, r.systemPrompt, r.chunkSize, r.prompts, r.promptPools, r.promptMode, r.promptSeed); showImportPanel = false; }}
     onclose={() => (showImportPanel = false)}
   />
 {/if}

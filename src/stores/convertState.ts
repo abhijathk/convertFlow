@@ -38,6 +38,12 @@ export interface DatasetFile {
   importTemplate?: import('../lib/convert-import').ImportTemplate;
   importSystemPrompt?: string;
   importChunkSize?: number;
+  // Multi-prompt config (advanced, opt-in via warning dialog in the import panel).
+  // When set, regenerateAllFromOriginals will use it instead of importSystemPrompt.
+  importPrompts?: string[];
+  importPromptPools?: Partial<Record<import('../lib/convert-import').ImportTemplate, string[]>>;
+  importPromptMode?: 'round-robin' | 'random' | 'pool-by-template';
+  importPromptSeed?: number;
 }
 
 export interface ConvertState {
