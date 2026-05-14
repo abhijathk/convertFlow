@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { shellState, setTab, convertStatsOpen, convertHfDialogOpen } from '../stores/shellState';
+  import { shellState, setTab, convertStatsOpen, convertHfDialogOpen, chunkStatsOpen } from '../stores/shellState';
   import { convertState } from '../stores/convertState';
+  import { chunkState } from '../stores/chunkState';
   import { isMac, shortcut } from '../lib/platform';
   import { appSettings, setSyntaxTheme, updateAppSetting, clearAllStoredData, clearHfHubToken } from '../stores/appSettings';
   import { THEMES } from '../lib/monaco-theme';
@@ -102,6 +103,16 @@
   </button>
 
   <div class="spacer"></div>
+
+  {#if activeTab === 'chunk'}
+    <button
+      class="convert-action-btn"
+      class:active={$chunkStatsOpen}
+      onclick={() => chunkStatsOpen.update(v => !v)}
+      disabled={$chunkState.chunks.length === 0}
+      title="Chunk health stats"
+    >stats</button>
+  {/if}
 
   {#if activeTab === 'convert'}
     <button

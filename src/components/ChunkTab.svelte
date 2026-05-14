@@ -15,7 +15,8 @@
   import ChunkBoundaryOverlay from './ChunkBoundaryOverlay.svelte';
   import type { ChunkResult, ChunkError } from '../workers/chunk.worker';
   import { openFileWithSplitPane } from '../stores/editorState';
-  import { setTab, shellState, consumePendingChunkSource } from '../stores/shellState';
+  import { setTab, shellState, consumePendingChunkSource, chunkStatsOpen } from '../stores/shellState';
+  import ChunkStatsPanel from './ChunkStatsPanel.svelte';
   import { setToolInput, selectedUtilityId } from '../stores/utilitiesState';
 
   function openInUtilities() {
@@ -98,6 +99,7 @@
   let selectedChunkIndex = $state<number | undefined>(undefined);
   let editorCollapsed = $state(false);
   let exportFormat = $state<ChunkExportFormat>('jsonl');
+  let statsOpen = $derived($chunkStatsOpen);
 
   let editorRef: EditorIsland | undefined = $state();
   let editorWrapEl: HTMLDivElement | undefined = $state();
@@ -565,6 +567,9 @@
 />
 <ChunkEmbedderPicker />
 
+{#if statsOpen}
+  <ChunkStatsPanel />
+{:else}
 <div class="chunk-body" class:panel-dragging={isPanelDragging} bind:this={chunkBodyEl}>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
@@ -691,6 +696,7 @@
     />
   </div>
 </div>
+{/if}
 
 <ChunkMetadataPanel />
 <ChunkTrustStrip />

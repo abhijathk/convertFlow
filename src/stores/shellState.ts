@@ -101,6 +101,9 @@ export const paletteQuery = _writable('');
 export const convertStatsOpen = _writable(false);
 export const convertHfDialogOpen = _writable(false);
 
+// Ephemeral UI toggle for Chunk tab stats panel.
+export const chunkStatsOpen = _writable(false);
+
 export function openPalette() {
   shellState.update(s => ({ ...s, paletteOpen: true }));
 }
