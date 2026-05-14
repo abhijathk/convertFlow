@@ -231,43 +231,59 @@
         <code class="preview-code">{currentDef.preview}</code>
       </div>
 
-      <!-- System prompt -->
-      <div class="prep-row prompt-row">
-        <span class="row-label">System prompt:</span>
-        <input
-          type="text"
-          class="prompt-input"
-          value={systemPrompt}
-          oninput={(e) => setSystemPrompt((e.target as HTMLInputElement).value)}
-          placeholder={currentDef.defaultPrompt}
-          disabled={multiPromptEnabled}
-          title={multiPromptEnabled ? 'Disabled while multi-prompt is on' : undefined}
-        />
-        {#if userEditedPrompt && !multiPromptEnabled}
-          <button class="reset-btn" onclick={resetSystemPrompt} title="Reset to default">↺</button>
+      <!-- Combined row: System prompt + Advanced button + Chunk size.
+           Wraps to multiple lines on narrow screens. -->
+      <div class="prep-row combined-row">
+        <div class="prompt-cluster">
+          <span class="row-label">System prompt:</span>
+          <input
+            type="text"
+            class="prompt-input"
+            value={systemPrompt}
+            oninput={(e) => setSystemPrompt((e.target as HTMLInputElement).value)}
+            placeholder={currentDef.defaultPrompt}
+            disabled={multiPromptEnabled}
+            title={multiPromptEnabled ? 'Disabled while multi-prompt is on' : undefined}
+          />
+          {#if userEditedPrompt && !multiPromptEnabled}
+            <button class="reset-btn" onclick={resetSystemPrompt} title="Reset to default">↺</button>
+          {/if}
+        </div>
+
+        <div class="advanced-cluster">
+          {#if multiPromptEnabled}
+            <span class="multi-prompt-summary" title="{multiPrompts.length} prompts · {multiPromptMode}{multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}">
+              {multiPrompts.length}·{multiPromptMode === 'round-robin' ? 'RR' : `R${multiPromptSeed}`}
+            </span>
+            <button type="button" class="advanced-btn" onclick={openEditDialog}>edit…</button>
+            <button type="button" class="advanced-btn off" onclick={disableMultiPrompt} title="Disable multi-prompt">×</button>
+          {:else}
+            <button type="button" class="advanced-btn" onclick={openAdvancedWarning} title="Use multiple system prompts (advanced)">
+              <span class="advanced-icon" aria-hidden="true">⚙</span>
+              advanced
+            </button>
+          {/if}
+        </div>
+
+        {#if showChunkSize}
+          <div class="chunk-cluster">
+            <span class="row-label">Chunk size:</span>
+            <input
+              type="range"
+              min="128"
+              max="2048"
+              step="64"
+              value={chunkSize}
+              oninput={(e) => setChunkSize(Number((e.target as HTMLInputElement).value))}
+              class="slider"
+              aria-label="Chunk size in tokens"
+            />
+            <span class="chunk-val">{chunkSize}t</span>
+          </div>
         {/if}
       </div>
-
-      <!-- Multi-prompt trigger row -->
-      <div class="prep-row advanced-row">
-        {#if multiPromptEnabled}
-          <span class="advanced-label">multi-prompt:</span>
-          <span class="multi-prompt-summary">
-            {multiPrompts.length} prompts · {multiPromptMode}{multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}
-          </span>
-          <button type="button" class="advanced-btn" onclick={openEditDialog}>edit…</button>
-          <button type="button" class="advanced-btn off" onclick={disableMultiPrompt}>disable</button>
-        {:else}
-          <button type="button" class="advanced-btn" onclick={openAdvancedWarning}>
-            <span class="advanced-icon" aria-hidden="true">⚙</span>
-            advanced: use multiple system prompts
-          </button>
-        {/if}
-      </div>
-    {/if}
-
-    {#if showChunkSize}
-      <!-- Chunk size row -->
+    {:else if showChunkSize}
+      <!-- Non-JSONL formats (alpaca/sharegpt) still need chunk size on its own row -->
       <div class="prep-row controls-row">
         <span class="row-label">Chunk size:</span>
         <input
@@ -416,6 +432,45 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+
+  /* Combined row: System prompt + Advanced + Chunk size on one line.
+     Wraps to the next line at <900px so each cluster keeps its
+     own readability. */
+  :global(.jsonl-prep-panel .combined-row) {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 8px;
+  }
+  :global(.jsonl-prep-panel .prompt-cluster) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 3 1 360px;
+    min-width: 280px;
+  }
+  :global(.jsonl-prep-panel .advanced-cluster) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+  }
+  :global(.jsonl-prep-panel .chunk-cluster) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 240px;
+    min-width: 200px;
+  }
+  @media (max-width: 900px) {
+    :global(.jsonl-prep-panel .prompt-cluster) {
+      flex-basis: 100%;
+      min-width: 0;
+    }
+    :global(.jsonl-prep-panel .advanced-cluster),
+    :global(.jsonl-prep-panel .chunk-cluster) {
+      flex-basis: auto;
+    }
   }
 
   :global(.jsonl-prep-panel .row-label) {
