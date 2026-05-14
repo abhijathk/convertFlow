@@ -340,6 +340,7 @@
     background: var(--bg);
     border: 1px solid var(--border);
     color: var(--ink-dim);
+    font-size: 12px;
     min-width: 64px;
   }
   .fmt-select:focus { outline: 1px solid var(--accent); }
