@@ -23,3 +23,18 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 .gstack/
+
+# Tauri build artifacts (Rust target, generated platform schemas/icons,
+# compiled installers). Source config files (tauri.conf.json, Cargo.toml,
+# src/*.rs, icons/*.svg, capabilities/) stay in version control.
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/32x32.png
+src-tauri/icons/128x128.png
+src-tauri/icons/128x128@2x.png
+src-tauri/icons/icon.icns
+src-tauri/icons/icon.ico
+src-tauri/icons/Square*.png
+src-tauri/icons/StoreLogo.png
+src-tauri/Cargo.lock
+
