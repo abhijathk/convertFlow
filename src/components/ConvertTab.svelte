@@ -169,7 +169,14 @@
     }
   }
 
-  function addToDataset(name: string, content: string, rawSource?: string) {
+  function addToDataset(
+    name: string,
+    content: string,
+    rawSource?: string,
+    importTemplate?: import('../lib/convert-import').ImportTemplate,
+    importSystemPrompt?: string,
+    importChunkSize?: number,
+  ) {
     const lines = content.split('\n').filter(l => l.trim());
     if (lines.length === 0) return;
     const file: DatasetFile = {
@@ -179,6 +186,9 @@
       status: 'done',
       content: lines.join('\n'),
       rawSource,
+      importTemplate,
+      importSystemPrompt,
+      importChunkSize,
     };
     convertState.update(s => ({ ...s, datasetFiles: [...s.datasetFiles, file] }));
     showFile(file);
@@ -335,19 +345,79 @@
     applyPresetChange(newPresetId);
   }
 
-  function applyPresetChange(newPresetId: string) {
+  // If the auto-lock fires (or the user manually re-locks) while a preset
+  // switch confirmation is open, treat it as an implicit cancel — close the
+  // dialog AND revert the dropdown to the original preset.
+  $effect(() => {
+    if (!$convertState.presetUnlocked && pendingPreset) {
+      pendingPreset = null;
+      pendingPresetErrorDelta = 0;
+      convertState.update(s => ({ ...s, presetSelectVersion: s.presetSelectVersion + 1 }));
+    }
+  });
+
+  async function regenerateAllFromOriginals(_newPresetId: string): Promise<{ regenerated: number; skipped: number }> {
+    const { fileToConversationalJsonl } = await import('../lib/convert-import');
+    const files = $convertState.datasetFiles;
+
+    let regenerated = 0;
+    let skipped = 0;
+
+    const updatedFiles: DatasetFile[] = files.map((f) => {
+      if (!f.rawSource) {
+        skipped++;
+        return f; // pasted JSONL — keep as-is
+      }
+      try {
+        const tmpl = f.importTemplate ?? 'qa';
+        const prompt = f.importSystemPrompt ?? 'You are a helpful assistant.';
+        const size = f.importChunkSize ?? 512;
+        const newJsonl = fileToConversationalJsonl(f.rawSource, tmpl, prompt, size);
+        regenerated++;
+        return {
+          ...f,
+          content: newJsonl,
+          lineCount: newJsonl ? newJsonl.split('\n').filter(l => l.trim()).length : 0,
+          status: 'done' as const,
+        };
+      } catch (err) {
+        return { ...f, status: 'error' as const, error: String(err) };
+      }
+    });
+
+    const combined = updatedFiles.map(f => f.content).filter(Boolean).join('\n');
+    convertState.update(s => ({ ...s, datasetFiles: updatedFiles, editorContent: combined }));
+
+    // Refresh the editor display to reflect the new content.
+    suppressNextChange = true;
+    editorRef?.setValue(combined);
+
+    return { regenerated, skipped };
+  }
+
+  async function applyPresetChange(newPresetId: string) {
     convertState.update((s) => ({ ...s, presetId: newPresetId, exactTokens: null }));
     analytics.presetSwitched(newPresetId);
+
+    // Regenerate from the original uploaded documents if we have them.
+    const hasRawSources = $convertState.datasetFiles.some(f => !!f.rawSource);
+    if (hasRawSources) {
+      const result = await regenerateAllFromOriginals(newPresetId);
+      if (result.skipped > 0) {
+        console.info(`Regenerated ${result.regenerated} file(s); skipped ${result.skipped} pasted-JSONL file(s) — no rawSource to re-process.`);
+      }
+    }
+
     const content = $convertState.editorContent;
     if (content.trim()) processContent(content, newPresetId);
   }
 
-  function confirmPresetSwitch() {
+  async function confirmPresetSwitch() {
     if (!pendingPreset) return;
     const id = pendingPreset;
     pendingPreset = null;
     pendingPresetErrorDelta = 0;
-    applyPresetChange(id);
+    await applyPresetChange(id);
   }
 
   function cancelPresetSwitch() {
@@ -731,7 +801,7 @@
   <ConvertImportPanel
     exportFormat={$convertState.exportFormat}
     existingNames={$convertState.datasetFiles.map(f => f.name)}
-    ongenerate={(results) => { for (const r of results) addToDataset(r.filename, r.jsonl, r.rawSource); showImportPanel = false; }}
+    ongenerate={(results) => { for (const r of results) addToDataset(r.filename, r.jsonl, r.rawSource, r.template, r.systemPrompt, r.chunkSize); showImportPanel = false; }}
     onclose={() => (showImportPanel = false)}
   />
 {/if}

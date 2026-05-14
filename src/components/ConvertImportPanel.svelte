@@ -9,7 +9,14 @@
   interface Props {
     exportFormat: ExportFormat;
     existingNames?: string[];
-    ongenerate: (results: Array<{ jsonl: string; filename: string; rawSource: string }>) => void;
+    ongenerate: (results: Array<{
+      jsonl: string;
+      filename: string;
+      rawSource: string;
+      template?: ImportTemplate;
+      systemPrompt?: string;
+      chunkSize?: number;
+    }>) => void;
     onclose: () => void;
   }
 
@@ -214,10 +221,17 @@
   function generate() {
     if (!loadedFiles.length) { errorMsg = 'Drop or select files above first.'; return; }
     errorMsg = '';
-    const results: Array<{ jsonl: string; filename: string; rawSource: string }> = [];
+    const results: Array<{ jsonl: string; filename: string; rawSource: string; template?: ImportTemplate; systemPrompt?: string; chunkSize?: number }> = [];
     for (const f of loadedFiles) {
       const output = buildOutput(f.text);
-      if (output.trim()) results.push({ jsonl: output, filename: f.name, rawSource: f.text });
+      if (output.trim()) results.push({
+        jsonl: output,
+        filename: f.name,
+        rawSource: f.text,
+        template,
+        systemPrompt,
+        chunkSize,
+      });
     }
     if (!results.length) { errorMsg = 'No text found in loaded files.'; return; }
     ongenerate(results);

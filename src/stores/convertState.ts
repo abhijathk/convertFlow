@@ -32,6 +32,12 @@ export interface DatasetFile {
   content: string; // JSONL lines joined with \n (the converted output)
   rawSource?: string; // original extracted text (e.g., raw MD/PDF/DOCX before chunking)
   formatOverride?: ExportFormat | null;
+  // Snapshot of the import-panel settings used when this file was generated.
+  // Allows preset switches to re-run conversion from rawSource without
+  // re-uploading the document.
+  importTemplate?: import('../lib/convert-import').ImportTemplate;
+  importSystemPrompt?: string;
+  importChunkSize?: number;
 }
 
 export interface ConvertState {
