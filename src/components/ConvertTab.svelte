@@ -177,8 +177,7 @@
     importSystemPrompt?: string,
     importChunkSize?: number,
     importPrompts?: string[],
-    importPromptPools?: Partial<Record<import('../lib/convert-import').ImportTemplate, string[]>>,
-    importPromptMode?: 'round-robin' | 'random' | 'pool-by-template',
+    importPromptMode?: 'round-robin' | 'random',
     importPromptSeed?: number,
   ) {
     const lines = content.split('\n').filter(l => l.trim());
@@ -194,7 +193,6 @@
       importSystemPrompt,
       importChunkSize,
       importPrompts,
-      importPromptPools,
       importPromptMode,
       importPromptSeed,
     };
@@ -381,20 +379,14 @@
         const size = f.importChunkSize ?? 512;
         let newJsonl: string;
 
-        const useMulti = f.importPromptMode && (
-          (f.importPromptMode === 'pool-by-template' && f.importPromptPools) ||
-          ((f.importPromptMode === 'round-robin' || f.importPromptMode === 'random') && f.importPrompts && f.importPrompts.length >= 2)
-        );
-
-        if (useMulti) {
+        if (f.importPromptMode && f.importPrompts && f.importPrompts.length >= 2) {
           newJsonl = fileToConversationalJsonlMulti(
             f.rawSource,
             tmpl,
             {
-              mode: f.importPromptMode!,
+              mode: f.importPromptMode,
               seed: f.importPromptSeed,
               prompts: f.importPrompts,
-              promptPools: f.importPromptPools,
             },
             size,
           );
@@ -831,7 +823,7 @@
   <ConvertImportPanel
     exportFormat={$convertState.exportFormat}
     existingNames={$convertState.datasetFiles.map(f => f.name)}
-    ongenerate={(results) => { for (const r of results) addToDataset(r.filename, r.jsonl, r.rawSource, r.template, r.systemPrompt, r.chunkSize, r.prompts, r.promptPools, r.promptMode, r.promptSeed); showImportPanel = false; }}
+    ongenerate={(results) => { for (const r of results) addToDataset(r.filename, r.jsonl, r.rawSource, r.template, r.systemPrompt, r.chunkSize, r.prompts, r.promptMode, r.promptSeed); showImportPanel = false; }}
     onclose={() => (showImportPanel = false)}
   />
 {/if}

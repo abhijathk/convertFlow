@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fileToConversationalJsonl, fileToConversationalJsonlMulti } from '../lib/convert-import';
   import { chunkText } from '../lib/chunk';
-  import type { ImportTemplate, PromptRotationMode } from '../lib/convert-import';
+  import type { ImportTemplate } from '../lib/convert-import';
   import type { ExportFormat } from '../stores/convertState';
   import { extractPdfText, extractPdfTextWithOcr } from '../lib/pdf-loader';
   import ChunkLoader from './ChunkLoader.svelte';
@@ -17,8 +17,7 @@
       systemPrompt?: string;
       chunkSize?: number;
       prompts?: string[];
-      promptPools?: Partial<Record<ImportTemplate, string[]>>;
-      promptMode?: PromptRotationMode;
+      promptMode?: 'round-robin' | 'random';
       promptSeed?: number;
     }>) => void;
     onclose: () => void;
@@ -64,6 +63,24 @@
 
   const templateIds: ImportTemplate[] = ['qa', 'context-answer', 'instruct'];
 
+  const TEMPLATE_DEFAULT_PROMPTS: Record<ImportTemplate, string[]> = {
+    'qa': [
+      'You are a helpful assistant.',
+      'Answer the user\'s question clearly and concisely.',
+      'Provide accurate, helpful responses to questions.',
+    ],
+    'context-answer': [
+      'Answer based only on the provided context.',
+      'Use the passage below to answer the question accurately.',
+      'Reference the context to give your response — do not use outside knowledge.',
+    ],
+    'instruct': [
+      'Summarize the following passage.',
+      'Generate a concise summary of the text below.',
+      'Provide a TL;DR for this content.',
+    ],
+  };
+
   // ── State ─────────────────────────────────────────────────────────────────
 
   let template: ImportTemplate = $state('qa');
@@ -83,66 +100,53 @@
   let confirmingAdvanced = $state(false);
   let advancedDialogOpen = $state(false);
   let multiPromptEnabled = $state(false);
-  let multiPromptMode = $state<PromptRotationMode>('round-robin');
+  let multiPromptMode = $state<'round-robin' | 'random'>('round-robin');
   let multiPromptSeed = $state(42);
-
-  // For round-robin and random
   let multiPrompts = $state<string[]>([]);
-  // For pool-by-template — three separate lists
-  let poolQa = $state<string[]>([]);
-  let poolContext = $state<string[]>([]);
-  let poolInstruct = $state<string[]>([]);
 
-  function poolFor(t: ImportTemplate): string[] {
-    if (t === 'qa') return poolQa;
-    if (t === 'context-answer') return poolContext;
-    return poolInstruct;
+  // Template-switch offer
+  let confirmingTemplateSwitch = $state(false);
+  let lastSeenTemplate = $state<ImportTemplate | null>(null);
+
+  $effect(() => {
+    // Skip the first run (initial mount); only react to subsequent changes.
+    if (lastSeenTemplate === null) { lastSeenTemplate = template; return; }
+    if (lastSeenTemplate === template) return;
+    lastSeenTemplate = template;
+    if (multiPromptEnabled && multiPrompts.length > 0) {
+      confirmingTemplateSwitch = true;
+    }
+  });
+
+  function loadNewTemplateDefaults() {
+    multiPrompts = [...TEMPLATE_DEFAULT_PROMPTS[template], ''];
+    confirmingTemplateSwitch = false;
   }
-  function setPool(t: ImportTemplate, list: string[]) {
-    if (t === 'qa') poolQa = list;
-    else if (t === 'context-answer') poolContext = list;
-    else poolInstruct = list;
+  function keepCurrentPrompts() {
+    confirmingTemplateSwitch = false;
   }
 
   function openAdvancedWarning() { confirmingAdvanced = true; }
   function dismissAdvancedWarning() { confirmingAdvanced = false; }
   function acceptAdvancedWarning() {
     confirmingAdvanced = false;
-    // Seed sensible defaults the first time
-    if (multiPrompts.length === 0) multiPrompts = [systemPrompt, ''];
-    if (poolQa.length === 0) poolQa = ['You are a helpful assistant.', ''];
-    if (poolContext.length === 0) poolContext = ['Answer the question based only on the provided context.', ''];
-    if (poolInstruct.length === 0) poolInstruct = ['Summarize the following passage.', ''];
+    if (multiPrompts.length === 0) {
+      multiPrompts = [...TEMPLATE_DEFAULT_PROMPTS[template], ''];
+    }
     advancedDialogOpen = true;
   }
   function closeAdvancedDialog() { advancedDialogOpen = false; }
 
   function saveAdvanced() {
     // Trim + drop empty rows
-    const trim = (a: string[]) => a.map(p => p.trim()).filter(p => p.length > 0);
-    if (multiPromptMode === 'pool-by-template') {
-      poolQa = trim(poolQa);
-      poolContext = trim(poolContext);
-      poolInstruct = trim(poolInstruct);
-      const valid = (poolQa.length >= 2 || poolContext.length >= 2 || poolInstruct.length >= 2);
-      multiPromptEnabled = valid;
-    } else {
-      multiPrompts = trim(multiPrompts);
-      multiPromptEnabled = multiPrompts.length >= 2;
-    }
+    multiPrompts = multiPrompts.map(p => p.trim()).filter(p => p.length > 0);
+    multiPromptEnabled = multiPrompts.length >= 2;
     advancedDialogOpen = false;
   }
 
   function disableMultiPrompt() { multiPromptEnabled = false; }
   function addPromptRow() { multiPrompts = [...multiPrompts, '']; }
   function removePromptRow(i: number) { multiPrompts = multiPrompts.filter((_, j) => j !== i); }
-  function addPoolRow(t: ImportTemplate) { setPool(t, [...poolFor(t), '']); }
-  function removePoolRow(t: ImportTemplate, i: number) { setPool(t, poolFor(t).filter((_, j) => j !== i)); }
-  function updatePoolRow(t: ImportTemplate, i: number, v: string) {
-    const next = [...poolFor(t)];
-    next[i] = v;
-    setPool(t, next);
-  }
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
@@ -170,10 +174,7 @@
         return fileToConversationalJsonlMulti(text, tmpl, {
           mode: multiPromptMode,
           seed: multiPromptSeed,
-          prompts: multiPromptMode === 'pool-by-template' ? undefined : multiPrompts,
-          promptPools: multiPromptMode === 'pool-by-template'
-            ? { 'qa': poolQa, 'context-answer': poolContext, 'instruct': poolInstruct }
-            : undefined,
+          prompts: multiPrompts,
         }, chunkSize);
       }
       return fileToConversationalJsonl(text, tmpl, systemPrompt, chunkSize);
@@ -309,8 +310,7 @@
       systemPrompt?: string;
       chunkSize?: number;
       prompts?: string[];
-      promptPools?: Partial<Record<ImportTemplate, string[]>>;
-      promptMode?: PromptRotationMode;
+      promptMode?: 'round-robin' | 'random';
       promptSeed?: number;
     }> = [];
 
@@ -325,10 +325,7 @@
           systemPrompt,
           chunkSize,
           ...(multiPromptEnabled ? {
-            prompts: multiPromptMode === 'pool-by-template' ? undefined : multiPrompts,
-            promptPools: multiPromptMode === 'pool-by-template'
-              ? { 'qa': poolQa, 'context-answer': poolContext, 'instruct': poolInstruct }
-              : undefined,
+            prompts: multiPrompts,
             promptMode: multiPromptMode,
             promptSeed: multiPromptSeed,
           } : {}),
@@ -452,9 +449,7 @@
       {#if multiPromptEnabled}
         <span class="advanced-label">multi-prompt:</span>
         <span class="multi-prompt-summary">
-          {multiPromptMode === 'pool-by-template'
-            ? `pools: qa ${poolQa.length} · ctx ${poolContext.length} · inst ${poolInstruct.length}`
-            : `${multiPrompts.length} prompts · ${multiPromptMode}${multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}`}
+          {multiPrompts.length} prompts · {multiPromptMode}{multiPromptMode === 'random' ? ` (seed ${multiPromptSeed})` : ''}
         </span>
         <button type="button" class="advanced-btn" onclick={() => (advancedDialogOpen = true)}>edit…</button>
         <button type="button" class="advanced-btn off" onclick={disableMultiPrompt}>disable</button>
@@ -526,10 +521,6 @@
           <input type="radio" bind:group={multiPromptMode} value="random" />
           random (seeded, reproducible)
         </label>
-        <label class="advanced-radio">
-          <input type="radio" bind:group={multiPromptMode} value="pool-by-template" />
-          pool by template (separate prompts per Q&A / context-answer / instruct)
-        </label>
       </div>
 
       {#if multiPromptMode === 'random'}
@@ -547,60 +538,54 @@
         </div>
       {/if}
 
-      {#if multiPromptMode === 'pool-by-template'}
-        {#each (['qa', 'context-answer', 'instruct'] as ImportTemplate[]) as tpl (tpl)}
-          <div class="advanced-pool-group">
-            <span class="advanced-field-label">{tpl}:</span>
-            {#each poolFor(tpl) as p, i (i)}
-              <div class="advanced-prompt-row">
-                <span class="advanced-prompt-index">{i + 1}</span>
-                <textarea
-                  class="advanced-prompt-input"
-                  value={p}
-                  oninput={(e) => updatePoolRow(tpl, i, (e.target as HTMLTextAreaElement).value)}
-                  placeholder="Prompt {i + 1} for {tpl}"
-                  rows="2"
-                ></textarea>
-                <button
-                  type="button"
-                  class="advanced-prompt-remove"
-                  onclick={() => removePoolRow(tpl, i)}
-                  disabled={poolFor(tpl).length <= 1}
-                  aria-label="Remove prompt {i + 1}"
-                >×</button>
-              </div>
-            {/each}
-            <button type="button" class="advanced-prompt-add" onclick={() => addPoolRow(tpl)}>+ add prompt for {tpl}</button>
+      <div class="advanced-prompts">
+        <span class="advanced-field-label">Prompts:</span>
+        {#each multiPrompts as _, i (i)}
+          <div class="advanced-prompt-row">
+            <span class="advanced-prompt-index">{i + 1}</span>
+            <textarea
+              class="advanced-prompt-input"
+              bind:value={multiPrompts[i]}
+              placeholder={TEMPLATE_DEFAULT_PROMPTS[template][i % TEMPLATE_DEFAULT_PROMPTS[template].length]}
+              rows="2"
+            ></textarea>
+            <button
+              type="button"
+              class="advanced-prompt-remove"
+              onclick={() => removePromptRow(i)}
+              disabled={multiPrompts.length <= 1}
+              aria-label="Remove prompt {i + 1}"
+            >×</button>
           </div>
         {/each}
-      {:else}
-        <div class="advanced-prompts">
-          <span class="advanced-field-label">Prompts:</span>
-          {#each multiPrompts as _, i (i)}
-            <div class="advanced-prompt-row">
-              <span class="advanced-prompt-index">{i + 1}</span>
-              <textarea
-                class="advanced-prompt-input"
-                bind:value={multiPrompts[i]}
-                placeholder="System prompt {i + 1}"
-                rows="2"
-              ></textarea>
-              <button
-                type="button"
-                class="advanced-prompt-remove"
-                onclick={() => removePromptRow(i)}
-                disabled={multiPrompts.length <= 1}
-                aria-label="Remove prompt {i + 1}"
-              >×</button>
-            </div>
-          {/each}
-          <button type="button" class="advanced-prompt-add" onclick={addPromptRow}>+ add prompt</button>
-        </div>
-      {/if}
+        <button
+          type="button"
+          class="advanced-prompt-add"
+          onclick={() => { multiPrompts = [...TEMPLATE_DEFAULT_PROMPTS[template], '']; }}
+          title="Replace current prompts with the recommended defaults for the {template} template"
+        >↺ load defaults for {currentDef.label}</button>
+        <button type="button" class="advanced-prompt-add" onclick={addPromptRow}>+ add prompt</button>
+      </div>
 
       <div class="advanced-actions">
         <button class="advanced-confirm-btn danger" onclick={saveAdvanced}>save</button>
         <button class="advanced-confirm-btn" onclick={closeAdvancedDialog}>cancel</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if confirmingTemplateSwitch}
+  <div class="advanced-overlay" role="dialog" aria-modal="true" aria-labelledby="tpl-switch-title">
+    <div class="advanced-box">
+      <p class="advanced-title" id="tpl-switch-title">Template changed to {currentDef.label}</p>
+      <p class="advanced-sub">
+        Your multi-prompt list was tailored for the previous template. Load the recommended prompts
+        for <strong>{currentDef.label}</strong> instead, or keep your current list?
+      </p>
+      <div class="advanced-actions">
+        <button class="advanced-confirm-btn danger" onclick={loadNewTemplateDefaults}>load defaults</button>
+        <button class="advanced-confirm-btn" onclick={keepCurrentPrompts}>keep current</button>
       </div>
     </div>
   </div>

@@ -2,13 +2,10 @@ import { chunkText } from './chunk';
 
 export type ImportTemplate = 'qa' | 'context-answer' | 'instruct';
 
-export type PromptRotationMode = 'round-robin' | 'random' | 'pool-by-template';
+export type PromptRotationMode = 'round-robin' | 'random';
 
 export interface MultiPromptOptions {
-  // For 'round-robin' and 'random': flat list of prompts cycled across chunks.
-  prompts?: string[];
-  // For 'pool-by-template': each template id maps to its own list of prompts.
-  promptPools?: Partial<Record<ImportTemplate, string[]>>;
+  prompts: string[];
   mode: PromptRotationMode;
   seed?: number; // only used when mode === 'random' (defaults to 42 if absent)
 }
@@ -74,30 +71,20 @@ export function fileToConversationalJsonlMulti(
   const chunks = chunkText(text, 'fixed', { maxTokens: chunkSize, overlap: 0 })
     .filter(c => c.text.trim().length > 0);
 
-  // Resolve the prompt list for this mode up front (except pool — resolved per chunk).
-  let prompts: string[] = [];
-  let rng: (() => number) | null = null;
+  const prompts = multi.prompts;
+  if (!prompts || prompts.length === 0) {
+    throw new Error(`multi-prompt: prompt list is empty for mode ${multi.mode}`);
+  }
 
-  if (multi.mode === 'pool-by-template') {
-    const pool = multi.promptPools?.[template];
-    if (!pool || pool.length === 0) {
-      throw new Error(`multi-prompt: prompt list is empty for mode pool-by-template (template: ${template})`);
-    }
-    prompts = pool;
-  } else {
-    prompts = multi.prompts ?? [];
-    if (prompts.length === 0) {
-      throw new Error(`multi-prompt: prompt list is empty for mode ${multi.mode}`);
-    }
-    if (multi.mode === 'random') {
-      rng = mulberry32(multi.seed ?? 42);
-    }
+  let rng: (() => number) | null = null;
+  if (multi.mode === 'random') {
+    rng = mulberry32(multi.seed ?? 42);
   }
 
   return chunks
     .map(({ text: chunk }, i) => {
       let prompt: string;
-      if (multi.mode === 'round-robin' || multi.mode === 'pool-by-template') {
+      if (multi.mode === 'round-robin') {
         prompt = prompts[i % prompts.length];
       } else {
         // random
