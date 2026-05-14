@@ -316,48 +316,51 @@
 
   .file-row.selected .file-name { color: var(--ink); }
 
+  /* Shared sizing for the three controls on the bottom row so they line
+     up visually: same height, same font, same padding. Each keeps its own
+     colour treatment (neutral select, accent editor, red-on-hover remove). */
+  .fmt-select,
+  .open-editor-btn,
+  .remove-btn {
+    height: 24px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 0 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
   .fmt-select {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 2px;
     color: var(--ink-dim);
-    font-family: inherit;
-    font-size: 10px;
-    padding: 1px 2px;
-    cursor: pointer;
-    flex-shrink: 0;
-    max-width: 52px;
+    min-width: 64px;
   }
-
   .fmt-select:focus { outline: 1px solid var(--accent); }
-
-  .remove-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
-    color: var(--muted);
-    padding: 2px 6px;
-    line-height: 1;
-    border-radius: 3px;
-    flex-shrink: 0;
-    font-weight: 500;
-  }
-
-  .remove-btn:hover { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
 
   .open-editor-btn {
     background: none;
     border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 10px;
     color: var(--accent);
-    padding: 1px 5px;
-    border-radius: 2px;
-    flex-shrink: 0;
   }
   .open-editor-btn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+  .remove-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 16px;
+    min-width: 32px;
+    padding: 0 6px;
+  }
+  .remove-btn:hover { color: var(--err); border-color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
 
   .empty-list {
     padding: 12px;
