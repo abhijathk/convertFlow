@@ -204,11 +204,6 @@
   let embeddingModelLoaded = $state(false);
   let embeddingModelToastTimer: ReturnType<typeof setTimeout> | undefined;
 
-  // Feature #3: retrieval test
-  let retrievalQuery = $state('');
-  let retrievalResults = $state<{ score: number; chunkIndex: number; preview: string; source?: string }[]>([]);
-  let isComputingEmbeddings = $state(false);
-  let retrievalDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Format-specific source-panel rendering. Image data lives in chunkState
   // (sourceImageData / sourceImageFilename) so the source preview shows it

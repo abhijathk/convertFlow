@@ -317,7 +317,6 @@
               </select>
             </div>
           </div>
-        </div>
 
           <div class="setting-row stacked">
             <span>OpenAI API key <span class="key-hint">(for fine-tune push)</span></span>
@@ -414,31 +413,29 @@
                 <option value="random">random</option>
               </select>
             </label>
+            <div class="setting-row stacked">
+              <span>Local LLM endpoint <span class="key-hint">(Ollama / LM Studio)</span></span>
+              <input
+                type="text"
+                class="key-input"
+                value={$appSettings.localLlmEndpoint}
+                placeholder="http://localhost:11434"
+                autocomplete="off"
+                oninput={(e) => updateAppSetting('localLlmEndpoint', e.currentTarget.value)}
+              />
+            </div>
+            <div class="setting-row stacked">
+              <span>Local LLM model</span>
+              <input
+                type="text"
+                class="key-input"
+                value={$appSettings.localLlmModel}
+                placeholder="llama3.1"
+                autocomplete="off"
+                oninput={(e) => updateAppSetting('localLlmModel', e.currentTarget.value)}
+              />
+            </div>
           {/if}
-        </div>
-
-          <div class="setting-row stacked">
-            <span>Local LLM endpoint <span class="key-hint">(Ollama / LM Studio)</span></span>
-            <input
-              type="text"
-              class="key-input"
-              value={$appSettings.localLlmEndpoint}
-              placeholder="http://localhost:11434"
-              autocomplete="off"
-              oninput={(e) => updateAppSetting('localLlmEndpoint', e.currentTarget.value)}
-            />
-          </div>
-          <div class="setting-row stacked">
-            <span>Local LLM model</span>
-            <input
-              type="text"
-              class="key-input"
-              value={$appSettings.localLlmModel}
-              placeholder="llama3.1"
-              autocomplete="off"
-              oninput={(e) => updateAppSetting('localLlmModel', e.currentTarget.value)}
-            />
-          </div>
         </div>
 
         <div class="settings-section" id="settings-section-privacy">
