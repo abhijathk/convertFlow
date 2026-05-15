@@ -436,10 +436,6 @@
 
         <div class="settings-section" id="settings-section-support">
           <span class="settings-label">support</span>
-          <div class="setting-row">
-            <span>Buy me a coffee</span>
-            <button class="settings-action" onclick={() => openExternal('https://buymeacoffee.com/abhijathkat')}>Buy Me a Coffee ↗</button>
-          </div>
           <div class="setting-row stacked">
             <a class="about-link" href="mailto:support@quakkainfo.com?subject=Sponsor a feature">Sponsor a feature →</a>
             <a class="about-link" href="mailto:support@quakkainfo.com?subject=Bug report">Report a bug →</a>
