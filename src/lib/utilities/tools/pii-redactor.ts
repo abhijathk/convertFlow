@@ -1,4 +1,5 @@
 import type { UtilityToolModule, UtilityPayload, UtilityResult } from '../types';
+import type { ProgressCallback } from '@huggingface/transformers';
 
 export interface PiiMatch {
   type: string;
@@ -7,6 +8,10 @@ export interface PiiMatch {
   value: string;
   line: number;
   column: number;
+  /** Score in [0,1]; 1 for regex matches, confidence score for NER. */
+  score?: number;
+  /** True when found by neural NER rather than regex. */
+  fromNer?: boolean;
 }
 
 export interface PiiResult {
@@ -320,6 +325,20 @@ const SECRET_TYPES = new Set([
   'aws-secret-key', 'aws-key', 'api-key', 'google-api-key', 'twilio-sid',
 ]);
 
+const NER_TYPE_MAP: Record<string, string> = {
+  PER: 'ner-person',
+  ORG: 'ner-organization',
+  LOC: 'ner-location',
+  MISC: 'ner-misc',
+};
+
+const TAG_FOR_NER_TYPE: Record<string, string> = {
+  'ner-person': 'PERSON',
+  'ner-organization': 'ORG',
+  'ner-location': 'LOCATION',
+  'ner-misc': 'MISC',
+};
+
 const piiRedactor: UtilityToolModule = {
   id: 'pii-redactor',
   name: 'PII Detector',
@@ -330,6 +349,9 @@ const piiRedactor: UtilityToolModule = {
     const enabledTypes = (payload.options?.enabledTypes as string[] | undefined) ?? DETECTORS.map(d => d.type);
     const modes = (payload.options?.modes as Record<string, RedactMode> | undefined) ?? {};
     const doRedact = (payload.options?.redact as boolean | undefined) ?? false;
+    const useNeural = (payload.options?.useNeural as boolean | undefined) ?? false;
+    const nerThreshold = (payload.options?.nerThreshold as number | undefined) ?? 0.85;
+    const onProgress = payload.options?.onProgress as ((loaded: number, total: number) => void) | undefined;
 
     const rawMatches: PiiMatch[] = [];
     let capped = false;
@@ -346,13 +368,44 @@ const piiRedactor: UtilityToolModule = {
         if (det.postFilter && !det.postFilter(m[0])) continue;
         if (rawMatches.length >= MAX_MATCHES) { capped = true; break; }
         const { line, column } = getLineCol(lineStarts, m.index);
-        rawMatches.push({ type: det.type, start: m.index, end: m.index + m[0].length, value: m[0], line, column });
+        rawMatches.push({ type: det.type, start: m.index, end: m.index + m[0].length, value: m[0], line, column, score: 1 });
       }
       if (capped || timedOut) break;
     }
 
+    // Neural NER pass — runs after regex so regex positions act as high-water marks for dedup
+    if (useNeural && !capped && !timedOut) {
+      try {
+        const { detectNamedEntities } = await import('../../ner-pii');
+        const entities = await detectNamedEntities(raw, onProgress);
+        for (const ent of entities) {
+          if (ent.score < nerThreshold) continue;
+          if (rawMatches.length >= MAX_MATCHES) { capped = true; break; }
+          const nerType = NER_TYPE_MAP[ent.type] ?? 'ner-misc';
+          const { line, column } = getLineCol(lineStarts, ent.start);
+          rawMatches.push({
+            type: nerType,
+            start: ent.start,
+            end: ent.end,
+            value: ent.entity,
+            line,
+            column,
+            score: ent.score,
+            fromNer: true,
+          });
+        }
+      } catch {
+        // Neural NER failed — continue with regex results only
+      }
+    }
+
     // Sort by start offset, then by length descending (longer/more-specific wins overlap)
-    rawMatches.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+    // Regex matches (score=1, fromNer=undefined) sort before NER matches at same position
+    rawMatches.sort((a, b) =>
+      a.start - b.start ||
+      (b.end - b.start) - (a.end - a.start) ||
+      (a.fromNer ? 1 : 0) - (b.fromNer ? 1 : 0)
+    );
 
     // Deduplicate overlapping spans: keep the first (longest) match at each span
     const allMatches: PiiMatch[] = [];
@@ -378,7 +431,10 @@ const piiRedactor: UtilityToolModule = {
         if (match.start < cursor) continue;
         parts.push(raw.slice(cursor, match.start));
         const mode: RedactMode = modes[match.type] ?? 'mask';
-        const tag = TAG_FOR_TYPE[match.type] ?? match.type.toUpperCase();
+        const tag =
+          TAG_FOR_TYPE[match.type] ??
+          TAG_FOR_NER_TYPE[match.type] ??
+          match.type.toUpperCase();
         if (mode === 'strip') {
           // nothing
         } else if (mode === 'hash') {

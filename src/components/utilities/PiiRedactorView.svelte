@@ -22,6 +22,12 @@
   let result = $state<UtilityResult | null>(null);
   let running = $state(false);
 
+  // Neural NER state
+  let useNeural = $state(false);
+  let nerThreshold = $state(0.85);
+  let nerModelProgress = $state<{ loaded: number; total: number } | null>(null);
+  let nerModelReady = $state(false);
+
   type DetectorGroup = 'identifier' | 'financial' | 'network' | 'secret' | 'health';
   type DetectorConfig = { type: string; label: string; group: DetectorGroup; enabled: boolean; mode: RedactMode; approximate?: boolean };
 
@@ -94,14 +100,28 @@
     result = null;
   }
 
+  function makeNerProgress() {
+    return (loaded: number, total: number) => {
+      nerModelProgress = { loaded, total };
+      if (loaded >= total && total > 0) {
+        nerModelReady = true;
+        nerModelProgress = null;
+      }
+    };
+  }
+
   async function scan() {
     if (!toolState.primaryInput) return;
     running = true;
+    nerModelProgress = null;
     result = await runUtility(meta.id, {
       input: toolState.primaryInput,
       options: {
         enabledTypes: detectors.filter(d => d.enabled).map(d => d.type),
         redact: false,
+        useNeural,
+        nerThreshold,
+        onProgress: useNeural ? makeNerProgress() : undefined,
       },
     });
     running = false;
@@ -110,6 +130,7 @@
   async function redact() {
     if (!toolState.primaryInput) return;
     running = true;
+    nerModelProgress = null;
     const modes: Record<string, RedactMode> = {};
     for (const d of detectors) modes[d.type] = d.mode;
     result = await runUtility(meta.id, {
@@ -118,6 +139,9 @@
         enabledTypes: detectors.filter(d => d.enabled).map(d => d.type),
         redact: true,
         modes,
+        useNeural,
+        nerThreshold,
+        onProgress: useNeural ? makeNerProgress() : undefined,
       },
     });
     running = false;
@@ -160,14 +184,26 @@
     'driver-license-us': '#4338ca',
     // health — rose
     'medicare-id':       '#db2777',
+    // NER entities — teal/purple gradient
+    'ner-person':        '#06b6d4',
+    'ner-organization':  '#8b5cf6',
+    'ner-location':      '#10b981',
+    'ner-misc':          '#64748b',
   };
 
   function colorFor(type: string): string {
     return TYPE_COLORS[type] ?? '#6b7280';
   }
 
+  const NER_LABELS: Record<string, string> = {
+    'ner-person': 'Person (NER)',
+    'ner-organization': 'Organization (NER)',
+    'ner-location': 'Location (NER)',
+    'ner-misc': 'Misc Entity (NER)',
+  };
+
   function labelFor(type: string): string {
-    return detectors.find(d => d.type === type)?.label ?? type;
+    return detectors.find(d => d.type === type)?.label ?? NER_LABELS[type] ?? type;
   }
 
   function hasSecretMatches(d: PiiResult): boolean {
@@ -247,6 +283,53 @@
       </div>
     </details>
   {/each}
+</div>
+
+<div class="neural-section">
+  <label class="neural-check">
+    <input
+      type="checkbox"
+      bind:checked={useNeural}
+      onchange={() => (result = null)}
+    />
+    <span class="neural-label">Neural NER</span>
+    <span class="neural-hint">(catches contextual names, organisations, locations — ~50 MB BERT model, downloaded once)</span>
+  </label>
+  {#if useNeural}
+    <div class="ner-threshold-row">
+      <label class="field-label" for="ner-threshold" style="margin-bottom:0">Confidence threshold</label>
+      <input
+        id="ner-threshold"
+        type="range"
+        min="0.5"
+        max="1"
+        step="0.01"
+        bind:value={nerThreshold}
+        oninput={() => (result = null)}
+        class="threshold-range"
+      />
+      <span class="threshold-val">{(nerThreshold * 100).toFixed(0)}%</span>
+    </div>
+    {#if !nerModelReady && !nerModelProgress}
+      <p class="ner-status-hint">Model will be downloaded (~50 MB) on first run and cached in your browser.</p>
+    {/if}
+    {#if nerModelProgress}
+      <div class="ner-progress" role="status" aria-live="polite">
+        <span class="ner-progress-label">Downloading BERT NER model…</span>
+        <div class="ner-progress-bar">
+          <div
+            class="ner-progress-fill"
+            style="width:{nerModelProgress.total > 0 ? Math.min(100, (nerModelProgress.loaded / nerModelProgress.total) * 100).toFixed(1) : 0}%"
+          ></div>
+        </div>
+        <span class="ner-progress-pct">
+          {nerModelProgress.total > 0
+            ? ((nerModelProgress.loaded / nerModelProgress.total) * 100).toFixed(0)
+            : 0}%
+        </span>
+      </div>
+    {/if}
+  {/if}
 </div>
 
 <div class="run-row">
@@ -614,6 +697,97 @@
     font-size: 13px;
     color: var(--ink);
   }
+  .neural-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: 4px;
+    padding: 10px 14px;
+  }
+  .neural-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    flex-wrap: wrap;
+  }
+  .neural-check input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+  .neural-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .neural-hint {
+    font-size: 11px;
+    color: var(--ink-dim);
+    line-height: 1.4;
+  }
+  .ner-threshold-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .threshold-range {
+    flex: 1;
+    min-width: 100px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .threshold-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+  }
+  .ner-status-hint {
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin: 0;
+    font-style: italic;
+  }
+  .ner-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ner-progress-label {
+    font-size: 11px;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
+  .ner-progress-bar {
+    flex: 1;
+    min-width: 80px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .ner-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .ner-progress-pct {
+    font-size: 11px;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+  }
+
   @media (max-width: 480px) {
     .detector-grid { grid-template-columns: 1fr; }
     .run-row { flex-direction: column; }

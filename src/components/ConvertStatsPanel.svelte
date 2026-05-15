@@ -177,6 +177,102 @@
     return { cost: (totalTokens / 1_000_000) * perM, perMTokens: perM };
   }
 
+  // ── DEITA quality scoring ────────────────────────────────────────────────────
+
+  import type { DeitaScoreRow } from '../lib/quality-score';
+
+  const DEITA_ROW_LIMIT = 5000;
+  const HISTOGRAM_BUCKETS = 10;
+
+  let deitaScores = $state<DeitaScoreRow[] | null>(null);
+  let deitaRunning = $state(false);
+  let deitaProgress = $state<{ done: number; total: number } | null>(null);
+  let deitaError = $state<string | null>(null);
+  let deitaAbort: AbortController | null = null;
+
+  // Filter-to-top-N dialog
+  let filterDialogOpen = $state(false);
+  let filterN = $state(500);
+  let filterConfirming = $state(false);
+
+  function deitaHistogram(scores: DeitaScoreRow[]): number[] {
+    const buckets = new Array<number>(HISTOGRAM_BUCKETS).fill(0);
+    for (const row of scores) {
+      const idx = Math.min(HISTOGRAM_BUCKETS - 1, Math.floor(row.combined * HISTOGRAM_BUCKETS));
+      buckets[idx]++;
+    }
+    return buckets;
+  }
+
+  async function runDeita(forceAll = false) {
+    const content = $convertState.editorContent;
+    const lines = content.split('\n').filter(l => l.trim());
+    if (lines.length === 0) return;
+
+    if (!forceAll && lines.length > DEITA_ROW_LIMIT) return; // guarded by UI
+
+    deitaAbort?.abort();
+    deitaAbort = new AbortController();
+    const signal = deitaAbort.signal;
+
+    deitaRunning = true;
+    deitaScores = null;
+    deitaError = null;
+    deitaProgress = { done: 0, total: lines.length * 3 };
+
+    try {
+      const { computeDeitaScores } = await import('../lib/quality-score');
+      const scores = await computeDeitaScores(
+        lines,
+        (done, total) => { deitaProgress = { done, total }; },
+        signal,
+      );
+      deitaScores = scores;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        // cancelled
+      } else {
+        deitaError = e instanceof Error ? e.message : String(e);
+      }
+    } finally {
+      deitaRunning = false;
+      deitaProgress = null;
+    }
+  }
+
+  function cancelDeita() {
+    deitaAbort?.abort();
+    deitaRunning = false;
+    deitaProgress = null;
+  }
+
+  function openFilterDialog() {
+    filterDialogOpen = true;
+    filterConfirming = false;
+  }
+
+  function closeFilterDialog() {
+    filterDialogOpen = false;
+    filterConfirming = false;
+  }
+
+  function applyTopNFilter() {
+    if (!deitaScores) return;
+    const content = $convertState.editorContent;
+    const lines = content.split('\n').filter(l => l.trim());
+    if (lines.length === 0) return;
+
+    // Sort indices by combined score descending, take top N
+    const indexed = deitaScores.map((s, i) => ({ i, combined: s.combined }));
+    indexed.sort((a, b) => b.combined - a.combined);
+    const topIndices = new Set(indexed.slice(0, filterN).map(x => x.i));
+    const filtered = lines.filter((_, i) => topIndices.has(i));
+
+    convertState.update(s => ({ ...s, editorContent: filtered.join('\n') }));
+    deitaScores = null; // reset scores since data changed
+    filterDialogOpen = false;
+  }
+
   // ── Export report ────────────────────────────────────────────────────────────
 
   let exportFormat = $state<'md' | 'csv'>('md');
@@ -674,8 +770,121 @@
       </div>
 
     </div>
+
+    <!-- Quality Distribution (DEITA scoring) -->
+    {#if stats}
+      {@const rowCount = $convertState.editorContent.split('\n').filter(l => l.trim()).length}
+      <div class="quality-section" role="region" aria-label="Quality distribution">
+        <div class="quality-header">
+          <span class="card-label">Quality Distribution (DEITA)</span>
+          <div class="quality-actions">
+            {#if deitaRunning}
+              <button class="cancel-btn" onclick={cancelDeita}>Cancel</button>
+            {:else if rowCount > DEITA_ROW_LIMIT}
+              <span class="deita-limit-note">{rowCount.toLocaleString()} rows — large dataset</span>
+              <button class="run-quality-btn" onclick={() => runDeita(true)}>Run on full dataset</button>
+            {:else}
+              <button class="run-quality-btn" onclick={() => runDeita(false)}>
+                {deitaScores ? 'Recompute' : 'Compute scores'}
+              </button>
+            {/if}
+            {#if deitaScores}
+              <button class="filter-btn" onclick={openFilterDialog}>Filter to top N</button>
+            {/if}
+          </div>
+        </div>
+
+        {#if deitaRunning && deitaProgress}
+          <div class="deita-progress" role="status" aria-live="polite">
+            <div class="deita-prog-bar">
+              <div
+                class="deita-prog-fill"
+                style="width:{deitaProgress.total > 0 ? ((deitaProgress.done / deitaProgress.total) * 100).toFixed(1) : 0}%"
+              ></div>
+            </div>
+            <span class="deita-prog-label">
+              {deitaProgress.total > 0
+                ? ((deitaProgress.done / deitaProgress.total) * 100).toFixed(0)
+                : 0}% — computing complexity, quality, diversity…
+            </span>
+          </div>
+        {/if}
+
+        {#if deitaError}
+          <div class="deita-error" role="alert">{deitaError}</div>
+        {/if}
+
+        {#if deitaScores}
+          {@const hist = deitaHistogram(deitaScores)}
+          {@const histMax = Math.max(1, ...hist)}
+          {@const avgCombined = deitaScores.reduce((a, b) => a + b.combined, 0) / deitaScores.length}
+          <div class="deita-stats-row">
+            <div class="deita-stat"><span class="deita-stat-val">{(avgCombined * 100).toFixed(1)}%</span><span class="deita-stat-lbl">avg score</span></div>
+            <div class="deita-stat"><span class="deita-stat-val">{deitaScores.filter(s => s.combined >= 0.5).length}</span><span class="deita-stat-lbl">high quality (&ge;50%)</span></div>
+            <div class="deita-stat"><span class="deita-stat-val">{deitaScores.length}</span><span class="deita-stat-lbl">scored</span></div>
+          </div>
+          <div class="deita-histogram" role="img" aria-label="Combined quality score histogram">
+            {#each hist as count, i}
+              <div class="hist-col">
+                <div
+                  class="hist-bar"
+                  style="height:{histMax > 0 ? (count / histMax) * 60 : 0}px; opacity:{0.4 + (i / HISTOGRAM_BUCKETS) * 0.6}"
+                  title="{(i * 10)}–{(i + 1) * 10}%: {count} rows"
+                ></div>
+                <span class="hist-label">{i * 10}%</span>
+              </div>
+            {/each}
+          </div>
+          <span class="deita-sub-note">Complexity × quality × diversity · higher = better training value</span>
+        {:else if !deitaRunning}
+          <p class="deita-idle">
+            {rowCount > DEITA_ROW_LIMIT
+              ? `Dataset has ${rowCount.toLocaleString()} rows — click "Run on full dataset" to score (may take a minute).`
+              : 'Click "Compute scores" to run DEITA-style quality scoring.'}
+          </p>
+        {/if}
+      </div>
+    {/if}
+
   {/if}
 </div>
+
+<!-- Filter-to-top-N dialog -->
+{#if filterDialogOpen}
+  <div class="dialog-backdrop" role="presentation" onclick={closeFilterDialog}></div>
+  <div class="dialog" role="dialog" aria-modal="true" aria-label="Filter to top N rows">
+    <h3 class="dialog-title">Filter to top N by quality</h3>
+    <p class="dialog-body">
+      Keep the <strong>{filterN}</strong> highest-scoring rows and discard the rest.
+      This will overwrite the current editor content. This action cannot be undone.
+    </p>
+    <div class="dialog-input-row">
+      <label class="field-label" for="filter-n" style="margin-bottom:0">Keep top N rows</label>
+      <input
+        id="filter-n"
+        type="number"
+        min="1"
+        max={deitaScores?.length ?? 999999}
+        bind:value={filterN}
+        class="dialog-number-input"
+      />
+    </div>
+    {#if !filterConfirming}
+      <div class="dialog-btns">
+        <button class="dialog-cancel-btn" onclick={closeFilterDialog}>Cancel</button>
+        <button class="dialog-confirm-btn" onclick={() => (filterConfirming = true)}>Continue</button>
+      </div>
+    {:else}
+      <div class="dialog-confirm-warning" role="alert">
+        This will permanently remove {((deitaScores?.length ?? 0) - filterN).toLocaleString()} rows from the editor.
+      </div>
+      <div class="dialog-btns">
+        <button class="dialog-cancel-btn" onclick={() => (filterConfirming = false)}>Go back</button>
+        <button class="dialog-destructive-btn" onclick={applyTopNFilter}>Delete and filter</button>
+      </div>
+    {/if}
+  </div>
+{/if}
 
 <style>
   .stats-panel {

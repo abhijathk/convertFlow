@@ -24,6 +24,7 @@
   import SchemaMigratorView from './utilities/SchemaMigratorView.svelte';
   import JsonlRepairView from './utilities/JsonlRepairView.svelte';
   import ContaminationCheckView from './utilities/ContaminationCheckView.svelte';
+  import TokenizerInspectorView from './utilities/TokenizerInspectorView.svelte';
 
   interface Props {
     meta: UtilityMeta;
@@ -104,6 +105,8 @@
     <JsonlRepairView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {:else if meta.id === 'contamination-check'}
     <ContaminationCheckView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
+  {:else if meta.id === 'tokenizer-inspector'}
+    <TokenizerInspectorView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {/if}
 </div>
 
