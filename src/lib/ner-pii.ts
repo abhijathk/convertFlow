@@ -4,15 +4,12 @@
  * Model: ~50 MB q8 quantized.
  */
 
-import {
-  pipeline,
-  env,
-  type TokenClassificationPipeline,
-  type ProgressCallback,
+// Type-only imports — erased at compile time. The runtime is dynamically
+// imported inside the loader so it never evaluates in Node during SSR.
+import type {
+  TokenClassificationPipeline,
+  ProgressCallback,
 } from '@huggingface/transformers';
-
-env.allowLocalModels = false;
-env.useBrowserCache = true;
 
 const NER_MODEL_ID = 'Xenova/bert-base-NER';
 
@@ -52,6 +49,13 @@ export async function getNerPipeline(
   };
 
   nerLoadPromise = (async () => {
+    if (typeof window === 'undefined') {
+      throw new Error('NER can only be loaded in a browser context.');
+    }
+    const { pipeline, env } = await import('@huggingface/transformers');
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
     let ner: TokenClassificationPipeline;
     try {
       ner = await pipeline('token-classification', NER_MODEL_ID, {

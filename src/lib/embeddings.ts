@@ -5,16 +5,15 @@
  * IndexedDB caching is handled automatically by transformers.js env.
  */
 
-import {
-  pipeline,
-  env,
-  type FeatureExtractionPipeline,
-  type ProgressCallback,
+// Type-only imports are erased at compile time — safe to import statically.
+// The actual @huggingface/transformers runtime is loaded via dynamic import
+// inside getEmbeddingPipeline() so it never evaluates in Node during SSR
+// (transformers v4 pulls in onnxruntime-node which crashes on darwin-x64
+// when Node is running x86_64).
+import type {
+  FeatureExtractionPipeline,
+  ProgressCallback,
 } from '@huggingface/transformers';
-
-// Use browser cache (IndexedDB) — transformers.js handles this by default
-env.allowLocalModels = false;
-env.useBrowserCache = true;
 
 const MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
 /** Max context window for MiniLM-L6-v2 in tokens */
@@ -50,6 +49,14 @@ export async function getEmbeddingPipeline(
   };
 
   loadPromise = (async () => {
+    if (typeof window === 'undefined') {
+      throw new Error('Embeddings can only be loaded in a browser context.');
+    }
+    // Dynamic import — only runs client-side, never in Node SSR.
+    const { pipeline, env } = await import('@huggingface/transformers');
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
     // Prefer WebGPU; fall back to WASM automatically.
     let extractor: FeatureExtractionPipeline;
     try {

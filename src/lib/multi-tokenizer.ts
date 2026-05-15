@@ -6,10 +6,9 @@
  * All loaded tokenizers are cached in module state.
  */
 
-import { env } from '@huggingface/transformers';
-
-env.allowLocalModels = false;
-env.useBrowserCache = true;
+// transformers.js is loaded dynamically inside loadHfTokenizer() — keeping
+// the top-level free of any @huggingface/transformers value imports so
+// the module doesn't evaluate in Node during SSR.
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -87,7 +86,12 @@ async function getHfTokenizer(id: HfTokenizerId, onProgress?: ProgressCallbackFn
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const promise: Promise<any> = (async () => {
-    const { AutoTokenizer } = await import('@huggingface/transformers');
+    if (typeof window === 'undefined') {
+      throw new Error('HF tokenizers can only be loaded in a browser context.');
+    }
+    const { AutoTokenizer, env } = await import('@huggingface/transformers');
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const progressCb = (progress: any) => {
