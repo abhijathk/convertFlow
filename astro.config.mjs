@@ -25,7 +25,22 @@ export default defineConfig({
       // dev (EditorTab.svelte's `await import('monaco-editor')` + the
       // `?worker` imports handle this), and Rollup's prod build chunks
       // it via the manualChunks() function below.
-      exclude: ['pdfjs-dist', 'parquet-wasm', 'monaco-editor'],
+      //
+      // @huggingface/transformers + onnxruntime-node: the transformers
+      // package ships with an `onnxruntime-node` Node fallback that tries
+      // to require a platform-specific native binding (.node file).
+      // On Apple Silicon this points at darwin-x64 and crashes.
+      // We only ever use the BROWSER backend (WebGPU/WASM) anyway, so
+      // excluding these from Vite's pre-bundle keeps it from walking
+      // into the Node-only path.
+      exclude: ['pdfjs-dist', 'parquet-wasm', 'monaco-editor', '@huggingface/transformers', 'onnxruntime-node'],
+    },
+    ssr: {
+      // Don't try to externalize / evaluate transformers.js or its Node
+      // fallback during SSR — the browser-only modules can't load in Node
+      // and we don't actually render embedding UI on the server.
+      external: ['@huggingface/transformers', 'onnxruntime-node'],
+      noExternal: [],
     },
     worker: {
       format: 'es',
