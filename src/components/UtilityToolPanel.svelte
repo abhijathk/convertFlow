@@ -23,6 +23,7 @@
   import PiiRedactorView from './utilities/PiiRedactorView.svelte';
   import SchemaMigratorView from './utilities/SchemaMigratorView.svelte';
   import JsonlRepairView from './utilities/JsonlRepairView.svelte';
+  import ContaminationCheckView from './utilities/ContaminationCheckView.svelte';
 
   interface Props {
     meta: UtilityMeta;
@@ -101,6 +102,8 @@
     <SchemaMigratorView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {:else if meta.id === 'jsonl-repair'}
     <JsonlRepairView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
+  {:else if meta.id === 'contamination-check'}
+    <ContaminationCheckView {meta} {sendToEditor} {sendToConvert} {sendToChunk} />
   {/if}
 </div>
 

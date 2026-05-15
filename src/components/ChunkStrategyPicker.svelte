@@ -28,18 +28,26 @@
       label: 'Paragraph',
       description: 'Splits on blank lines and headings. Best for structured markdown/docs.',
     },
+    {
+      id: 'embedding',
+      label: 'Embedding',
+      badge: 'best',
+      description: 'Embedding-based semantic chunking. Splits at sentences where the topic shifts. Slowest, highest quality. Downloads ~23 MB model on first use.',
+    },
   ];
 
   const sizeHints: Record<ChunkStrategy, string> = {
     semantic: 'Larger chunks (512-768) capture complete topics and semantic relationships.',
     fixed: "Match to your model's context window. Smaller = more precise retrieval.",
     paragraph: 'Maximum size to merge small paragraphs. Oversized paragraphs split automatically.',
+    embedding: 'Token budget per chunk. Embedding splits are also bounded by this limit.',
   };
 
   const overlapHints: Record<ChunkStrategy, string> = {
     semantic: 'Higher overlap (80-120 tokens) preserves semantic context and topic continuity across chunks.',
     fixed: 'Overlap bridges context across fixed chunk boundaries.',
     paragraph: 'Paragraph strategy splits at natural boundaries — overlap is not applied.',
+    embedding: 'Embedding strategy splits at topic-shift boundaries — overlap is not applied.',
   };
 
   let strategy = $derived($chunkState.strategy);
@@ -48,6 +56,7 @@
   let enableImages = $derived($chunkState.enableImages);
   let enableOcr = $derived($chunkState.enableOcr);
   let maxKeywords = $derived($chunkState.maxKeywords);
+  let lateChunking = $derived($chunkState.lateChunking);
 
   function pick(id: ChunkStrategy) {
     chunkState.update(s => ({ ...s, strategy: id }));
@@ -79,6 +88,10 @@
     const val = Math.max(0, Math.min(10, Number((e.target as HTMLInputElement).value)));
     chunkState.update(s => ({ ...s, maxKeywords: val }));
   }
+
+  function toggleLateChunking() {
+    chunkState.update(s => ({ ...s, lateChunking: !s.lateChunking }));
+  }
 </script>
 
 <!-- Row 1: Strategy tabs -->
@@ -92,7 +105,7 @@
         onclick={() => pick(s.id)}
         title={s.description}
       >
-        {s.label}{#if s.badge}<span class="strategy-badge">{s.badge}</span>{/if}
+        {s.label}{#if s.badge}<span class="strategy-badge" class:strategy-badge-best={s.badge === 'best'}>{s.badge}</span>{/if}
       </button>
     {/each}
   </div>
@@ -195,6 +208,30 @@
       aria-label="Enable OCR for scanned documents"
     />
     <span class="toggle-name">OCR</span>
+  </label>
+
+  <span class="sep-dot" aria-hidden="true">·</span>
+
+  <label
+    class="toggle-label late-chunk-label"
+    title="Late chunking embeds the whole document first, then mean-pools token embeddings per chunk span — preserving cross-chunk context. Based on Günther et al., Jina AI, EMNLP 2024 (arxiv 2409.04701). Downloads ~23 MB model on first use."
+  >
+    <input
+      type="checkbox"
+      checked={lateChunking}
+      onchange={toggleLateChunking}
+      aria-label="Enable late chunking to preserve cross-chunk context in embeddings"
+    />
+    <span class="toggle-name">Late chunking</span>
+    <a
+      class="late-chunk-help"
+      href="https://arxiv.org/abs/2409.04701"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Günther et al., Late Chunking, EMNLP 2024 — arxiv 2409.04701"
+      aria-label="Late chunking paper (opens in new tab)"
+      onclick={(e) => e.stopPropagation()}
+    >?</a>
   </label>
 
   <span class="sep-dot" aria-hidden="true">·</span>
@@ -301,6 +338,12 @@
     margin-left: 4px;
     vertical-align: middle;
     line-height: 12px;
+  }
+
+  /* "best" badge gets green accent */
+  .strategy-badge-best {
+    color: #22c55e;
+    border-color: color-mix(in srgb, #22c55e 50%, transparent);
   }
 
   /* ── Row 2: sliders ─────────────────────────────────────────── */
@@ -461,5 +504,34 @@
     outline: none;
   }
   .keywords-input:focus { border-color: var(--accent); }
+
+  .late-chunk-label {
+    position: relative;
+  }
+
+  .late-chunk-help {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    line-height: 1;
+    margin-left: 2px;
+    flex-shrink: 0;
+    cursor: help;
+  }
+  .late-chunk-help:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .late-chunk-help:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
 
 </style>

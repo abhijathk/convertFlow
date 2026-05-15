@@ -319,6 +319,30 @@
           </div>
         </div>
 
+          <div class="setting-row stacked">
+            <span>OpenAI API key <span class="key-hint">(for fine-tune push)</span></span>
+            <input
+              type="password"
+              class="key-input"
+              value={$appSettings.openaiApiKey}
+              placeholder="sk-..."
+              autocomplete="off"
+              oninput={(e) => updateAppSetting('openaiApiKey', e.currentTarget.value)}
+            />
+          </div>
+          <div class="setting-row stacked">
+            <span>Anthropic API key <span class="key-hint">(for fine-tune push)</span></span>
+            <input
+              type="password"
+              class="key-input"
+              value={$appSettings.anthropicApiKey}
+              placeholder="sk-ant-..."
+              autocomplete="off"
+              oninput={(e) => updateAppSetting('anthropicApiKey', e.currentTarget.value)}
+            />
+          </div>
+        </div>
+
         <div class="settings-section" id="settings-section-chunk">
           <span class="settings-label">chunk</span>
           <label class="setting-row">
@@ -391,6 +415,30 @@
               </select>
             </label>
           {/if}
+        </div>
+
+          <div class="setting-row stacked">
+            <span>Local LLM endpoint <span class="key-hint">(Ollama / LM Studio)</span></span>
+            <input
+              type="text"
+              class="key-input"
+              value={$appSettings.localLlmEndpoint}
+              placeholder="http://localhost:11434"
+              autocomplete="off"
+              oninput={(e) => updateAppSetting('localLlmEndpoint', e.currentTarget.value)}
+            />
+          </div>
+          <div class="setting-row stacked">
+            <span>Local LLM model</span>
+            <input
+              type="text"
+              class="key-input"
+              value={$appSettings.localLlmModel}
+              placeholder="llama3.1"
+              autocomplete="off"
+              oninput={(e) => updateAppSetting('localLlmModel', e.currentTarget.value)}
+            />
+          </div>
         </div>
 
         <div class="settings-section" id="settings-section-privacy">
@@ -900,4 +948,26 @@
   }
   .about-link-btn:hover { color: var(--accent); }
   .settings-action:disabled { opacity: 0.5; cursor: wait; }
+
+  .key-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    color: var(--ink);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 11px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .key-input:focus { border-color: var(--accent); }
+  .key-input::placeholder { color: var(--muted); }
+
+  .key-hint {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
 </style>

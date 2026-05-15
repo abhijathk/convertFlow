@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { convertState, type DatasetFile, type ExportFormat } from '../stores/convertState';
-  import { shellState, openPalette, clearPaletteAction, consumePendingConvertSource, setTab, convertStatsOpen, convertHfDialogOpen } from '../stores/shellState';
+  import { shellState, openPalette, clearPaletteAction, consumePendingConvertSource, setTab, convertStatsOpen, convertHfDialogOpen, pushFinetuneProvider, magpieDialogOpen } from '../stores/shellState';
   import { openFile as openInEditorTab, openFileWithSplitPane, splitPaneInitialPreview, openFile, pendingJump } from '../stores/editorState';
   import { isMac } from '../lib/platform';
   import { analytics } from '../lib/analytics';
@@ -13,6 +13,8 @@
   import ConvertDatasetPanel from './ConvertDatasetPanel.svelte';
   import ChunkTrustStrip from './ChunkTrustStrip.svelte';
   import HfHubPushDialog from './HfHubPushDialog.svelte';
+  import PushFinetuneDialog from './PushFinetuneDialog.svelte';
+  import MagpieGenerateDialog from './MagpieGenerateDialog.svelte';
   import ConvertStatsPanel from './ConvertStatsPanel.svelte';
   import { validateJsonl } from '../lib/validate';
   import { approximateTokens } from '../lib/tokenize';
@@ -995,6 +997,24 @@
     content={getActiveContent()}
     defaultFileName={`dataset.${$convertState.exportFormat === 'parquet' ? 'parquet' : $convertState.exportFormat === 'alpaca' || $convertState.exportFormat === 'sharegpt' ? 'jsonl' : $convertState.exportFormat}`}
     onclose={() => convertHfDialogOpen.set(false)}
+  />
+{/if}
+
+{#if $pushFinetuneProvider !== 'none'}
+  <PushFinetuneDialog
+    content={getActiveContent()}
+    onclose={() => pushFinetuneProvider.set('none')}
+  />
+{/if}
+
+{#if $magpieDialogOpen}
+  <MagpieGenerateDialog
+    onclose={() => magpieDialogOpen.set(false)}
+    onappend={(jsonl) => {
+      const current = $convertState.editorContent ?? '';
+      const next = current.trim() ? current.trimEnd() + '\n' + jsonl : jsonl;
+      convertState.update(s => ({ ...s, editorContent: next }));
+    }}
   />
 {/if}
 

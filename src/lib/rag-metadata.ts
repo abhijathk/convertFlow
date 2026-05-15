@@ -86,6 +86,7 @@ export async function enrichChunks(
   rawChunks: RawChunk[],
   sourceMeta?: SourceMeta,
   indexOffset = 0,
+  chunkEmbeddings?: { embeddings: Float32Array[]; lateChunked: boolean },
 ): Promise<ChunkMeta[]> {
   return Promise.all(
     rawChunks.map(async ({ text: content, startOffset, endOffset }, i) => {
@@ -115,6 +116,11 @@ export async function enrichChunks(
       if (sourceMeta?.source_type === 'md' && sourceMeta.section_map) {
         const sec = sourceMeta.section_map[i];
         if (sec) base.section = sec;
+      }
+
+      if (chunkEmbeddings && i < chunkEmbeddings.embeddings.length) {
+        base.embedding = Array.from(chunkEmbeddings.embeddings[i]);
+        base.late_chunked = chunkEmbeddings.lateChunked;
       }
 
       return base;

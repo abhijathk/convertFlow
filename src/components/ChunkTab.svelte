@@ -13,11 +13,92 @@
   import ChunkPreview from './ChunkPreview.svelte';
   import ChunkMetadataPanel from './ChunkMetadataPanel.svelte';
   import ChunkBoundaryOverlay from './ChunkBoundaryOverlay.svelte';
-  import type { ChunkResult, ChunkError } from '../workers/chunk.worker';
+  import type { ChunkResult, ChunkError, EmbeddingProgress } from '../workers/chunk.worker';
   import { openFileWithSplitPane } from '../stores/editorState';
   import { setTab, shellState, consumePendingChunkSource, chunkStatsOpen } from '../stores/shellState';
   import ChunkStatsPanel from './ChunkStatsPanel.svelte';
   import { setToolInput, selectedUtilityId } from '../stores/utilitiesState';
+  import { embedText, embedBatch, cosineSimilarity } from '../lib/embeddings';
+
+  // ── Retrieval test (feature #3) ──────────────────────────────────────────
+  let retrievalQuery = $state('');
+  let retrievalResults = $state<{ index: number; score: number }[]>([]);
+  let retrievalStatus = $state<'idle' | 'embedding' | 'querying' | 'ready' | 'error'>('idle');
+  let retrievalError = $state('');
+  // Cache: index -> Float32Array. Computed on-demand when chunks lack embedding field.
+  let retrievalCache = $state<Map<number, Float32Array>>(new Map());
+
+  async function ensureChunkEmbeddings(): Promise<Float32Array[] | null> {
+    const chunks = $chunkState.chunks;
+    if (chunks.length === 0) return null;
+    const out: Float32Array[] = [];
+    let needCompute: { index: number; text: string }[] = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      if (chunks[i].embedding) {
+        out.push(new Float32Array(chunks[i].embedding!));
+      } else if (retrievalCache.has(i)) {
+        out.push(retrievalCache.get(i)!);
+      } else {
+        out.push(new Float32Array());
+        needCompute.push({ index: i, text: chunks[i].content });
+      }
+    }
+
+    if (needCompute.length > 0) {
+      retrievalStatus = 'embedding';
+      const embs = await embedBatch(needCompute.map(c => c.text));
+      const updated = new Map(retrievalCache);
+      needCompute.forEach((c, i) => {
+        out[c.index] = embs[i];
+        updated.set(c.index, embs[i]);
+      });
+      retrievalCache = updated;
+    }
+    return out;
+  }
+
+  async function runRetrieval() {
+    const q = retrievalQuery.trim();
+    if (!q || $chunkState.chunks.length === 0) {
+      retrievalResults = [];
+      retrievalStatus = 'idle';
+      return;
+    }
+    retrievalError = '';
+    try {
+      const chunkEmbs = await ensureChunkEmbeddings();
+      if (!chunkEmbs) return;
+      retrievalStatus = 'querying';
+      const queryEmb = await embedText(q);
+      const scored = chunkEmbs.map((emb, idx) => ({
+        index: idx,
+        score: emb.length > 0 ? cosineSimilarity(queryEmb, emb) : -1,
+      }));
+      retrievalResults = scored
+        .filter(r => r.score >= 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+      retrievalStatus = 'ready';
+    } catch (err) {
+      retrievalStatus = 'error';
+      retrievalError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  // Clear cache when chunks change
+  $effect(() => {
+    void $chunkState.chunks;
+    retrievalCache = new Map();
+    retrievalResults = [];
+    if (retrievalStatus !== 'idle') retrievalStatus = 'idle';
+  });
+
+  let retrievalDebounce: ReturnType<typeof setTimeout> | undefined;
+  function onRetrievalInput() {
+    if (retrievalDebounce) clearTimeout(retrievalDebounce);
+    retrievalDebounce = setTimeout(() => runRetrieval(), 350);
+  }
 
   function openInUtilities() {
     const source = $chunkState.sourceText ?? '';
@@ -117,6 +198,17 @@
   let batchStatus = $state('');   // e.g. "Processing 3/12: report.pdf…"
   let batchToast = $state('');    // end-of-batch summary toast
   let batchToastTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // Embedding model download banner (Feature #1 / #2)
+  let embeddingProgress = $state<{ loaded: number; total: number } | null>(null);
+  let embeddingModelLoaded = $state(false);
+  let embeddingModelToastTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // Feature #3: retrieval test
+  let retrievalQuery = $state('');
+  let retrievalResults = $state<{ score: number; chunkIndex: number; preview: string; source?: string }[]>([]);
+  let isComputingEmbeddings = $state(false);
+  let retrievalDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Format-specific source-panel rendering. Image data lives in chunkState
   // (sourceImageData / sourceImageFilename) so the source preview shows it
@@ -938,11 +1030,43 @@
   {/if}
 
   <div class="list-pane" style="flex: 0 0 {listWidth}px; min-width: {MIN_LIST}px">
-    <ChunksList
-      selectedIndex={selectedChunkIndex}
-      onselect={(i) => (selectedChunkIndex = i)}
-      {exportFormat}
-    />
+    <div class="list-scroll">
+      <ChunksList
+        selectedIndex={selectedChunkIndex}
+        onselect={(i) => (selectedChunkIndex = i)}
+        {exportFormat}
+      />
+    </div>
+    {#if $chunkState.chunks.length > 0}
+      <div class="retrieval-test" aria-label="Retrieval test">
+        <input
+          type="text"
+          class="retrieval-input"
+          placeholder="test retrieval — type a question…"
+          bind:value={retrievalQuery}
+          oninput={onRetrievalInput}
+          onkeydown={(e) => { if (e.key === 'Enter') runRetrieval(); }}
+        />
+        {#if retrievalStatus === 'embedding'}
+          <div class="retrieval-status">computing chunk embeddings…</div>
+        {:else if retrievalStatus === 'querying'}
+          <div class="retrieval-status">searching…</div>
+        {:else if retrievalStatus === 'error'}
+          <div class="retrieval-status retrieval-err">{retrievalError}</div>
+        {:else if retrievalStatus === 'ready' && retrievalResults.length > 0}
+          <ul class="retrieval-results">
+            {#each retrievalResults as r}
+              <button class="retrieval-row" onclick={() => (selectedChunkIndex = r.index)}>
+                <span class="retrieval-score">{r.score.toFixed(3)}</span>
+                <span class="retrieval-snippet">
+                  #{r.index + 1} · {$chunkState.chunks[r.index]?.content.slice(0, 80) ?? ''}
+                </span>
+              </button>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    {/if}
   </div>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1062,6 +1186,78 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
+  }
+  .list-scroll {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── Retrieval test (feature #3) ───────────────────────────────────────── */
+  .retrieval-test {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .retrieval-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 8px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 11px;
+  }
+  .retrieval-input:focus { outline: none; border-color: var(--accent); }
+  .retrieval-status {
+    font-size: 10px;
+    color: var(--muted);
+    padding: 2px 4px;
+  }
+  .retrieval-err { color: var(--err); }
+  .retrieval-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .retrieval-row {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 4px 6px;
+    border-radius: 2px;
+    cursor: pointer;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    font-family: inherit;
+    color: var(--ink);
+    font-size: 11px;
+  }
+  .retrieval-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .retrieval-score {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    min-width: 38px;
+  }
+  .retrieval-snippet {
+    color: var(--ink-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
     min-width: 0;
   }
 

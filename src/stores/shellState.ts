@@ -152,6 +152,12 @@ export const convertHfDialogOpen = _writable(false);
 // Ephemeral UI toggle for Chunk tab stats panel.
 export const chunkStatsOpen = _writable(false);
 
+// Fine-tune push dialog — 'none' | 'openai' | 'anthropic'
+export const pushFinetuneProvider = _writable<'none' | 'openai' | 'anthropic'>('none');
+
+// Magpie generate dialog open state.
+export const magpieDialogOpen = _writable(false);
+
 export function openPalette() {
   shellState.update(s => ({ ...s, paletteOpen: true }));
 }

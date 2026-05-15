@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type ChunkStrategy = 'fixed' | 'paragraph' | 'semantic';
+export type ChunkStrategy = 'fixed' | 'paragraph' | 'semantic' | 'embedding';
 export type ParseStatus = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
 
 export interface ChunkMeta {
@@ -22,6 +22,8 @@ export interface ChunkMeta {
   source_type?: 'pdf' | 'md' | 'txt' | 'html' | 'image' | 'csv' | 'jsonl' | 'unknown';
   page?: number;             // 1-indexed PDF page; only present when source_type === 'pdf'
   section?: string;          // markdown heading the chunk falls under; only for md
+  embedding?: number[];      // dense vector embedding (float32, normalized)
+  late_chunked?: boolean;    // true = embedding computed via late-chunking; false = per-chunk fallback
 }
 
 export interface ChunkState {
@@ -45,6 +47,7 @@ export interface ChunkState {
   enableImages: boolean;
   enableOcr: boolean;
   manualBoundaries: number[] | null;
+  lateChunking: boolean;
 }
 
 const STORAGE_KEY = 'dataprep:chunk-state-v1';
@@ -81,6 +84,7 @@ function defaultState(): ChunkState {
     enableImages: imagesDefault,
     enableOcr: ocrDefault,
     manualBoundaries: null,
+    lateChunking: false,
   };
 }
 

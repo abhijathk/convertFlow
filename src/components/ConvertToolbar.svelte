@@ -3,7 +3,7 @@
   import type { ExportFormat } from '../stores/convertState';
   import presetsJson from '../data/presets.json';
   import { setToolInput, selectedUtilityId } from '../stores/utilitiesState';
-  import { setTab } from '../stores/shellState';
+  import { setTab, pushFinetuneProvider, magpieDialogOpen } from '../stores/shellState';
   import { appSettings } from '../stores/appSettings';
 
   function openInUtilities() {
@@ -34,6 +34,25 @@
   }
 
   let { oncopy, ondownload, ondownloadzip, onopeneditor, datasetFileCount = 0, onpresetchange, copyFeedback = '', onimporttoggle, onformatchange, onhfpush, onstatstoggle, statsOpen = false }: Props = $props();
+
+  // Push dropdown state
+  let pushMenuOpen = $state(false);
+  let pushMenuEl = $state<HTMLDivElement | undefined>();
+
+  function openPushMenu(e: MouseEvent) {
+    e.stopPropagation();
+    pushMenuOpen = !pushMenuOpen;
+  }
+
+  function closePushMenu() {
+    pushMenuOpen = false;
+  }
+
+  function handlePushOutsideClick(e: MouseEvent) {
+    if (pushMenuEl && !pushMenuEl.contains(e.target as Node)) {
+      pushMenuOpen = false;
+    }
+  }
 
 
   // ── Format tab definitions ────────────────────────────────────────────────
@@ -203,7 +222,7 @@
 
 </script>
 
-<svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
+<svelte:window onkeydown={handleKeydown} onclick={(e) => { handleOutsideClick(e); handlePushOutsideClick(e); }} />
 
 <!-- Row 1: Format tabs + copy/download actions -->
 <div class="toolbar-row toolbar-tabs">
@@ -223,6 +242,36 @@
     <button class="import-btn" onclick={onimporttoggle} title="Import files — single, multiple, or a folder">import ↓</button>
     <button onclick={onopeneditor} disabled={!hasContent} class="editor-btn" title="Edit current content in Editor tab (⌘3)">↗ Editor</button>
     <button onclick={openInUtilities} disabled={!$convertState.editorContent?.trim()} class="utilities-btn" title="Analyze content in Utilities tab">↗ Utilities</button>
+    <!-- Generate: Magpie local-LLM synthesis -->
+    <button
+      class="generate-btn"
+      onclick={() => magpieDialogOpen.set(true)}
+      title="Generate synthetic data with local LLM (Magpie)"
+    >Generate</button>
+    <!-- Push dropdown: HF Hub / OpenAI / Anthropic -->
+    <div class="push-wrap" bind:this={pushMenuEl}>
+      <button
+        class="push-btn"
+        disabled={!hasContent}
+        onclick={openPushMenu}
+        title="Push dataset to a fine-tune API"
+        aria-haspopup="true"
+        aria-expanded={pushMenuOpen}
+      >Push ↑</button>
+      {#if pushMenuOpen}
+        <div class="push-menu" role="menu">
+          <button class="push-menu-item" role="menuitem" onclick={() => { onhfpush?.(); closePushMenu(); }}>
+            HF Hub
+          </button>
+          <button class="push-menu-item" role="menuitem" onclick={() => { pushFinetuneProvider.set('openai'); closePushMenu(); }}>
+            OpenAI fine-tune
+          </button>
+          <button class="push-menu-item" role="menuitem" onclick={() => { pushFinetuneProvider.set('anthropic'); closePushMenu(); }}>
+            Anthropic fine-tune
+          </button>
+        </div>
+      {/if}
+    </div>
     {#if !isBinary}
       <button
         onclick={oncopy}
@@ -877,4 +926,60 @@
 
   .sys-input:focus:not(:disabled) { border-color: var(--accent); }
   .sys-input::placeholder { color: var(--muted); font-style: italic; }
+
+  /* ── Push dropdown ──────────────────────────────────────────────────────── */
+  .push-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .push-btn {
+    background: none;
+    border: 1px solid color-mix(in srgb, var(--syntax-key) 40%, transparent);
+    border-radius: 2px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--syntax-key);
+  }
+  .push-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--syntax-key) 10%, transparent); border-color: var(--syntax-key); }
+  .push-btn:disabled { opacity: 0.35; cursor: default; }
+  .push-menu {
+    position: absolute;
+    top: calc(100% + 3px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    z-index: 50;
+    min-width: 160px;
+    padding: 2px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .push-menu-item {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    text-align: left;
+  }
+  .push-menu-item:hover { background: var(--border); }
+
+  /* ── Generate button ────────────────────────────────────────────────────── */
+  .generate-btn {
+    background: none;
+    border: 1px solid color-mix(in srgb, var(--ok, #22c55e) 40%, transparent);
+    border-radius: 2px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ok, #22c55e);
+  }
+  .generate-btn:hover { background: color-mix(in srgb, var(--ok, #22c55e) 10%, transparent); border-color: var(--ok, #22c55e); }
 </style>

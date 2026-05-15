@@ -190,6 +190,121 @@ export function semanticChunk(text: string, params: ChunkParams = {}): RawChunk[
   return attachOffsets(text, filtered);
 }
 
+// ── Embedding-based semantic chunking ─────────────────────────────────────────
+
+/**
+ * Async embedding-based chunking. Sentence-splits, embeds each sentence,
+ * finds cosine-similarity breakpoints at the 25th percentile, then groups
+ * sentences into chunks within the token budget.
+ *
+ * Must be called from within the chunk worker (never the main thread) because
+ * transformers.js pipeline is loaded there.
+ */
+export async function embeddingChunk(
+  text: string,
+  params: ChunkParams = {},
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<RawChunk[]> {
+  const maxTok = params.maxTokens ?? DEFAULT_MAX_TOKENS;
+
+  // Sentence-split
+  const rawSentences = text.split(/[.!?]+\s+/).map(s => s.trim()).filter(s => s.length > 0);
+  if (rawSentences.length <= 1) {
+    return fixedChunk(text, params);
+  }
+
+  // Dynamically import embeddings so this module can still be imported on the
+  // main thread (the import resolves only inside the worker).
+  const { embedBatch, cosineSimilarity } = await import('./embeddings');
+
+  const embeddings = await embedBatch(rawSentences, onProgress);
+
+  // Compute pairwise similarities between consecutive sentences
+  const similarities: number[] = [];
+  for (let i = 0; i < embeddings.length - 1; i++) {
+    similarities.push(cosineSimilarity(embeddings[i], embeddings[i + 1]));
+  }
+
+  // 25th-percentile threshold
+  const sorted = [...similarities].sort((a, b) => a - b);
+  const p25idx = Math.floor(sorted.length * 0.25);
+  const threshold = sorted[p25idx] ?? 0;
+
+  // Identify breakpoints: indices where similarity < threshold
+  const breakpoints = new Set<number>();
+  for (let i = 0; i < similarities.length; i++) {
+    if (similarities[i] < threshold) {
+      breakpoints.add(i + 1); // break BEFORE sentence i+1
+    }
+  }
+
+  // Greedily group sentences into chunks
+  const chunkTexts: string[] = [];
+  let acc: string[] = [];
+
+  for (let i = 0; i < rawSentences.length; i++) {
+    const sentence = rawSentences[i];
+    const candidate = [...acc, sentence].join(' ');
+    const tokCount = approxTokens(candidate);
+
+    const isBreakpoint = breakpoints.has(i);
+    const isOverBudget = tokCount > maxTok;
+
+    if ((isBreakpoint || isOverBudget) && acc.length > 0) {
+      chunkTexts.push(acc.join(' '));
+      acc = [sentence];
+    } else {
+      acc.push(sentence);
+    }
+  }
+  if (acc.length > 0) chunkTexts.push(acc.join(' '));
+
+  const filtered = chunkTexts.filter(c => c.trim().length > 0);
+  return attachOffsets(text, filtered);
+}
+
+// ── Late chunking ─────────────────────────────────────────────────────────────
+
+/**
+ * Compute late-chunking embeddings for an array of RawChunks.
+ * Encodes the full document once, then mean-pools token embeddings per chunk span.
+ *
+ * Falls back to per-chunk embedding when source > 512 tokens (MiniLM limit).
+ * Returns { embeddings, lateChunked } — lateChunked=false signals the fallback.
+ */
+export async function lateChunkEmbeddings(
+  text: string,
+  rawChunks: RawChunk[],
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<{ embeddings: Float32Array[]; lateChunked: boolean }> {
+  const { embedTokens, poolTokensForChunk, embedBatch, MINILM_MAX_TOKENS } =
+    await import('./embeddings');
+
+  const approxSourceTokens = approxTokens(text);
+
+  if (approxSourceTokens > MINILM_MAX_TOKENS) {
+    // Source too long for late-chunking with MiniLM — fall back to per-chunk
+    console.warn(
+      `[late-chunking] Source is ~${approxSourceTokens} tokens; MiniLM limit is ${MINILM_MAX_TOKENS}. ` +
+        'Falling back to per-chunk embedding. Use jina-embeddings-v2 for true late chunking on long docs.',
+    );
+    const embeddings = await embedBatch(
+      rawChunks.map(c => c.text),
+      onProgress,
+    );
+    return { embeddings, lateChunked: false };
+  }
+
+  // Full-document token embeddings
+  const { tokenEmbeddings, tokenOffsets } = await embedTokens(text, onProgress);
+
+  const embeddings: Float32Array[] = rawChunks.map(chunk =>
+    poolTokensForChunk(tokenEmbeddings, tokenOffsets, chunk.startOffset, chunk.endOffset),
+  );
+
+  return { embeddings, lateChunked: true };
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 
 export function chunkText(text: string, strategy: ChunkStrategy, params?: ChunkParams): RawChunk[] {
@@ -198,5 +313,9 @@ export function chunkText(text: string, strategy: ChunkStrategy, params?: ChunkP
     case 'fixed': return fixedChunk(text, params);
     case 'paragraph': return paragraphChunk(text, params);
     case 'semantic': return semanticChunk(text, params);
+    case 'embedding':
+      // embeddingChunk is async; callers must use it directly.
+      // Fallback to semantic for synchronous callers (bulk-import path).
+      return semanticChunk(text, params);
   }
 }

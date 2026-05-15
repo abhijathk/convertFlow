@@ -51,6 +51,14 @@ export interface AppSettings {
   // Support / ad slot — users can dismiss the in-app support card. When
   // false, the card is hidden across sessions.
   showSupportPanel: boolean;
+
+  // Fine-tune API keys — stored in localStorage (masked in UI).
+  openaiApiKey: string;
+  anthropicApiKey: string;
+
+  // Local LLM settings for Magpie synthesis (Feature #11).
+  localLlmEndpoint: string;
+  localLlmModel: string;
 }
 
 const defaults: AppSettings = {
@@ -77,6 +85,10 @@ const defaults: AppSettings = {
   desktopAutoUpdate: true,
   desktopConfirmExit: false,
   showSupportPanel: true,
+  openaiApiKey: '',
+  anthropicApiKey: '',
+  localLlmEndpoint: 'http://localhost:11434',
+  localLlmModel: 'llama3.1',
 };
 
 function loadSettings(): AppSettings {

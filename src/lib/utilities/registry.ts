@@ -28,6 +28,7 @@ export const TOOLS: UtilityMeta[] = [
   { id: 'pii-redactor', name: 'PII Detector', category: 'validation', autoPrefillEligible: true, description: 'Detect and redact emails, phones, SSNs, credit cards, API keys, and more.' },
   { id: 'schema-migrator', name: 'Schema Migrator', category: 'data', autoPrefillEligible: true, description: 'Convert JSONL between OpenAI, Anthropic, Alpaca, and ShareGPT schemas.' },
   { id: 'jsonl-repair', name: 'JSONL Repair', category: 'data', autoPrefillEligible: true, description: 'Recover malformed JSONL: fix BOM, line endings, trailing commas, single quotes, control chars, and truncated lines.' },
+  { id: 'contamination-check', name: 'Contamination Check', category: 'validation', autoPrefillEligible: true, description: 'Detect overlap with common eval benchmarks (MMLU, GSM8K, HellaSwag, HumanEval, IFEval, ARC).' },
 ];
 
 const toolLoaders = import.meta.glob('./tools/*.ts') as Record<
