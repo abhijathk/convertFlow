@@ -18,6 +18,10 @@ export interface ChunkMeta {
   endOffset: number;
   image_data?: string;       // base64 data URL (data:image/png;base64,...)
   image_filename?: string;
+  source?: string;           // filename, e.g. "report.pdf"
+  source_type?: 'pdf' | 'md' | 'txt' | 'html' | 'image' | 'csv' | 'jsonl' | 'unknown';
+  page?: number;             // 1-indexed PDF page; only present when source_type === 'pdf'
+  section?: string;          // markdown heading the chunk falls under; only for md
 }
 
 export interface ChunkState {

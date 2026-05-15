@@ -4,11 +4,12 @@
 
   interface Props {
     onImport?: () => void;
+    onFolder?: () => void;
     onEditor?: () => void;
     onUtilities?: () => void;
     actionsDisabled?: boolean;
   }
-  let { onImport, onEditor, onUtilities, actionsDisabled = false }: Props = $props();
+  let { onImport, onFolder, onEditor, onUtilities, actionsDisabled = false }: Props = $props();
 
   const strategies: { id: ChunkStrategy; label: string; badge?: string; description: string }[] = [
     {
@@ -95,7 +96,7 @@
       </button>
     {/each}
   </div>
-  {#if onImport || onEditor || onUtilities}
+  {#if onImport || onFolder || onEditor || onUtilities}
     <div class="strategy-actions">
       {#if onImport}
         <button
@@ -103,6 +104,13 @@
           onclick={onImport}
           title="Import a file"
         >import ↓</button>
+      {/if}
+      {#if onFolder}
+        <button
+          class="strategy-action-btn"
+          onclick={onFolder}
+          title="Import a folder of files"
+        >folder ↓</button>
       {/if}
       {#if onEditor}
         <button

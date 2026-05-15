@@ -104,6 +104,7 @@
   let editorRef: EditorIsland | undefined = $state();
   let editorWrapEl: HTMLDivElement | undefined = $state();
   let fileInput: HTMLInputElement | undefined = $state();
+  let folderInput: HTMLInputElement | undefined = $state();
   let isDragging = $state(false);
   let worker: Worker | undefined;
   let copyFeedback = $state('');
@@ -111,6 +112,11 @@
   let suppressNextChange = false;
   let hasContent = $state(false);
   let confirmingClear = $state(false);
+
+  // Bulk-import state (#10)
+  let batchStatus = $state('');   // e.g. "Processing 3/12: report.pdf…"
+  let batchToast = $state('');    // end-of-batch summary toast
+  let batchToastTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Format-specific source-panel rendering. Image data lives in chunkState
   // (sourceImageData / sourceImageFilename) so the source preview shows it
@@ -121,6 +127,18 @@
   let isPdfSource = $derived(sourceFormat === 'pdf');
   let sourceImageData = $derived($chunkState.sourceImageData);
   let sourceImageFilename = $derived($chunkState.sourceImageFilename);
+
+  // Resolve a filename extension to the source_type enum used in ChunkMeta
+  function extToSourceType(ext: string): import('../stores/chunkState').ChunkMeta['source_type'] {
+    if (ext === 'pdf') return 'pdf';
+    if (ext === 'md' || ext === 'markdown') return 'md';
+    if (ext === 'txt') return 'txt';
+    if (ext === 'html' || ext === 'htm') return 'html';
+    if (['png','jpg','jpeg','webp','gif','bmp','tiff'].includes(ext)) return 'image';
+    if (ext === 'csv') return 'csv';
+    if (ext === 'jsonl') return 'jsonl';
+    return 'unknown';
+  }
 
   function getWorker(): Worker {
     if (!worker) {
@@ -147,7 +165,12 @@
     return worker;
   }
 
-  function runChunking(text: string) {
+  function runChunking(
+    text: string,
+    source?: string,
+    source_type?: import('../stores/chunkState').ChunkMeta['source_type'],
+    page_offsets?: number[],
+  ) {
     selectedChunkIndex = undefined;
     if (!text.trim()) {
       chunkState.update(s => ({
@@ -172,7 +195,183 @@
         overlap: state.chunkOverlap,
         maxParagraphTokens: state.chunkSize,
       },
+      source,
+      source_type,
+      page_offsets,
     });
+  }
+
+  // ── Bulk folder/multi-file import (#10) ───────────────────────────────────
+
+  const SUPPORTED_BULK_EXTS = new Set(['txt','md','markdown','json','jsonl','csv','docx','pdf']);
+
+  /** Process multiple files sequentially, aggregate chunks with continuous index. */
+  async function processFiles(files: File[]) {
+    const supported = files.filter(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+      return SUPPORTED_BULK_EXTS.has(ext) ||
+        ($chunkState.enableImages && ['png','jpg','jpeg','webp','gif','bmp','tiff'].includes(ext));
+    });
+    const skipped = files.length - supported.length;
+
+    if (supported.length === 0) {
+      batchToast = `Skipped ${skipped} unsupported file${skipped !== 1 ? 's' : ''}.`;
+      if (batchToastTimer) clearTimeout(batchToastTimer);
+      batchToastTimer = setTimeout(() => (batchToast = ''), 4000);
+      return;
+    }
+
+    // For single files delegate to the existing single-file path (keeps editor sync)
+    if (supported.length === 1 && skipped === 0) {
+      await parseFile(supported[0]);
+      return;
+    }
+
+    // Multi-file batch mode: collect all chunks then write to state at once
+    chunkState.update(s => ({
+      ...s,
+      parseStatus: 'parsing',
+      parseProgress: 5,
+      parseError: null,
+      chunks: [],
+      manualBoundaries: null,
+    }));
+
+    const { enrichChunks } = await import('../lib/rag-metadata');
+    const { chunkText: doChunk } = await import('../lib/chunk');
+    const state = $chunkState;
+
+    const allChunks: import('../stores/chunkState').ChunkMeta[] = [];
+    let importedCount = 0;
+    let failedCount = 0;
+    const failedNames: string[] = [];
+
+    for (let fi = 0; fi < supported.length; fi++) {
+      const file = supported[fi];
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      batchStatus = `Processing ${fi + 1}/${supported.length}: ${file.name}…`;
+
+      try {
+        const source_type = extToSourceType(ext);
+        let text = '';
+        let page_offsets: number[] | undefined;
+
+        if (['txt','md','markdown','json','jsonl'].includes(ext)) {
+          text = await file.text();
+        } else if (ext === 'csv') {
+          const raw = await file.text();
+          text = csvToText(raw);
+        } else if (ext === 'docx') {
+          const { default: mammoth } = await import('mammoth');
+          const buffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+          text = result.value;
+        } else if (ext === 'pdf') {
+          const { loadPdfJs } = await import('../lib/pdf-loader');
+          const pdfjsLib = await loadPdfJs();
+          const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+          const pageTexts: string[] = [];
+          page_offsets = [];
+          let cumulative = 0;
+          for (let p = 1; p <= pdf.numPages; p++) {
+            page_offsets.push(cumulative);
+            const page = await pdf.getPage(p);
+            const content = await page.getTextContent();
+            const t = content.items.map((item: any) => item.str ?? '').join(' ').trim();
+            pageTexts.push(t);
+            cumulative += t.length + 2; // +2 for the '\n\n' join
+          }
+          text = pageTexts.join('\n\n').trim();
+        } else if (['png','jpg','jpeg','webp','gif','bmp','tiff'].includes(ext)) {
+          if ($chunkState.enableOcr) {
+            const { createWorker: createTesseract } = await import('tesseract.js');
+            const tWorker = await createTesseract('eng');
+            const dataUrl = await new Promise<string>((res, rej) => {
+              const reader = new FileReader();
+              reader.onload = () => res(reader.result as string);
+              reader.onerror = () => rej(new Error('Failed to read image'));
+              reader.readAsDataURL(file);
+            });
+            const { data: { text: ocrText } } = await tWorker.recognize(dataUrl);
+            await tWorker.terminate();
+            text = ocrText.trim() || `[Image: ${file.name}]`;
+          } else {
+            text = `[Image: ${file.name}]`;
+          }
+        }
+
+        if (!text.trim()) { failedCount++; failedNames.push(file.name); continue; }
+
+        // Build section_map for markdown inline (mirrors worker logic)
+        let section_map: string[] | undefined;
+        const raw = doChunk(text, state.strategy, {
+          maxTokens: state.chunkSize,
+          overlap: state.chunkOverlap,
+          maxParagraphTokens: state.chunkSize,
+        });
+
+        if (source_type === 'md') {
+          const headings: { offset: number; text: string }[] = [];
+          const headingRe = /^(#{1,6})\s+(.+)$/gm;
+          let hm: RegExpExecArray | null;
+          while ((hm = headingRe.exec(text)) !== null) {
+            headings.push({ offset: hm.index, text: hm[2].trim() });
+          }
+          section_map = raw.map(chunk => {
+            for (let hi = headings.length - 1; hi >= 0; hi--) {
+              if (headings[hi].offset <= chunk.startOffset) return headings[hi].text;
+            }
+            return '';
+          });
+        }
+
+        const enriched = await enrichChunks(raw, {
+          source: file.name,
+          source_type,
+          page_offsets,
+          section_map,
+        }, allChunks.length);
+
+        // Fix total_siblings — each file contributes to the running total
+        for (const c of enriched) {
+          allChunks.push({ ...c, total_siblings: raw.length });
+        }
+        importedCount++;
+      } catch {
+        failedCount++;
+        failedNames.push(file.name);
+      }
+    }
+
+    batchStatus = '';
+    // Renumber chunk_id consistently and set total_siblings to grand total
+    const total = allChunks.length;
+    const finalChunks = allChunks.map((c, i) => ({
+      ...c,
+      chunk_id: `chunk-${i + 1}`,
+      chunk_index: i,
+      total_siblings: total,
+    }));
+
+    chunkState.update(s => ({
+      ...s,
+      chunks: finalChunks,
+      parseStatus: finalChunks.length > 0 ? 'done' : 'error',
+      parseError: finalChunks.length === 0 ? 'No text found in any file.' : null,
+      parseProgress: 0,
+      sourceText: '',
+      sourceCharCount: finalChunks.reduce((sum, c) => sum + c.char_count, 0),
+      manualBoundaries: null,
+    }));
+
+    if (finalChunks.length > 0) selectedChunkIndex = 0;
+
+    let toastParts = [`Imported ${importedCount} file${importedCount !== 1 ? 's' : ''}`];
+    const totalSkipped = skipped + failedCount;
+    if (totalSkipped > 0) toastParts.push(`skipped ${totalSkipped} unsupported`);
+    batchToast = toastParts.join(', ') + '.';
+    if (batchToastTimer) clearTimeout(batchToastTimer);
+    batchToastTimer = setTimeout(() => (batchToast = ''), 5000);
   }
 
   function selectPrev() {
@@ -219,7 +418,15 @@
       return;
     }
     const content = editorRef?.getValue() ?? '';
-    if (content.trim()) runChunking(content);
+    if (content.trim()) {
+      const s = $chunkState as any;
+      runChunking(
+        content,
+        s._pendingSource,
+        s._pendingSourceType,
+        s._pendingPageOffsets,
+      );
+    }
   }
 
   // ── CSV → readable text ───────────────────────────────────────────────────
@@ -283,6 +490,7 @@
 
     try {
       let text = '';
+      let page_offsets: number[] | undefined;
 
       if (['txt', 'md', 'markdown', 'json', 'jsonl'].includes(ext)) {
         text = await file.text();
@@ -330,13 +538,54 @@
 
       } else if (ext === 'pdf') {
         chunkState.update(s => ({ ...s, parseStatus: 'parsing', parseProgress: 30 }));
-        const { extractPdfText, extractPdfTextWithOcr } = await import('../lib/pdf-loader');
+        // Extract page_offsets alongside text so chunks can carry page numbers.
+        const { loadPdfJs } = await import('../lib/pdf-loader');
+        const pdfjsLib = await loadPdfJs();
+        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        const pageTexts: string[] = [];
+        page_offsets = [];
+        let cumulative = 0;
+        for (let p = 1; p <= pdf.numPages; p++) {
+          page_offsets.push(cumulative);
+          const page = await pdf.getPage(p);
+          if (enableOcr) {
+            chunkState.update(s => ({ ...s, parseStatus: 'parsing', parseProgress: 30 + Math.floor((p / pdf.numPages) * 40) }));
+          }
+          const content = await page.getTextContent();
+          const t = content.items.map((item: any) => item.str ?? '').join(' ').trim();
+          pageTexts.push(t);
+          cumulative += t.length + 2;
+        }
+        text = pageTexts.join('\n\n').trim();
+
+        // Run OCR on empty pages if requested
         if (enableOcr) {
-          text = await extractPdfTextWithOcr(file, () => {
-            chunkState.update(s => ({ ...s, parseStatus: 'parsing' }));
-          });
-        } else {
-          text = await extractPdfText(file);
+          const emptyPages = pageTexts.reduce<number[]>((acc, t, i) => (!t ? [...acc, i + 1] : acc), []);
+          if (emptyPages.length > 0) {
+            const { createWorker } = await import('tesseract.js');
+            const tWorker = await createWorker('eng');
+            const pdfjsLib2 = await loadPdfJs();
+            const pdf2 = await pdfjsLib2.getDocument({ data: await file.arrayBuffer() }).promise;
+            for (const pageNum of emptyPages) {
+              const pg = await pdf2.getPage(pageNum);
+              const viewport = pg.getViewport({ scale: 2 });
+              const canvas = document.createElement('canvas');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              await pg.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
+              const { data: { text: ocrT } } = await tWorker.recognize(canvas);
+              pageTexts[pageNum - 1] = ocrT.trim();
+            }
+            await tWorker.terminate();
+            // Rebuild text and page_offsets with OCR results
+            page_offsets = [];
+            let cum2 = 0;
+            for (const pt of pageTexts) {
+              page_offsets.push(cum2);
+              cum2 += pt.length + 2;
+            }
+            text = pageTexts.join('\n\n').trim();
+          }
         }
 
       } else if (enableImages && ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff'].includes(ext)) {
@@ -408,6 +657,13 @@
       }
       chunkState.update(s => ({ ...s, parseStatus: 'idle', parseProgress: 0 }));
       analytics.fileUploaded(ext);
+      // Store page_offsets on state so generate() can pass them to the worker
+      (chunkState.update as Function)(s => ({
+        ...s,
+        _pendingPageOffsets: page_offsets,
+        _pendingSource: file.name,
+        _pendingSourceType: extToSourceType(ext),
+      }));
 
     } catch (err) {
       chunkState.update(s => ({
@@ -419,16 +675,25 @@
   }
 
   function handleFileSelect(e: Event) {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (file) parseFile(file);
+    const files = Array.from((e.target as HTMLInputElement).files ?? []);
     if (fileInput) fileInput.value = '';
+    if (folderInput) folderInput.value = '';
+    if (files.length > 1) {
+      processFiles(files);
+    } else if (files.length === 1) {
+      parseFile(files[0]);
+    }
   }
 
   function handleDrop(e: DragEvent) {
     e.preventDefault();
     isDragging = false;
-    const file = e.dataTransfer?.files[0];
-    if (file) parseFile(file);
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (files.length > 1) {
+      processFiles(files);
+    } else if (files.length === 1) {
+      parseFile(files[0]);
+    }
   }
 
   function handleDragOver(e: DragEvent) {
@@ -459,6 +724,10 @@
 
   function openFilePicker() {
     fileInput?.click();
+  }
+
+  function openFolderPicker() {
+    folderInput?.click();
   }
 
   function clearAll() {
@@ -553,6 +822,7 @@
 
   onDestroy(() => {
     if (copyTimer) clearTimeout(copyTimer);
+    if (batchToastTimer) clearTimeout(batchToastTimer);
     worker?.terminate();
   });
 </script>
@@ -561,6 +831,7 @@
 
 <ChunkStrategyPicker
   onImport={openFilePicker}
+  onFolder={openFolderPicker}
   onEditor={openInEditor}
   onUtilities={openInUtilities}
   actionsDisabled={!hasContent}
@@ -721,6 +992,7 @@
 <input
   bind:this={fileInput}
   type="file"
+  multiple
   accept={[
     '.txt,.md,.markdown,.json,.jsonl,.csv,.docx,.pdf',
     $chunkState.enableImages ? '.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff' : ''
@@ -728,6 +1000,21 @@
   style="display:none"
   onchange={handleFileSelect}
 />
+<input
+  bind:this={folderInput}
+  type="file"
+  webkitdirectory
+  style="display:none"
+  onchange={handleFileSelect}
+/>
+
+{#if batchStatus}
+  <div class="batch-status" role="status" aria-live="polite">{batchStatus}</div>
+{/if}
+
+{#if batchToast}
+  <div class="copy-toast batch-toast" role="status" aria-live="polite">{batchToast}</div>
+{/if}
 
 <style>
   .chunk-body {
@@ -1118,4 +1405,24 @@
     border-color: color-mix(in srgb, var(--err) 40%, transparent);
   }
   .confirm-clear:hover { background: color-mix(in srgb, var(--err) 10%, transparent); }
+
+  .batch-status {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: var(--accent);
+    z-index: 50;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .batch-toast {
+    bottom: 68px;
+  }
 </style>

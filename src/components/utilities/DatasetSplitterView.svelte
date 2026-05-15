@@ -21,10 +21,12 @@
   let result = $state<UtilityResult | null>(null);
   let running = $state(false);
 
-  let trainPct = $state(80);
-  let valPct = $state(10);
-  let testPct = $state(10);
-  let seed = $state('');
+  let trainPct   = $state(80);
+  let valPct     = $state(10);
+  let testPct    = $state(10);
+  let seed       = $state('');
+  let stratifyBy = $state<'none' | 'role-mix' | 'length-bucket' | 'system-prompt'>('none');
+  let leakageCheck = $state(true);
 
   let sumError = $derived(Math.round(trainPct + valPct + testPct) !== 100 ? `Percentages sum to ${trainPct + valPct + testPct} — must equal 100` : '');
 
@@ -33,7 +35,7 @@
     running = true;
     result = await runUtility(meta.id, {
       input: toolState.primaryInput,
-      options: { trainPct, valPct, testPct, seed },
+      options: { trainPct, valPct, testPct, seed, stratifyBy, leakageCheck },
     });
     running = false;
   }
@@ -93,6 +95,33 @@
       <input id="seed-{meta.id}" class="text-input" type="text" bind:value={seed} placeholder="leave blank for random" oninput={() => (result = null)} />
     </div>
   </div>
+
+  <div class="extra-row">
+    <div class="select-field">
+      <label class="field-label" for="stratify-{meta.id}">Stratify by</label>
+      <select
+        id="stratify-{meta.id}"
+        class="select-input"
+        bind:value={stratifyBy}
+        onchange={() => (result = null)}
+      >
+        <option value="none">None (random)</option>
+        <option value="role-mix">Role mix</option>
+        <option value="length-bucket">Length bucket</option>
+        <option value="system-prompt">System prompt</option>
+      </select>
+    </div>
+
+    <label class="checkbox-field">
+      <input
+        type="checkbox"
+        bind:checked={leakageCheck}
+        onchange={() => (result = null)}
+      />
+      <span class="field-label" style="margin-bottom:0; text-transform:none; letter-spacing:normal; font-weight:400; color:var(--ink);">Check leakage (13-gram)</span>
+    </label>
+  </div>
+
   {#if sumError}
     <p class="inline-error" role="alert">{sumError}</p>
   {/if}
@@ -129,6 +158,41 @@
           </div>
         </div>
       {/each}
+
+      {#if d.leakage}
+        <div class="leakage-card" class:leakage-clean={d.leakage.trainTestPairs.length === 0}>
+          <div class="leakage-header">
+            <span class="leakage-title">Leakage check (13-gram overlap)</span>
+            {#if d.leakage.sampledOnly}
+              <span class="leakage-badge sampled">sampled</span>
+            {/if}
+          </div>
+          {#if d.leakage.trainTestPairs.length === 0}
+            <p class="leakage-ok">No 13-gram overlap detected between train and val/test.</p>
+          {:else}
+            <p class="leakage-warn">{d.leakage.trainTestPairs.length} train↔val/test pair{d.leakage.trainTestPairs.length === 1 ? '' : 's'} share at least one 13-gram.{d.leakage.sampledOnly ? ' (scan capped at 10k pairs)' : ''}</p>
+            <div class="leakage-table-wrap">
+              <table class="leakage-table">
+                <thead>
+                  <tr><th>Train line</th><th>Val/Test line</th><th>Shared 13-gram</th></tr>
+                </thead>
+                <tbody>
+                  {#each d.leakage.trainTestPairs.slice(0, 20) as pair}
+                    <tr>
+                      <td>{pair.trainLine}</td>
+                      <td>{pair.testLine}</td>
+                      <td class="ngram-cell" title={pair.ngram}>{pair.ngram.length > 60 ? pair.ngram.slice(0, 60) + '…' : pair.ngram}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+              {#if d.leakage.trainTestPairs.length > 20}
+                <p class="leakage-more">…and {d.leakage.trainTestPairs.length - 20} more pairs</p>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   {:else if !result.ok}
     <div class="error-panel" role="alert">{result.error ?? 'An error occurred.'}</div>
@@ -171,11 +235,28 @@
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
   .pct-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
   .pct-field { display: flex; flex-direction: column; width: 80px; }
   .seed-field { display: flex; flex-direction: column; flex: 1; min-width: 140px; }
+  .extra-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+  .select-field { display: flex; flex-direction: column; min-width: 160px; }
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding-bottom: 2px;
+  }
+  .checkbox-field input[type='checkbox'] {
+    accent-color: var(--accent);
+    cursor: pointer;
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    flex-shrink: 0;
+  }
   .num-input {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -203,6 +284,20 @@
   }
   .text-input:focus { border-color: var(--accent); }
   .text-input::placeholder { color: var(--muted); font-style: italic; }
+  .select-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 8px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+    outline: none;
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+  .select-input:focus { border-color: var(--accent); }
   .inline-error {
     font-size: 12px;
     color: #ef4444;
@@ -272,5 +367,93 @@
     padding: 10px 14px;
     font-size: 13px;
     color: var(--ink);
+  }
+
+  /* Leakage card */
+  .leakage-card {
+    background: color-mix(in srgb, var(--warn) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+    border-radius: 4px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .leakage-card.leakage-clean {
+    background: color-mix(in srgb, var(--ok) 8%, transparent);
+    border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+  }
+  .leakage-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .leakage-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+  }
+  .leakage-badge {
+    font-size: 10px;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .leakage-badge.sampled {
+    background: color-mix(in srgb, var(--warn) 20%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent);
+    color: var(--warn);
+  }
+  .leakage-ok {
+    font-size: 12px;
+    color: var(--ok);
+    margin: 0;
+  }
+  .leakage-warn {
+    font-size: 12px;
+    color: var(--warn);
+    margin: 0;
+  }
+  .leakage-table-wrap {
+    overflow-x: auto;
+  }
+  .leakage-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+  .leakage-table th {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .leakage-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+  .ngram-cell {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .leakage-more {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 4px 0 0;
+    padding: 0 8px;
   }
 </style>

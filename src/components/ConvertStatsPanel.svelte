@@ -176,9 +176,146 @@
     const totalTokens = s.tokenLengths.mean * s.recordCount;
     return { cost: (totalTokens / 1_000_000) * perM, perMTokens: perM };
   }
+
+  // ── Export report ────────────────────────────────────────────────────────────
+
+  let exportFormat = $state<'md' | 'csv'>('md');
+
+  function buildMarkdownReport(s: DatasetStats, sum: DatasetSummary, preset: Preset | null): string {
+    const now = new Date().toISOString();
+    const totalChars = s.tokenLengths.mean * s.recordCount * 4; // rough char estimate
+    const bulletPrefix = (b: DatasetSummary['bullets'][number]): string => {
+      if (b.status === 'ok')   return '✓ OK';
+      if (b.status === 'warn') return '⚠ Warn';
+      return '✗ Err';
+    };
+
+    const findingsSection = sum.bullets.map(b => `- [${bulletPrefix(b)}] ${b.text}`).join('\n');
+
+    const ce = costEstimate(s, preset);
+    const rows: [string, string][] = [
+      ['Total records',            String(s.recordCount)],
+      ['Invalid records',          String(s.invalidCount)],
+      ['Empty records',            String(s.emptyCount)],
+      ['Duplicate (exact)',        String(s.duplicates.exact)],
+      ['Near-duplicate (norm)',    String(s.duplicates.normalized)],
+      ['Over-budget records',      String(s.overBudget.count)],
+      ['Token budget limit',       String(s.overBudget.limit)],
+      ['Mean tokens/record',       String(s.tokenLengths.mean)],
+      ['Median tokens/record',     String(s.tokenLengths.median)],
+      ['P95 tokens/record',        String(s.tokenLengths.p95)],
+      ['Max tokens/record',        String(s.tokenLengths.max)],
+      ['Mean assistant chars',     String(s.assistantLength.mean)],
+      ['Median assistant chars',   String(s.assistantLength.median)],
+      ['Refusal count',            String(s.refusal.count)],
+      ['Refusal % (of asst)',      (s.refusal.pctOfAssistant * 100).toFixed(1) + '%'],
+      ['Control char records',     String(s.qualityFlags.controlChars)],
+      ['HTML escape records',      String(s.qualityFlags.htmlEscapes)],
+      ['Prompt injection records', String(s.qualityFlags.promptInjection)],
+      ['Unique vocab tokens',      String(s.vocabRichness.uniqueTokens)],
+      ['Type-token ratio',         (s.vocabRichness.typeTokenRatio * 100).toFixed(1) + '%'],
+      ['Est. training time (min)', String(s.trainingTimeEstimate.minutes)],
+      ...(ce ? [['Est. training cost ($)', `$${ce.cost.toFixed(2)}`] as [string, string]] : []),
+    ];
+
+    const statsTable = [
+      '| Metric | Value |',
+      '|---|---|',
+      ...rows.map(([k, v]) => `| ${k} | ${v} |`),
+    ].join('\n');
+
+    return [
+      '# convertFlow validation report',
+      `Generated: ${now}`,
+      `Preset: ${preset?.name ?? 'unknown'}`,
+      `Dataset: ${s.recordCount} records, ~${totalChars.toLocaleString()} chars`,
+      '',
+      '## Summary',
+      sum.tldr,
+      '',
+      '## Findings',
+      findingsSection || '- [✓ OK] No issues detected.',
+      '',
+      '## Stats',
+      statsTable,
+    ].join('\n');
+  }
+
+  function buildCsvReport(s: DatasetStats, preset: Preset | null): string {
+    const ce = costEstimate(s, preset);
+    const rows: [string, string][] = [
+      ['preset',                   preset?.name ?? ''],
+      ['total_records',            String(s.recordCount)],
+      ['invalid_records',          String(s.invalidCount)],
+      ['empty_records',            String(s.emptyCount)],
+      ['duplicate_exact',          String(s.duplicates.exact)],
+      ['duplicate_normalized',     String(s.duplicates.normalized)],
+      ['over_budget',              String(s.overBudget.count)],
+      ['token_budget_limit',       String(s.overBudget.limit)],
+      ['token_mean',               String(s.tokenLengths.mean)],
+      ['token_median',             String(s.tokenLengths.median)],
+      ['token_p95',                String(s.tokenLengths.p95)],
+      ['token_max',                String(s.tokenLengths.max)],
+      ['asst_chars_mean',          String(s.assistantLength.mean)],
+      ['asst_chars_median',        String(s.assistantLength.median)],
+      ['refusal_count',            String(s.refusal.count)],
+      ['refusal_pct_of_asst',      (s.refusal.pctOfAssistant * 100).toFixed(1)],
+      ['control_chars',            String(s.qualityFlags.controlChars)],
+      ['html_escapes',             String(s.qualityFlags.htmlEscapes)],
+      ['prompt_injection',         String(s.qualityFlags.promptInjection)],
+      ['vocab_unique_tokens',      String(s.vocabRichness.uniqueTokens)],
+      ['type_token_ratio',         (s.vocabRichness.typeTokenRatio * 100).toFixed(1)],
+      ['est_training_minutes',     String(s.trainingTimeEstimate.minutes)],
+      ...(ce ? [['est_training_cost_usd', ce.cost.toFixed(2)] as [string, string]] : []),
+    ];
+    const header = rows.map(([k]) => k).join(',');
+    const values = rows.map(([, v]) => `"${v.replace(/"/g, '""')}"`).join(',');
+    return `${header}\n${values}`;
+  }
+
+  function downloadReport() {
+    if (!stats || !summary) return;
+    const ts = new Date().toISOString()
+      .replace(/[-:]/g, '')
+      .replace('T', '-')
+      .slice(0, 15);
+    const isCsv = exportFormat === 'csv';
+    const content = isCsv
+      ? buildCsvReport(stats, activePreset)
+      : buildMarkdownReport(stats, summary, activePreset);
+    const mime = isCsv ? 'text/csv' : 'text/markdown';
+    const ext  = isCsv ? 'csv' : 'md';
+    const filename = `convertflow-report-${ts}.${ext}`;
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 </script>
 
 <div class="stats-panel" role="region" aria-label="Dataset statistics">
+  {#if stats}
+    <div class="export-toolbar">
+      <select
+        class="export-format-select"
+        bind:value={exportFormat}
+        aria-label="Report format"
+        title="Report format"
+      >
+        <option value="md">Markdown</option>
+        <option value="csv">CSV</option>
+      </select>
+      <button
+        class="export-report-btn"
+        onclick={downloadReport}
+        title="Download validation report"
+        aria-label="Export validation report"
+      >export report ↓</button>
+    </div>
+  {/if}
   {#if !stats}
     <div class="empty-state">
       <span class="empty-icon" aria-hidden="true">◌</span>
@@ -547,6 +684,49 @@
     padding: 16px;
     background: var(--bg);
     min-height: 0;
+  }
+
+  .export-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .export-format-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--ink-dim);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 2px 20px 2px 6px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%23a8a296' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    outline: none;
+  }
+  .export-format-select:hover { border-color: var(--ink-dim); }
+  .export-format-select option { background: var(--surface); color: var(--ink); }
+
+  .export-report-btn {
+    background: none;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    border-radius: 2px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .export-report-btn:hover {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-color: var(--accent);
   }
 
   .empty-state {

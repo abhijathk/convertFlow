@@ -1,6 +1,9 @@
 import type { ChunkMeta } from '../stores/chunkState';
 import type { RawChunk } from './chunk';
 
+// Re-export for worker convenience
+export type { ChunkMeta };
+
 // Common English stopwords — kept small intentionally
 const STOPWORDS = new Set([
   'a','an','the','and','or','but','in','on','at','to','for','of','with','by',
@@ -60,13 +63,36 @@ export async function hashText(text: string): Promise<string> {
 
 // ── Build full ChunkMeta array ────────────────────────────────────────────────
 
-export async function enrichChunks(rawChunks: RawChunk[]): Promise<ChunkMeta[]> {
+export interface SourceMeta {
+  source?: string;
+  source_type?: ChunkMeta['source_type'];
+  page_offsets?: number[];   // cumulative char-offset at the start of each page (length === numPages)
+  section_map?: string[];    // pre-built: for each chunk index, its heading (md only)
+}
+
+/** Binary-search page_offsets to find which 1-indexed page contains charOffset. */
+function pageFromOffset(offsets: number[], charOffset: number): number {
+  let lo = 0;
+  let hi = offsets.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (offsets[mid] <= charOffset) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo + 1; // 1-indexed
+}
+
+export async function enrichChunks(
+  rawChunks: RawChunk[],
+  sourceMeta?: SourceMeta,
+  indexOffset = 0,
+): Promise<ChunkMeta[]> {
   return Promise.all(
     rawChunks.map(async ({ text: content, startOffset, endOffset }, i) => {
       const hash = await hashText(content);
-      return {
-        chunk_id: `chunk-${i + 1}`,
-        chunk_index: i,
+      const base: ChunkMeta = {
+        chunk_id: `chunk-${indexOffset + i + 1}`,
+        chunk_index: indexOffset + i,
         total_siblings: rawChunks.length,
         hash,
         char_count: content.length,
@@ -78,6 +104,20 @@ export async function enrichChunks(rawChunks: RawChunk[]): Promise<ChunkMeta[]> 
         startOffset,
         endOffset,
       };
+
+      if (sourceMeta?.source) base.source = sourceMeta.source;
+      if (sourceMeta?.source_type) base.source_type = sourceMeta.source_type;
+
+      if (sourceMeta?.source_type === 'pdf' && sourceMeta.page_offsets?.length) {
+        base.page = pageFromOffset(sourceMeta.page_offsets, startOffset);
+      }
+
+      if (sourceMeta?.source_type === 'md' && sourceMeta.section_map) {
+        const sec = sourceMeta.section_map[i];
+        if (sec) base.section = sec;
+      }
+
+      return base;
     })
   );
 }
