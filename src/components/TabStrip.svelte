@@ -88,6 +88,27 @@
       if (!el) settingsOpen = false;
     }
   }
+
+  // ── Settings popover nav rail ────────────────────────────────────────────
+  type SectionKey = 'appearance' | 'syntax' | 'editor' | 'convert' | 'chunk' | 'desktop' | 'advanced' | 'privacy' | 'about' | 'support';
+  const SETTINGS_SECTIONS: { key: SectionKey; label: string; desktopOnly?: boolean }[] = [
+    { key: 'appearance', label: 'Appearance' },
+    { key: 'syntax',     label: 'Syntax' },
+    { key: 'editor',     label: 'Editor' },
+    { key: 'convert',    label: 'Convert' },
+    { key: 'chunk',      label: 'Chunk' },
+    { key: 'desktop',    label: 'Desktop', desktopOnly: true },
+    { key: 'advanced',   label: 'Advanced' },
+    { key: 'privacy',    label: 'Privacy' },
+    { key: 'about',      label: 'About' },
+    { key: 'support',    label: 'Support' },
+  ];
+  let activeSection = $state<SectionKey>('appearance');
+  function scrollToSettingsSection(key: SectionKey) {
+    activeSection = key;
+    const el = document.getElementById(`settings-section-${key}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
@@ -180,7 +201,20 @@
 
     {#if settingsOpen}
       <div class="settings-popover" role="dialog" aria-label="Settings">
-        <div class="settings-section">
+        <aside class="settings-nav" aria-label="Settings sections">
+          {#each SETTINGS_SECTIONS as s}
+            {#if !s.desktopOnly || isDesktop}
+              <button
+                class="settings-nav-btn"
+                class:active={activeSection === s.key}
+                onclick={() => scrollToSettingsSection(s.key)}
+                aria-controls="settings-section-{s.key}"
+              >{s.label}</button>
+            {/if}
+          {/each}
+        </aside>
+        <div class="settings-content">
+        <div class="settings-section" id="settings-section-appearance">
           <span class="settings-label">appearance</span>
           <div class="setting-row">
             <span>Theme</span>
@@ -201,7 +235,7 @@
           </label>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-syntax">
           <span class="settings-label">syntax theme</span>
           <div class="theme-list">
             {#each visibleThemes as t (t.id)}
@@ -217,7 +251,7 @@
           </div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-editor">
           <span class="settings-label">editor</span>
           <label class="setting-row">
             <span>Word wrap</span>
@@ -244,7 +278,7 @@
           </div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-convert">
           <span class="settings-label">convert</span>
           <label class="setting-row">
             <span>Sample threshold (rows)</span>
@@ -285,7 +319,7 @@
           </div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-chunk">
           <span class="settings-label">chunk</span>
           <label class="setting-row">
             <span>Images by default</span>
@@ -298,7 +332,7 @@
         </div>
 
         {#if isDesktop}
-          <div class="settings-section">
+          <div class="settings-section" id="settings-section-desktop">
             <span class="settings-label">desktop</span>
             <label class="setting-row">
               <span>Start minimized</span>
@@ -323,7 +357,7 @@
           </div>
         {/if}
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-advanced">
           <span class="settings-label">advanced</span>
           <label class="setting-row">
             <span>Advanced features</span>
@@ -359,7 +393,7 @@
           {/if}
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-privacy">
           <span class="settings-label">privacy</span>
           <label class="setting-row">
             <span>Anonymous telemetry</span>
@@ -369,7 +403,7 @@
           <button class="settings-action danger" onclick={() => (confirmingClear = true)}>Clear all stored data…</button>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-about">
           <span class="settings-label">about</span>
           <div class="setting-row">
             <span>Version</span>
@@ -400,7 +434,7 @@
           </div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section" id="settings-section-support">
           <span class="settings-label">support</span>
           <div class="setting-row">
             <span>Buy me a coffee</span>
@@ -412,6 +446,18 @@
             <button class="about-link-btn" onclick={() => openExternal('https://convertflow.live/support')}>Visit support page →</button>
           </div>
         </div>
+        </div>
+        <!-- Pinned: always visible regardless of which section is in view -->
+        <footer class="settings-footer">
+          <button class="settings-coffee-btn" onclick={() => openExternal('https://buymeacoffee.com/abhijathkat')} title="Support convertFlow — opens Buy Me a Coffee">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h8v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Z"/>
+              <path d="M11 7h1.5a1.5 1.5 0 0 1 0 3H11"/>
+              <path d="M5 2v2M7 2v2M9 2v2"/>
+            </svg>
+            <span>Buy me a coffee</span>
+          </button>
+        </footer>
       </div>
     {/if}
 
@@ -528,12 +574,84 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 8px 0;
-    min-width: 260px;
+    padding: 0;
+    width: 420px;
     max-height: 70vh;
-    overflow-y: auto;
     z-index: 200;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
+  }
+
+  .settings-nav {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    background: color-mix(in srgb, var(--bg) 70%, var(--surface));
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  .settings-nav-btn {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink-dim);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: color 0.1s, border-color 0.1s, background 0.1s;
+  }
+  .settings-nav-btn:hover {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+  }
+  .settings-nav-btn.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .settings-content {
+    grid-column: 2;
+    grid-row: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .settings-footer {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    justify-content: stretch;
+  }
+  .settings-coffee-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    background: none;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    color: var(--accent);
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .settings-coffee-btn:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   @media (max-width: 600px) {
@@ -543,11 +661,34 @@
       bottom: 0;
       left: 0;
       right: 0;
-      min-width: unset;
+      width: 100%;
       max-height: 80vh;
       border-radius: 10px 10px 0 0;
       border-bottom: none;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto;
     }
+    .settings-nav {
+      grid-column: 1;
+      grid-row: 1;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 4px;
+    }
+    .settings-nav-btn {
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .settings-nav-btn.active {
+      border-left-color: transparent;
+      border-bottom-color: var(--accent);
+    }
+    .settings-content { grid-column: 1; grid-row: 2; }
+    .settings-footer  { grid-column: 1; grid-row: 3; }
   }
 
   .settings-section {
